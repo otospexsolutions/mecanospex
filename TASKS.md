@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 2 - Multi-Tenancy & Auth
-**Task:** 2.2 - User & Authentication
+**Task:** 2.3 - RBAC
 **Last Updated:** 2025-11-30
 
 ---
@@ -204,11 +204,11 @@ php artisan tinker --execute="Tenant::count()" | grep -q "1"
 ```
 
 ### 2.2 User & Authentication
-- [ ] Create users table with tenant association
-- [ ] Implement Sanctum authentication
-- [ ] Create login/logout endpoints
-- [ ] Implement device management
-- [ ] Add biometric auth support structure
+- [x] Create users table with tenant association
+- [x] Implement Sanctum authentication
+- [x] Create login/logout endpoints
+- [x] Implement device management
+- [x] Add biometric auth support structure
 
 **Verification:**
 ```bash
