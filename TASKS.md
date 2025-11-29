@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 2 - Multi-Tenancy & Auth
-**Task:** 2.1 - Tenant Management
+**Task:** 2.2 - User & Authentication
 **Last Updated:** 2025-11-30
 
 ---
@@ -191,11 +191,11 @@ chmod +x scripts/preflight.sh
 ```
 
 ### 2.1 Tenant Management
-- [ ] Create `tenants` table migration
-- [ ] Configure schema-based tenancy
-- [ ] Create tenant seeder for development
-- [ ] Implement tenant creation command
-- [ ] Add tenant middleware
+- [x] Create `tenants` table migration
+- [x] Configure schema-based tenancy
+- [x] Create tenant seeder for development
+- [x] Implement tenant creation command
+- [x] Add tenant middleware
 
 **Verification:**
 ```bash
