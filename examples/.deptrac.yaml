@@ -1,0 +1,126 @@
+# .deptrac.yaml - Module Boundary Enforcement
+#
+# This configuration prevents "spaghetti code" by enforcing clean module boundaries.
+# Run: ./vendor/bin/deptrac analyse
+#
+# Violations will block CI/CD pipeline.
+
+deptrac:
+  paths:
+    - ./app
+
+  layers:
+    # Shared layer - accessible by all modules
+    - name: Shared
+      collectors:
+        - type: directory
+          value: app/Shared/.*
+
+    # Domain layer - pure business logic, no framework dependencies
+    - name: Domain
+      collectors:
+        - type: directory
+          value: app/Modules/.*/Domain/.*
+
+    # Application layer - use cases, DTOs, commands
+    - name: Application
+      collectors:
+        - type: directory
+          value: app/Modules/.*/Application/.*
+
+    # Infrastructure layer - Eloquent, external services
+    - name: Infrastructure
+      collectors:
+        - type: directory
+          value: app/Modules/.*/Infrastructure/.*
+
+    # HTTP layer - Controllers, Requests, Resources
+    - name: Http
+      collectors:
+        - type: directory
+          value: app/Modules/.*/Http/.*
+
+    # Individual modules (for cross-module boundary checks)
+    - name: PartnerModule
+      collectors:
+        - type: directory
+          value: app/Modules/Partner/.*
+
+    - name: SalesModule
+      collectors:
+        - type: directory
+          value: app/Modules/Sales/.*
+
+    - name: InventoryModule
+      collectors:
+        - type: directory
+          value: app/Modules/Inventory/.*
+
+    - name: TreasuryModule
+      collectors:
+        - type: directory
+          value: app/Modules/Treasury/.*
+
+    - name: AccountingModule
+      collectors:
+        - type: directory
+          value: app/Modules/Accounting/.*
+
+  ruleset:
+    # Domain layer rules (most restrictive)
+    Domain:
+      - Shared  # Can only depend on Shared
+
+    # Application layer rules
+    Application:
+      - Domain
+      - Shared
+
+    # Infrastructure layer rules
+    Infrastructure:
+      - Domain
+      - Application
+      - Shared
+
+    # HTTP layer rules
+    Http:
+      - Application
+      - Shared
+      # Note: Http should NOT depend on Domain directly
+
+    # Cross-module rules
+    # Modules can ONLY communicate via Shared/Contracts interfaces
+    SalesModule:
+      - Shared
+      - PartnerModule  # Allowed: Sales needs Partner data
+
+    InventoryModule:
+      - Shared
+      # NOT allowed: Direct dependency on SalesModule
+
+    TreasuryModule:
+      - Shared
+      - SalesModule  # Allowed: Treasury needs Document data
+
+    AccountingModule:
+      - Shared
+      - SalesModule
+      - TreasuryModule
+
+  skip_violations:
+    # Temporary exceptions during development (remove before production)
+    # - DependencyViolation:
+    #     - App\Modules\Sales\Domain\Document
+    #     - App\Modules\Inventory\Domain\Stock
+
+  formatters:
+    graphviz:
+      hidden_layers:
+        - Shared
+      groups:
+        Core:
+          - Domain
+          - Application
+        Framework:
+          - Infrastructure
+          - Http
