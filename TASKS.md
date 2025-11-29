@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 1 - Infrastructure
-**Task:** 1.5 - CI/CD Pipeline
+**Task:** 1.6 - Agent Safety Infrastructure
 **Last Updated:** 2025-11-30
 
 ---
@@ -138,15 +138,15 @@ pnpm lint && echo "✓ Lint passes"
 ```
 
 ### 1.5 CI/CD Pipeline
-- [ ] Create `.github/workflows/ci.yml`
-- [ ] Configure jobs:
+- [x] Create `.github/workflows/ci.yml`
+- [x] Configure jobs:
   - Backend tests (PHPUnit)
   - Backend static analysis (PHPStan level 8)
   - Frontend tests (Vitest)
   - Frontend type check
   - Frontend lint
-- [ ] Set up CodeRabbit config (`.coderabbit.yaml`)
-- [ ] Configure SonarCloud
+- [x] Set up CodeRabbit config (`.coderabbit.yaml`)
+- [x] Configure SonarCloud
 
 **Verification:**
 ```bash
