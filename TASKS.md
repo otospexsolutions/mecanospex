@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 1 - Infrastructure
-**Task:** 1.4 - React Foundation
+**Task:** 1.5 - CI/CD Pipeline
 **Last Updated:** 2025-11-30
 
 ---
@@ -118,16 +118,16 @@ php artisan tinker --execute="Redis::ping()" && echo "✓ Redis connected"
 ```
 
 ### 1.4 React Foundation
-- [ ] Create React app with Vite in `apps/web`
-- [ ] Configure TypeScript strict mode
-- [ ] Install dependencies:
+- [x] Create React app with Vite in `apps/web`
+- [x] Configure TypeScript strict mode
+- [x] Install dependencies:
   - `@tanstack/react-query`
   - `zustand`
   - `react-router-dom`
   - `tailwindcss`
   - `lucide-react`
-- [ ] Set up folder structure
-- [ ] Create base API client with auth handling
+- [x] Set up folder structure
+- [x] Create base API client with auth handling
 
 **Verification:**
 ```bash
