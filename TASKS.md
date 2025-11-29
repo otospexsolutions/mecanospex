@@ -7,8 +7,8 @@
 
 ## Current Status
 
-**Phase:** 1 - Infrastructure
-**Task:** 1.6 - Agent Safety Infrastructure
+**Phase:** 2 - Multi-Tenancy & Auth
+**Task:** 2.1 - Tenant Management
 **Last Updated:** 2025-11-30
 
 ---
@@ -154,34 +154,34 @@ act -j test && echo "✓ CI workflow runs locally"
 ```
 
 ### 1.6 Agent Safety Infrastructure
-- [ ] Create `scripts/preflight.sh`:
+- [x] Create `scripts/preflight.sh`:
   ```bash
   #!/bin/bash
   set -e
   echo "🔍 Running preflight checks..."
-  
+
   # Backend
   cd apps/api
   ./vendor/bin/pint --test
   ./vendor/bin/phpstan analyse --level=8
   php artisan test --parallel
-  
+
   # Type Generation
   php artisan typescript:transform
-  
+
   # Frontend
   cd ../web
   pnpm typecheck
   pnpm lint
   pnpm test --run
-  
+
   echo "✅ All preflight checks passed!"
   ```
-- [ ] Install `spatie/typescript-transformer` in Laravel
-- [ ] Configure TypeScript transformer for DTOs
-- [ ] Create `tests/Fixtures/HashChainReference.php` with hardcoded test vectors
-- [ ] Configure Deptrac for module boundary enforcement
-- [ ] Create `.deptrac.yaml` with layer definitions
+- [x] Install `spatie/typescript-transformer` in Laravel
+- [x] Configure TypeScript transformer for DTOs
+- [x] Create `tests/Fixtures/HashChainReference.php` with hardcoded test vectors
+- [x] Configure Deptrac for module boundary enforcement
+- [x] Create `.deptrac.yaml` with layer definitions
 
 **Verification:**
 ```bash
