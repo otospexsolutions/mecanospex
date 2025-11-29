@@ -1,0 +1,19 @@
+{
+  "name": "autoerp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Compliance-ready, tamper-proof ERP system for automotive service businesses",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "preflight": "./scripts/preflight.sh"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.14.2"
+}

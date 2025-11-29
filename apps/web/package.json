@@ -1,0 +1,13 @@
+{
+  "name": "@autoerp/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'React app will be initialized in Task 1.4'",
+    "build": "echo 'React app will be initialized in Task 1.4'",
+    "test": "echo 'React app will be initialized in Task 1.4'",
+    "lint": "echo 'React app will be initialized in Task 1.4'",
+    "typecheck": "echo 'React app will be initialized in Task 1.4'"
+  }
+}
