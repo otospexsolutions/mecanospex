@@ -45,6 +45,14 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
         return app(DocumentController::class)->destroy($request, DocumentType::Quote, $quote);
     })->middleware('can:quotes.delete')->name('quotes.destroy');
 
+    Route::post('/quotes/{quote}/confirm', function (Request $request, string $quote) {
+        return app(DocumentController::class)->confirm($request, DocumentType::Quote, $quote);
+    })->middleware('can:quotes.update')->name('quotes.confirm');
+
+    Route::post('/quotes/{quote}/convert-to-order', function (Request $request, string $quote) {
+        return app(DocumentController::class)->convertQuoteToOrder($request, $quote);
+    })->middleware('can:quotes.convert')->name('quotes.convert-to-order');
+
     // Sales Orders
     Route::get('/orders', function (Request $request) {
         return app(DocumentController::class)->index($request, DocumentType::SalesOrder);
@@ -72,6 +80,14 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
     Route::delete('/orders/{order}', function (Request $request, string $order) {
         return app(DocumentController::class)->destroy($request, DocumentType::SalesOrder, $order);
     })->middleware('can:orders.delete')->name('orders.destroy');
+
+    Route::post('/orders/{order}/confirm', function (Request $request, string $order) {
+        return app(DocumentController::class)->confirm($request, DocumentType::SalesOrder, $order);
+    })->middleware('can:orders.confirm')->name('orders.confirm');
+
+    Route::post('/orders/{order}/convert-to-invoice', function (Request $request, string $order) {
+        return app(DocumentController::class)->convertOrderToInvoice($request, $order);
+    })->middleware('can:invoices.create')->name('orders.convert-to-invoice');
 
     // Invoices
     Route::get('/invoices', function (Request $request) {
@@ -101,6 +117,22 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
         return app(DocumentController::class)->destroy($request, DocumentType::Invoice, $invoice);
     })->middleware('can:invoices.delete')->name('invoices.destroy');
 
+    Route::post('/invoices/{invoice}/confirm', function (Request $request, string $invoice) {
+        return app(DocumentController::class)->confirm($request, DocumentType::Invoice, $invoice);
+    })->middleware('can:invoices.update')->name('invoices.confirm');
+
+    Route::post('/invoices/{invoice}/post', function (Request $request, string $invoice) {
+        return app(DocumentController::class)->post($request, DocumentType::Invoice, $invoice);
+    })->middleware('can:invoices.post')->name('invoices.post');
+
+    Route::post('/invoices/{invoice}/cancel', function (Request $request, string $invoice) {
+        return app(DocumentController::class)->cancel($request, DocumentType::Invoice, $invoice);
+    })->middleware('can:invoices.cancel')->name('invoices.cancel');
+
+    Route::post('/invoices/{invoice}/create-credit-note', function (Request $request, string $invoice) {
+        return app(DocumentController::class)->createCreditNote($request, $invoice);
+    })->middleware('can:credit-notes.create')->name('invoices.create-credit-note');
+
     // Credit Notes
     Route::get('/credit-notes', function (Request $request) {
         return app(DocumentController::class)->index($request, DocumentType::CreditNote);
@@ -117,6 +149,14 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
         );
     })->middleware('can:credit-notes.create')->name('credit-notes.store');
 
+    Route::post('/credit-notes/{creditNote}/confirm', function (Request $request, string $creditNote) {
+        return app(DocumentController::class)->confirm($request, DocumentType::CreditNote, $creditNote);
+    })->middleware('can:credit-notes.create')->name('credit-notes.confirm');
+
+    Route::post('/credit-notes/{creditNote}/post', function (Request $request, string $creditNote) {
+        return app(DocumentController::class)->post($request, DocumentType::CreditNote, $creditNote);
+    })->middleware('can:credit-notes.post')->name('credit-notes.post');
+
     // Delivery Notes
     Route::get('/delivery-notes', function (Request $request) {
         return app(DocumentController::class)->index($request, DocumentType::DeliveryNote);
@@ -132,4 +172,8 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
             DocumentType::DeliveryNote
         );
     })->middleware('can:deliveries.create')->name('delivery-notes.store');
+
+    Route::post('/delivery-notes/{deliveryNote}/confirm', function (Request $request, string $deliveryNote) {
+        return app(DocumentController::class)->confirm($request, DocumentType::DeliveryNote, $deliveryNote);
+    })->middleware('can:deliveries.confirm')->name('delivery-notes.confirm');
 });

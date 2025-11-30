@@ -320,4 +320,385 @@ class DocumentController extends Controller
 
         return response()->noContent();
     }
+
+    /**
+     * Confirm a document (Draft → Confirmed)
+     */
+    public function confirm(Request $request, DocumentType $type, string $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $documentModel = Document::forTenant($user->tenant_id)
+            ->ofType($type)
+            ->find($document);
+
+        if ($documentModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Document not found',
+                ],
+            ], 404);
+        }
+
+        if (! $documentModel->isDraft()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'INVALID_STATUS_TRANSITION',
+                    'message' => 'Only draft documents can be confirmed',
+                ],
+            ], 422);
+        }
+
+        $documentModel->update(['status' => DocumentStatus::Confirmed]);
+
+        /** @var Document $freshDocument */
+        $freshDocument = $documentModel->fresh(['lines']);
+
+        return response()->json([
+            'data' => DocumentData::fromModel($freshDocument),
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Post a document (Confirmed → Posted) - Makes it final/immutable
+     */
+    public function post(Request $request, DocumentType $type, string $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $documentModel = Document::forTenant($user->tenant_id)
+            ->ofType($type)
+            ->find($document);
+
+        if ($documentModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Document not found',
+                ],
+            ], 404);
+        }
+
+        if (! $documentModel->isConfirmed()) {
+            $errorCode = match ($type) {
+                DocumentType::Invoice => 'INVOICE_NOT_CONFIRMED',
+                DocumentType::CreditNote => 'CREDIT_NOTE_NOT_CONFIRMED',
+                default => 'DOCUMENT_NOT_CONFIRMED',
+            };
+
+            return response()->json([
+                'error' => [
+                    'code' => $errorCode,
+                    'message' => 'Only confirmed documents can be posted',
+                ],
+            ], 422);
+        }
+
+        $documentModel->update(['status' => DocumentStatus::Posted]);
+
+        /** @var Document $freshDocument */
+        $freshDocument = $documentModel->fresh(['lines']);
+
+        return response()->json([
+            'data' => DocumentData::fromModel($freshDocument),
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Cancel a posted document
+     */
+    public function cancel(Request $request, DocumentType $type, string $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $documentModel = Document::forTenant($user->tenant_id)
+            ->ofType($type)
+            ->find($document);
+
+        if ($documentModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Document not found',
+                ],
+            ], 404);
+        }
+
+        if (! $documentModel->isPosted()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'DOCUMENT_NOT_POSTED',
+                    'message' => 'Only posted documents can be cancelled',
+                ],
+            ], 422);
+        }
+
+        $documentModel->update(['status' => DocumentStatus::Cancelled]);
+
+        /** @var Document $freshDocument */
+        $freshDocument = $documentModel->fresh(['lines']);
+
+        return response()->json([
+            'data' => DocumentData::fromModel($freshDocument),
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Convert a quote to a sales order
+     */
+    public function convertQuoteToOrder(Request $request, string $quote): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $quoteModel = Document::forTenant($user->tenant_id)
+            ->ofType(DocumentType::Quote)
+            ->with('lines')
+            ->find($quote);
+
+        if ($quoteModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Quote not found',
+                ],
+            ], 404);
+        }
+
+        if (! $quoteModel->isConfirmed()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'QUOTE_NOT_CONFIRMED',
+                    'message' => 'Only confirmed quotes can be converted to orders',
+                ],
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($user, $quoteModel): JsonResponse {
+            $orderNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::SalesOrder);
+
+            // Create the sales order
+            $order = Document::create([
+                'tenant_id' => $user->tenant_id,
+                'partner_id' => $quoteModel->partner_id,
+                'vehicle_id' => $quoteModel->vehicle_id,
+                'type' => DocumentType::SalesOrder,
+                'status' => DocumentStatus::Draft,
+                'document_number' => $orderNumber,
+                'document_date' => now()->toDateString(),
+                'currency' => $quoteModel->currency,
+                'subtotal' => $quoteModel->subtotal,
+                'discount_amount' => $quoteModel->discount_amount,
+                'tax_amount' => $quoteModel->tax_amount,
+                'total' => $quoteModel->total,
+                'notes' => $quoteModel->notes,
+                'reference' => $quoteModel->reference,
+                'source_document_id' => $quoteModel->id,
+            ]);
+
+            // Copy lines
+            foreach ($quoteModel->lines as $line) {
+                DocumentLine::create([
+                    'document_id' => $order->id,
+                    'product_id' => $line->product_id,
+                    'line_number' => $line->line_number,
+                    'description' => $line->description,
+                    'quantity' => $line->quantity,
+                    'unit_price' => $line->unit_price,
+                    'discount_percent' => $line->discount_percent,
+                    'discount_amount' => $line->discount_amount,
+                    'tax_rate' => $line->tax_rate,
+                    'line_total' => $line->line_total,
+                    'notes' => $line->notes,
+                ]);
+            }
+
+            /** @var Document $freshOrder */
+            $freshOrder = $order->fresh(['lines']);
+
+            return response()->json([
+                'data' => DocumentData::fromModel($freshOrder),
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 201);
+        });
+    }
+
+    /**
+     * Convert a sales order to an invoice
+     */
+    public function convertOrderToInvoice(Request $request, string $order): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $orderModel = Document::forTenant($user->tenant_id)
+            ->ofType(DocumentType::SalesOrder)
+            ->with('lines')
+            ->find($order);
+
+        if ($orderModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Sales order not found',
+                ],
+            ], 404);
+        }
+
+        if (! $orderModel->isConfirmed()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'ORDER_NOT_CONFIRMED',
+                    'message' => 'Only confirmed orders can be converted to invoices',
+                ],
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($user, $orderModel): JsonResponse {
+            $invoiceNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::Invoice);
+
+            // Create the invoice
+            $invoice = Document::create([
+                'tenant_id' => $user->tenant_id,
+                'partner_id' => $orderModel->partner_id,
+                'vehicle_id' => $orderModel->vehicle_id,
+                'type' => DocumentType::Invoice,
+                'status' => DocumentStatus::Draft,
+                'document_number' => $invoiceNumber,
+                'document_date' => now()->toDateString(),
+                'due_date' => now()->addDays(30)->toDateString(),
+                'currency' => $orderModel->currency,
+                'subtotal' => $orderModel->subtotal,
+                'discount_amount' => $orderModel->discount_amount,
+                'tax_amount' => $orderModel->tax_amount,
+                'total' => $orderModel->total,
+                'notes' => $orderModel->notes,
+                'reference' => $orderModel->reference,
+                'source_document_id' => $orderModel->id,
+            ]);
+
+            // Copy lines
+            foreach ($orderModel->lines as $line) {
+                DocumentLine::create([
+                    'document_id' => $invoice->id,
+                    'product_id' => $line->product_id,
+                    'line_number' => $line->line_number,
+                    'description' => $line->description,
+                    'quantity' => $line->quantity,
+                    'unit_price' => $line->unit_price,
+                    'discount_percent' => $line->discount_percent,
+                    'discount_amount' => $line->discount_amount,
+                    'tax_rate' => $line->tax_rate,
+                    'line_total' => $line->line_total,
+                    'notes' => $line->notes,
+                ]);
+            }
+
+            /** @var Document $freshInvoice */
+            $freshInvoice = $invoice->fresh(['lines']);
+
+            return response()->json([
+                'data' => DocumentData::fromModel($freshInvoice),
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 201);
+        });
+    }
+
+    /**
+     * Create a credit note from a posted invoice
+     */
+    public function createCreditNote(Request $request, string $invoice): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $invoiceModel = Document::forTenant($user->tenant_id)
+            ->ofType(DocumentType::Invoice)
+            ->with('lines')
+            ->find($invoice);
+
+        if ($invoiceModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Invoice not found',
+                ],
+            ], 404);
+        }
+
+        if (! $invoiceModel->isPosted()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'INVOICE_NOT_POSTED',
+                    'message' => 'Credit notes can only be created from posted invoices',
+                ],
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($user, $invoiceModel): JsonResponse {
+            $creditNoteNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::CreditNote);
+
+            // Create the credit note
+            $creditNote = Document::create([
+                'tenant_id' => $user->tenant_id,
+                'partner_id' => $invoiceModel->partner_id,
+                'vehicle_id' => $invoiceModel->vehicle_id,
+                'type' => DocumentType::CreditNote,
+                'status' => DocumentStatus::Draft,
+                'document_number' => $creditNoteNumber,
+                'document_date' => now()->toDateString(),
+                'currency' => $invoiceModel->currency,
+                'subtotal' => $invoiceModel->subtotal,
+                'discount_amount' => $invoiceModel->discount_amount,
+                'tax_amount' => $invoiceModel->tax_amount,
+                'total' => $invoiceModel->total,
+                'notes' => 'Credit note for '.$invoiceModel->document_number,
+                'source_document_id' => $invoiceModel->id,
+            ]);
+
+            // Copy lines
+            foreach ($invoiceModel->lines as $line) {
+                DocumentLine::create([
+                    'document_id' => $creditNote->id,
+                    'product_id' => $line->product_id,
+                    'line_number' => $line->line_number,
+                    'description' => $line->description,
+                    'quantity' => $line->quantity,
+                    'unit_price' => $line->unit_price,
+                    'discount_percent' => $line->discount_percent,
+                    'discount_amount' => $line->discount_amount,
+                    'tax_rate' => $line->tax_rate,
+                    'line_total' => $line->line_total,
+                    'notes' => $line->notes,
+                ]);
+            }
+
+            /** @var Document $freshCreditNote */
+            $freshCreditNote = $creditNote->fresh(['lines']);
+
+            return response()->json([
+                'data' => DocumentData::fromModel($freshCreditNote),
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 201);
+        });
+    }
 }

@@ -20,8 +20,11 @@ class UpdateDocumentRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var User|null $authenticatedUser */
+        $authenticatedUser = $this->user();
+
         /** @var User $user */
-        $user = $this->user();
+        $user = $authenticatedUser;
         $tenantId = $user->tenant_id;
 
         return [

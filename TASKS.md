@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 4 - Document System
-**Task:** 4.1 - Unified Document Structure
+**Task:** 4.2 - Document Types
 **Last Updated:** 2025-11-30
 
 ---
@@ -296,15 +296,17 @@ php artisan test --filter=Vehicle
 ## Phase 4: Document System
 
 ### 4.1 Unified Document Structure
-- [ ] Create Document aggregate root
-- [ ] Create migrations (documents, document_lines, metadata tables)
-- [ ] Implement document numbering service
-- [ ] Create document repository
-- [ ] Implement document status state machine
+- [x] Create Document aggregate root
+- [x] Create migrations (documents, document_lines, document_sequences tables)
+- [x] Implement document numbering service
+- [x] Create document DTOs and controller
+- [x] Implement document status state machine
+- [x] Create type-specific routes (quotes, orders, invoices, credit-notes, delivery-notes)
 
 **Verification:**
 ```bash
-php artisan test --filter=DocumentTest
+php artisan test --filter=Document
+# ✓ 63 tests passing (197 assertions)
 ```
 
 ### 4.2 Document Types

@@ -20,8 +20,11 @@ class CreateDocumentRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var User|null $authenticatedUser */
+        $authenticatedUser = $this->user();
+
         /** @var User $user */
-        $user = $this->user();
+        $user = $authenticatedUser;
         $tenantId = $user->tenant_id;
 
         return [
@@ -42,6 +45,11 @@ class CreateDocumentRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:5000'],
             'internal_notes' => ['nullable', 'string', 'max:5000'],
             'reference' => ['nullable', 'string', 'max:100'],
+            'source_document_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('documents', 'id')->where('tenant_id', $tenantId),
+            ],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => [
                 'nullable',
