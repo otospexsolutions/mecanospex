@@ -7,8 +7,8 @@
 
 ## Current Status
 
-**Phase:** 5 - Accounting System
-**Task:** 5.1 - Chart of Accounts
+**Phase:** 6 - Inventory System
+**Task:** 6.1 - Stock Management
 **Last Updated:** 2025-11-30
 
 ---
@@ -342,39 +342,43 @@ php artisan test --filter=Document
 ## Phase 5: Accounting System (Use Opus 4)
 
 ### 5.1 Chart of Accounts
-- [ ] Create Account entity
-- [ ] Create migrations
-- [ ] Implement account hierarchy
-- [ ] Create default chart of accounts seeder (per country)
-- [ ] Add account CRUD endpoints
+- [x] Create Account entity with AccountType enum
+- [x] Create migrations (accounts table with hierarchy support)
+- [x] Implement account hierarchy (parent/children relationships)
+- [x] Add account CRUD endpoints with tenant isolation
+- [x] Add system account protection
+- [ ] Create default chart of accounts seeder (deferred)
 
 **Verification:**
 ```bash
-php artisan test --filter=AccountTest
+php artisan test --filter=Account
+# ✓ 33 tests passing (77 assertions)
 ```
 
 ### 5.2 Journal Entries
-- [ ] Create JournalEntry aggregate
-- [ ] Create migrations
-- [ ] Implement double-entry validation
-- [ ] Create journal entry service
-- [ ] Implement hash chain for posted entries
+- [x] Create JournalEntry aggregate
+- [x] Create migrations
+- [x] Implement double-entry validation
+- [x] Create journal entry service
+- [x] Implement hash chain for posted entries
 
 **Verification:**
 ```bash
-php artisan test --filter=JournalEntryTest
+php artisan test --filter=JournalEntry
+# ✓ 25 tests passing (42 assertions)
 ```
 
 ### 5.3 Document → GL Integration
-- [ ] Create invoice posting handler
-- [ ] Generate GL entries from posted invoices
-- [ ] Handle credit notes with reversals
-- [ ] Implement payment GL entries
-- [ ] Create reconciliation service
+- [x] Create invoice posting handler
+- [x] Generate GL entries from posted invoices
+- [x] Handle credit notes with reversals
+- [x] Implement payment GL entries
+- [ ] Create reconciliation service (deferred)
 
 **Verification:**
 ```bash
-php artisan test --filter=GLIntegrationTest
+php artisan test --filter=GLIntegration
+# ✓ 8 tests passing (25 assertions)
 ```
 
 ---

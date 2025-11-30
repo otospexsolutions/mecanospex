@@ -9,4 +9,5 @@ return [
     App\Modules\Vehicle\Providers\VehicleServiceProvider::class,
     App\Modules\Document\Providers\DocumentServiceProvider::class,
     App\Modules\Accounting\Providers\AccountingServiceProvider::class,
+    App\Modules\Inventory\Providers\InventoryServiceProvider::class,
 ];
