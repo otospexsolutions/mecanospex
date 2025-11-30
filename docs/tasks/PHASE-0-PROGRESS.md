@@ -19,11 +19,11 @@
 ## Section 0.1: Database Schema Changes
 
 ### 0.1.1 Update Tenants Table (Personal Info Only)
-- [ ] Write failing test for tenant personal info columns
-- [ ] Create migration to add `first_name`, `last_name`, `preferred_locale`
-- [ ] Run migration
-- [ ] Test passes
-- [ ] Commit: `Phase 0.1.1: Add personal info columns to tenants table`
+- [x] Write failing test for tenant personal info columns
+- [x] Create migration to add `first_name`, `last_name`, `preferred_locale`
+- [x] Run migration
+- [x] Test passes
+- [x] Commit: `Phase 0.1.1: Add personal info columns to tenants table` (952d54b)
 
 ### 0.1.2 Create Companies Table
 - [ ] Write failing test for companies table

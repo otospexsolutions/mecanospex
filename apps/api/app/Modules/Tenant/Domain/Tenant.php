@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenant\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
 use App\Modules\Tenant\Domain\Enums\TenantStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -187,6 +189,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         }
 
         return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
+
+    /**
+     * Get all companies owned by this tenant (account).
+     *
+     * @return HasMany<Company>
+     */
+    public function companies(): HasMany
+    {
+        return $this->hasMany(Company::class);
     }
 
     /**
