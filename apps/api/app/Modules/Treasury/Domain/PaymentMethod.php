@@ -1,0 +1,181 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Treasury\Domain;
+
+use App\Modules\Tenant\Domain\Tenant;
+use App\Modules\Treasury\Domain\Enums\FeeType;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * Universal payment method configuration.
+ *
+ * @property string $id
+ * @property string $tenant_id
+ * @property string $code
+ * @property string $name
+ * @property bool $is_physical
+ * @property bool $has_maturity
+ * @property bool $requires_third_party
+ * @property bool $is_push
+ * @property bool $has_deducted_fees
+ * @property bool $is_restricted
+ * @property FeeType|null $fee_type
+ * @property numeric-string $fee_fixed
+ * @property numeric-string $fee_percent
+ * @property string|null $restriction_type
+ * @property string|null $default_journal_id
+ * @property string|null $default_account_id
+ * @property string|null $fee_account_id
+ * @property bool $is_active
+ * @property int $position
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Tenant $tenant
+ */
+class PaymentMethod extends Model
+{
+    use HasUuids;
+
+    protected $table = 'payment_methods';
+
+    protected $fillable = [
+        'tenant_id',
+        'code',
+        'name',
+        'is_physical',
+        'has_maturity',
+        'requires_third_party',
+        'is_push',
+        'has_deducted_fees',
+        'is_restricted',
+        'fee_type',
+        'fee_fixed',
+        'fee_percent',
+        'restriction_type',
+        'default_journal_id',
+        'default_account_id',
+        'fee_account_id',
+        'is_active',
+        'position',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_physical' => 'boolean',
+            'has_maturity' => 'boolean',
+            'requires_third_party' => 'boolean',
+            'is_push' => 'boolean',
+            'has_deducted_fees' => 'boolean',
+            'is_restricted' => 'boolean',
+            'is_active' => 'boolean',
+            'fee_type' => FeeType::class,
+            'fee_fixed' => 'decimal:2',
+            'fee_percent' => 'decimal:2',
+            'position' => 'integer',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Calculate fee for a given amount.
+     *
+     * @param  numeric-string  $amount
+     * @return numeric-string
+     */
+    public function calculateFee(string $amount): string
+    {
+        if ($this->fee_type === null || $this->fee_type === FeeType::None) {
+            return '0.00';
+        }
+
+        $fee = '0.00';
+
+        if ($this->fee_type === FeeType::Fixed || $this->fee_type === FeeType::Mixed) {
+            /** @var numeric-string $feeFixed */
+            $feeFixed = $this->fee_fixed ?? '0.00';
+            $fee = bcadd($fee, $feeFixed, 2);
+        }
+
+        if ($this->fee_type === FeeType::Percentage || $this->fee_type === FeeType::Mixed) {
+            /** @var numeric-string $feePercent */
+            $feePercent = $this->fee_percent ?? '0.00';
+            $percentageFee = bcdiv(bcmul($amount, $feePercent, 4), '100', 2);
+            $fee = bcadd($fee, $percentageFee, 2);
+        }
+
+        return $fee;
+    }
+
+    /**
+     * Calculate net amount after fee deduction.
+     *
+     * @param  numeric-string  $amount
+     * @return numeric-string
+     */
+    public function calculateNetAmount(string $amount): string
+    {
+        $fee = $this->calculateFee($amount);
+
+        return bcsub($amount, $fee, 2);
+    }
+
+    /**
+     * Scope to filter by tenant.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForTenant(Builder $query, string $tenantId): Builder
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Scope to filter active methods only.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope to filter physical methods.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePhysical(Builder $query): Builder
+    {
+        return $query->where('is_physical', true);
+    }
+
+    /**
+     * Scope to filter methods with maturity.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWithMaturity(Builder $query): Builder
+    {
+        return $query->where('has_maturity', true);
+    }
+}

@@ -100,6 +100,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'repositories.view',
             'repositories.manage',
 
+            'treasury.view',
+            'treasury.manage',
+
             // Accounting
             'journal.view',
             'journal.create',
@@ -234,6 +237,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payments.view', 'payments.create', 'payments.allocate',
             'instruments.view', 'instruments.transfer', 'instruments.clear',
             'repositories.view', 'repositories.manage',
+            'treasury.view', 'treasury.manage',
             'journal.view', 'journal.create', 'journal.post',
             'accounts.view', 'accounts.manage',
             'reports.financial',

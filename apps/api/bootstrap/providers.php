@@ -10,4 +10,5 @@ return [
     App\Modules\Document\Providers\DocumentServiceProvider::class,
     App\Modules\Accounting\Providers\AccountingServiceProvider::class,
     App\Modules\Inventory\Providers\InventoryServiceProvider::class,
+    App\Modules\Treasury\Providers\TreasuryServiceProvider::class,
 ];
