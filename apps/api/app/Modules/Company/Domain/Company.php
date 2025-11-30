@@ -219,6 +219,16 @@ class Company extends Model
     }
 
     /**
+     * Get all documents for this company.
+     *
+     * @return HasMany<CompanyDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CompanyDocument::class);
+    }
+
+    /**
      * Check if the company is active.
      */
     public function isActive(): bool
