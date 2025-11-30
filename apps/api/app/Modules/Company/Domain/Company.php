@@ -209,6 +209,16 @@ class Company extends Model
     }
 
     /**
+     * Get all user memberships for this company.
+     *
+     * @return HasMany<UserCompanyMembership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(UserCompanyMembership::class);
+    }
+
+    /**
      * Check if the company is active.
      */
     public function isActive(): bool

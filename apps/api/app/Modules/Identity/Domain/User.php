@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Domain;
 
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use Carbon\Carbon;
 use Database\Factories\UserFactory;
@@ -105,6 +106,16 @@ class User extends Authenticatable
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
+    }
+
+    /**
+     * Get the user's company memberships.
+     *
+     * @return HasMany<UserCompanyMembership, $this>
+     */
+    public function companyMemberships(): HasMany
+    {
+        return $this->hasMany(UserCompanyMembership::class);
     }
 
     /**
