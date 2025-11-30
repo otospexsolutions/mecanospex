@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Treasury\Presentation\Controllers\PaymentMethodController;
+use App\Modules\Treasury\Presentation\Controllers\PaymentRepositoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,4 +32,25 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
     Route::patch('/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'update'])
         ->middleware('can:treasury.manage')
         ->name('payment-methods.update');
+
+    // Payment Repositories
+    Route::get('/payment-repositories', [PaymentRepositoryController::class, 'index'])
+        ->middleware('can:repositories.view')
+        ->name('payment-repositories.index');
+
+    Route::get('/payment-repositories/{repository}', [PaymentRepositoryController::class, 'show'])
+        ->middleware('can:repositories.view')
+        ->name('payment-repositories.show');
+
+    Route::get('/payment-repositories/{repository}/balance', [PaymentRepositoryController::class, 'balance'])
+        ->middleware('can:repositories.view')
+        ->name('payment-repositories.balance');
+
+    Route::post('/payment-repositories', [PaymentRepositoryController::class, 'store'])
+        ->middleware('can:repositories.manage')
+        ->name('payment-repositories.store');
+
+    Route::patch('/payment-repositories/{repository}', [PaymentRepositoryController::class, 'update'])
+        ->middleware('can:repositories.manage')
+        ->name('payment-repositories.update');
 });
