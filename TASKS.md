@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 3 - Core Domain Models
-**Task:** 3.2 - Products Module
+**Task:** 3.3 - Vehicles Module
 **Last Updated:** 2025-11-30
 
 ---
@@ -266,16 +266,16 @@ php artisan typescript:transform
 ```
 
 ### 3.2 Products Module
-- [ ] Create Product entity and value objects
-- [ ] Create migrations (products, categories, brands)
-- [ ] Implement repository
-- [ ] Create CRUD endpoints
-- [ ] Add product search with Meilisearch
-- [ ] Implement automotive-specific fields (OEM numbers, cross-refs)
+- [x] Create Product entity with ProductType enum
+- [x] Create migrations (products table with JSONB for OEM/cross-refs)
+- [x] Create ProductData DTO for API responses
+- [x] Create CRUD endpoints with permission protection
+- [x] Implement automotive-specific fields (OEM numbers, cross-refs)
+- [ ] Add product search with Meilisearch (deferred to Phase 10)
 
 **Verification:**
 ```bash
-php artisan test --filter=ProductTest
+php artisan test --filter=Product
 ```
 
 ### 3.3 Vehicles Module
