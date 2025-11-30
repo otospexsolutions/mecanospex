@@ -1,0 +1,265 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Tenant\Presentation\Controllers;
+
+use App\Modules\Compliance\Domain\AuditEvent;
+use App\Modules\Identity\Domain\User;
+use App\Modules\Tenant\Application\DTOs\CompanySettingsData;
+use App\Modules\Tenant\Domain\Tenant;
+use App\Modules\Tenant\Presentation\Requests\UpdateCompanySettingsRequest;
+use App\Modules\Tenant\Presentation\Requests\UploadLogoRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
+
+class CompanySettingsController extends Controller
+{
+    /**
+     * Get company settings for the current tenant.
+     */
+    public function show(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (!$user->can('settings.view')) {
+            return response()->json([
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'You do not have permission to view settings.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Tenant not found.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json([
+            'data' => CompanySettingsData::fromTenant($tenant),
+            'meta' => $this->getMeta($request),
+        ]);
+    }
+
+    /**
+     * Update company settings for the current tenant.
+     */
+    public function update(UpdateCompanySettingsRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Tenant not found.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $validated = $request->validated();
+        $changes = [];
+
+        // Track changes for audit log
+        $fieldsToUpdate = [
+            'name', 'legal_name', 'tax_id', 'registration_number',
+            'phone', 'email', 'website', 'primary_color',
+            'country_code', 'currency_code', 'timezone', 'date_format', 'locale',
+        ];
+
+        foreach ($fieldsToUpdate as $field) {
+            if (array_key_exists($field, $validated)) {
+                $changes[$field] = [
+                    'old' => $tenant->{$field},
+                    'new' => $validated[$field],
+                ];
+            }
+        }
+
+        // Handle address separately (nested array)
+        if (array_key_exists('address', $validated)) {
+            $changes['address'] = [
+                'old' => $tenant->address,
+                'new' => $validated['address'],
+            ];
+        }
+
+        // Update the tenant
+        $tenant->update($validated);
+
+        // Log audit event
+        $this->logAuditEvent(
+            eventType: 'tenant.settings_updated',
+            aggregateId: $tenant->id,
+            userId: $user->id,
+            tenantId: $user->tenant_id,
+            payload: ['changes' => $changes]
+        );
+
+        return response()->json([
+            'data' => CompanySettingsData::fromTenant($tenant->refresh()),
+            'meta' => $this->getMeta($request),
+        ]);
+    }
+
+    /**
+     * Upload a company logo.
+     */
+    public function uploadLogo(UploadLogoRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Tenant not found.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Delete old logo if it exists
+        if ($tenant->logo_path !== null) {
+            Storage::disk('public')->delete($tenant->logo_path);
+        }
+
+        // Store the new logo
+        $file = $request->file('logo');
+        $path = $file->store('logos/' . $tenant->id, 'public');
+
+        // Update tenant
+        $tenant->update(['logo_path' => $path]);
+
+        // Log audit event
+        $this->logAuditEvent(
+            eventType: 'tenant.logo_updated',
+            aggregateId: $tenant->id,
+            userId: $user->id,
+            tenantId: $user->tenant_id,
+            payload: ['logo_path' => $path]
+        );
+
+        return response()->json([
+            'data' => [
+                'logoUrl' => asset('storage/' . $path),
+            ],
+            'meta' => $this->getMeta($request),
+        ]);
+    }
+
+    /**
+     * Delete the company logo.
+     */
+    public function deleteLogo(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (!$user->can('settings.update')) {
+            return response()->json([
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'You do not have permission to update settings.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Tenant not found.',
+                ],
+                'meta' => $this->getMeta($request),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Check if logo exists
+        if ($tenant->logo_path === null) {
+            return response()->json([
+                'data' => ['message' => 'No logo to delete'],
+                'meta' => $this->getMeta($request),
+            ]);
+        }
+
+        // Delete the logo file
+        Storage::disk('public')->delete($tenant->logo_path);
+
+        // Update tenant
+        $tenant->update(['logo_path' => null]);
+
+        // Log audit event
+        $this->logAuditEvent(
+            eventType: 'tenant.logo_deleted',
+            aggregateId: $tenant->id,
+            userId: $user->id,
+            tenantId: $user->tenant_id,
+            payload: []
+        );
+
+        return response()->json([
+            'data' => ['message' => 'Logo deleted successfully'],
+            'meta' => $this->getMeta($request),
+        ]);
+    }
+
+    /**
+     * Get response metadata.
+     *
+     * @return array<string, mixed>
+     */
+    private function getMeta(Request $request): array
+    {
+        return [
+            'timestamp' => now()->toIso8601String(),
+            'request_id' => $request->header('X-Request-ID', (string) uuid_create()),
+        ];
+    }
+
+    /**
+     * Log an audit event.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function logAuditEvent(
+        string $eventType,
+        string $aggregateId,
+        string $userId,
+        string $tenantId,
+        array $payload = []
+    ): void {
+        $event = new AuditEvent(
+            tenantId: $tenantId,
+            userId: $userId,
+            eventType: $eventType,
+            aggregateType: 'tenant',
+            aggregateId: $aggregateId,
+            payload: $payload
+        );
+        $event->save();
+    }
+}

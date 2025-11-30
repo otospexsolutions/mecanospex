@@ -26,6 +26,7 @@ return new class extends Migration
             $table->decimal('discount_amount', 15, 2)->nullable();
             $table->decimal('tax_amount', 15, 2)->nullable();
             $table->decimal('total', 15, 2)->nullable();
+            $table->decimal('balance_due', 15, 2)->nullable();
             $table->text('notes')->nullable();
             $table->text('internal_notes')->nullable();
             $table->string('reference', 100)->nullable();

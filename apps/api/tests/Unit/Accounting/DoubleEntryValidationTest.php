@@ -16,7 +16,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_balanced_entry_is_valid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $lines = [
             ['debit' => '100.00', 'credit' => '0.00'],
@@ -28,7 +28,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_unbalanced_entry_is_invalid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $lines = [
             ['debit' => '100.00', 'credit' => '0.00'],
@@ -40,14 +40,14 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_empty_lines_is_invalid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $this->assertFalse($validator->isBalanced([]));
     }
 
     public function test_single_line_is_invalid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $lines = [
             ['debit' => '100.00', 'credit' => '0.00'],
@@ -58,7 +58,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_line_with_both_debit_and_credit_is_invalid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $lines = [
             ['debit' => '100.00', 'credit' => '50.00'],
@@ -70,7 +70,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_line_with_zero_amount_is_invalid(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         $lines = [
             ['debit' => '0.00', 'credit' => '0.00'],
@@ -82,7 +82,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_multi_line_balanced_entry(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         // Example: Sale with tax
         // Debit: Cash 120
@@ -100,7 +100,7 @@ class DoubleEntryValidationTest extends TestCase
 
     public function test_validates_precision_to_two_decimals(): void
     {
-        $validator = new DoubleEntryValidator();
+        $validator = new DoubleEntryValidator;
 
         // Should handle precision correctly
         $lines = [

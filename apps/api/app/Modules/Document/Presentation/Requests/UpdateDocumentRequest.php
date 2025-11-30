@@ -39,6 +39,7 @@ class UpdateDocumentRequest extends FormRequest
                 Rule::exists('vehicles', 'id')->where('tenant_id', $tenantId),
             ],
             'document_date' => ['sometimes', 'date'],
+            'issue_date' => ['sometimes', 'date'],
             'due_date' => ['nullable', 'date'],
             'valid_until' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],

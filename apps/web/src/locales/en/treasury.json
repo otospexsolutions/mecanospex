@@ -1,0 +1,66 @@
+{
+  "payments": {
+    "title": "Payments",
+    "new": "Record Payment",
+    "number": "Number",
+    "partner": "Partner",
+    "method": "Method",
+    "date": "Date",
+    "status": "Status",
+    "amount": "Amount",
+    "reference": "Reference",
+    "notes": "Notes",
+    "statuses": {
+      "pending": "Pending",
+      "cleared": "Cleared",
+      "voided": "Voided"
+    },
+    "empty": {
+      "title": "No payments yet",
+      "description": "Payments will appear here once recorded."
+    }
+  },
+  "instruments": {
+    "title": "Payment Instruments",
+    "new": "New Instrument",
+    "number": "Number",
+    "type": "Type",
+    "partner": "Partner",
+    "maturity": "Maturity",
+    "location": "Location",
+    "status": "Status",
+    "amount": "Amount",
+    "types": {
+      "check": "Check",
+      "promissoryNote": "Promissory Note",
+      "billOfExchange": "Bill of Exchange"
+    },
+    "statuses": {
+      "inHand": "In Hand",
+      "deposited": "Deposited",
+      "cleared": "Cleared",
+      "returned": "Returned",
+      "endorsed": "Endorsed"
+    },
+    "empty": {
+      "title": "No instruments yet",
+      "description": "Payment instruments like checks will appear here."
+    }
+  },
+  "repositories": {
+    "title": "Repositories",
+    "cash": "Cash Register",
+    "bank": "Bank Account",
+    "safe": "Safe"
+  },
+  "dashboard": {
+    "recentDocuments": "Recent Documents",
+    "recentPayments": "Recent Payments",
+    "stats": {
+      "revenue": "Revenue",
+      "orders": "Orders",
+      "customers": "Customers",
+      "products": "Products"
+    }
+  }
+}

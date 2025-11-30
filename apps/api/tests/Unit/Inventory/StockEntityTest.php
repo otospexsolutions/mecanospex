@@ -46,7 +46,7 @@ class StockEntityTest extends TestCase
 
     public function test_stock_level_has_required_properties(): void
     {
-        $stockLevel = new StockLevel();
+        $stockLevel = new StockLevel;
         $fillable = $stockLevel->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
@@ -58,7 +58,7 @@ class StockEntityTest extends TestCase
 
     public function test_location_has_required_properties(): void
     {
-        $location = new Location();
+        $location = new Location;
         $fillable = $location->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
@@ -69,7 +69,7 @@ class StockEntityTest extends TestCase
 
     public function test_stock_movement_has_required_properties(): void
     {
-        $movement = new StockMovement();
+        $movement = new StockMovement;
         $fillable = $movement->getFillable();
 
         $this->assertContains('tenant_id', $fillable);

@@ -1,0 +1,88 @@
+{
+  "partners": {
+    "title": "Partenaires",
+    "new": "Ajouter un partenaire",
+    "edit": "Modifier le partenaire",
+    "name": "Nom",
+    "type": "Type",
+    "contact": "Contact",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "address": "Adresse",
+    "city": "Ville",
+    "postalCode": "Code postal",
+    "country": "Pays",
+    "taxId": "Numéro de TVA",
+    "notes": "Notes",
+    "created": "Créé le",
+    "types": {
+      "customer": "Client",
+      "supplier": "Fournisseur",
+      "both": "Les deux"
+    },
+    "empty": {
+      "title": "Aucun partenaire",
+      "description": "Commencez par ajouter votre premier partenaire."
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "new": "Nouveau document",
+    "number": "Numéro",
+    "type": "Type",
+    "status": "Statut",
+    "partner": "Partenaire",
+    "date": "Date",
+    "dueDate": "Date d'échéance",
+    "total": "Total",
+    "notes": "Notes",
+    "lineItems": "Lignes",
+    "types": {
+      "quote": "Devis",
+      "salesOrder": "Bon de commande",
+      "invoice": "Facture",
+      "creditNote": "Avoir",
+      "deliveryNote": "Bon de livraison"
+    },
+    "statuses": {
+      "draft": "Brouillon",
+      "confirmed": "Confirmé",
+      "posted": "Comptabilisé",
+      "paid": "Payé",
+      "cancelled": "Annulé",
+      "partiallyPaid": "Partiellement payé"
+    },
+    "empty": {
+      "title": "Aucun document",
+      "description": "Commencez par créer votre premier document."
+    }
+  },
+  "lineItems": {
+    "item": "Article",
+    "description": "Description",
+    "quantity": "Qté",
+    "unitPrice": "Prix unitaire",
+    "tax": "TVA",
+    "total": "Total"
+  },
+  "quotes": {
+    "title": "Devis",
+    "new": "Nouveau devis",
+    "convertToOrder": "Convertir en commande"
+  },
+  "orders": {
+    "title": "Commandes",
+    "new": "Nouvelle commande",
+    "convertToInvoice": "Convertir en facture"
+  },
+  "invoices": {
+    "title": "Factures",
+    "new": "Nouvelle facture",
+    "post": "Comptabiliser la facture",
+    "createCreditNote": "Créer un avoir"
+  },
+  "creditNotes": {
+    "title": "Avoirs",
+    "new": "Nouvel avoir"
+  }
+}

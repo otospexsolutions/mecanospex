@@ -10,13 +10,17 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.1.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -35,9 +39,13 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.11",
     "axios": "^1.13.2",
+    "i18next": "^25.6.3",
+    "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.67.0",
+    "react-i18next": "^16.3.5",
     "react-router-dom": "^7.9.6",
     "zustand": "^5.0.8"
   }

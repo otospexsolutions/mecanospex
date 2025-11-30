@@ -1,0 +1,40 @@
+{
+  "products": {
+    "title": "Produits",
+    "new": "Ajouter un produit",
+    "edit": "Modifier le produit",
+    "name": "Nom",
+    "sku": "Référence",
+    "category": "Catégorie",
+    "price": "Prix",
+    "cost": "Coût",
+    "stock": "Stock",
+    "description": "Description",
+    "empty": {
+      "title": "Aucun produit",
+      "description": "Commencez par ajouter votre premier produit."
+    }
+  },
+  "stock": {
+    "title": "Niveaux de stock",
+    "location": "Emplacement",
+    "quantity": "Quantité",
+    "reserved": "Réservé",
+    "available": "Disponible",
+    "adjust": "Ajuster le stock",
+    "transfer": "Transférer le stock",
+    "receive": "Réceptionner le stock"
+  },
+  "movements": {
+    "title": "Mouvements de stock",
+    "type": "Type",
+    "reference": "Référence",
+    "date": "Date",
+    "types": {
+      "in": "Entrée",
+      "out": "Sortie",
+      "transfer": "Transfert",
+      "adjustment": "Ajustement"
+    }
+  }
+}

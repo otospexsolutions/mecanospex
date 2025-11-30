@@ -6,10 +6,8 @@ namespace Tests\Feature\Inventory;
 
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
-use App\Modules\Inventory\Domain\Enums\MovementType;
 use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\Services\StockAdjustmentService;
-use App\Modules\Inventory\Domain\StockMovement;
 use App\Modules\Product\Domain\Enums\ProductType;
 use App\Modules\Product\Domain\Product;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;

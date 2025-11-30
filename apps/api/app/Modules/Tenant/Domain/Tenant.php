@@ -18,12 +18,23 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  *
  * @property string $id UUID of the tenant
  * @property string $name Business name
+ * @property string|null $legal_name Legal/registered business name
  * @property string $slug URL-friendly identifier
  * @property TenantStatus $status Tenant lifecycle status
  * @property SubscriptionPlan $plan Subscription plan
  * @property string|null $tax_id VAT/Tax identification number
+ * @property string|null $registration_number Company registration number
+ * @property array<string, mixed> $address Address object (street, city, postal_code, country)
+ * @property string|null $phone Contact phone number
+ * @property string|null $email Contact email
+ * @property string|null $website Website URL
+ * @property string|null $logo_path Path to logo file
+ * @property string $primary_color Brand primary color (hex)
  * @property string|null $country_code ISO 3166-1 alpha-2 country code
  * @property string|null $currency_code ISO 4217 currency code
+ * @property string $timezone Timezone identifier
+ * @property string $date_format Date display format
+ * @property string $locale Default locale
  * @property array<string, mixed> $settings Tenant-specific settings
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -43,12 +54,23 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     protected $fillable = [
         'name',
+        'legal_name',
         'slug',
         'status',
         'plan',
         'tax_id',
+        'registration_number',
+        'address',
+        'phone',
+        'email',
+        'website',
+        'logo_path',
+        'primary_color',
         'country_code',
         'currency_code',
+        'timezone',
+        'date_format',
+        'locale',
         'settings',
         'trial_ends_at',
         'subscription_ends_at',
@@ -64,6 +86,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'status' => TenantStatus::class,
             'plan' => SubscriptionPlan::class,
+            'address' => 'array',
             'settings' => 'array',
             'trial_ends_at' => 'datetime',
             'subscription_ends_at' => 'datetime',
@@ -82,12 +105,23 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'id',
             'name',
+            'legal_name',
             'slug',
             'status',
             'plan',
             'tax_id',
+            'registration_number',
+            'address',
+            'phone',
+            'email',
+            'website',
+            'logo_path',
+            'primary_color',
             'country_code',
             'currency_code',
+            'timezone',
+            'date_format',
+            'locale',
             'settings',
             'trial_ends_at',
             'subscription_ends_at',

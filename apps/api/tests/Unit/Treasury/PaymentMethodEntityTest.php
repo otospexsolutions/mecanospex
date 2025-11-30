@@ -33,7 +33,7 @@ class PaymentMethodEntityTest extends TestCase
 
     public function test_payment_method_has_required_properties(): void
     {
-        $method = new PaymentMethod();
+        $method = new PaymentMethod;
         $fillable = $method->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
@@ -49,7 +49,7 @@ class PaymentMethodEntityTest extends TestCase
 
     public function test_payment_method_has_fee_properties(): void
     {
-        $method = new PaymentMethod();
+        $method = new PaymentMethod;
         $fillable = $method->getFillable();
 
         $this->assertContains('fee_type', $fillable);

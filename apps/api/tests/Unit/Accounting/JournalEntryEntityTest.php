@@ -38,7 +38,7 @@ class JournalEntryEntityTest extends TestCase
 
     public function test_journal_entry_has_required_properties(): void
     {
-        $entry = new JournalEntry();
+        $entry = new JournalEntry;
         $fillable = $entry->getFillable();
 
         $this->assertContains('entry_number', $fillable);
@@ -49,7 +49,7 @@ class JournalEntryEntityTest extends TestCase
 
     public function test_journal_line_has_required_properties(): void
     {
-        $line = new JournalLine();
+        $line = new JournalLine;
         $fillable = $line->getFillable();
 
         $this->assertContains('account_id', $fillable);
@@ -65,7 +65,7 @@ class JournalEntryEntityTest extends TestCase
 
     public function test_journal_entry_has_hash_field(): void
     {
-        $entry = new JournalEntry();
+        $entry = new JournalEntry;
         $fillable = $entry->getFillable();
 
         $this->assertContains('hash', $fillable);

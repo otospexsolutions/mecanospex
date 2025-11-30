@@ -9,6 +9,8 @@ enum DocumentStatus: string
     case Draft = 'draft';
     case Confirmed = 'confirmed';
     case Posted = 'posted';
+    case Paid = 'paid';
+    case Received = 'received';
     case Cancelled = 'cancelled';
 
     /**
@@ -18,7 +20,7 @@ enum DocumentStatus: string
     {
         return match ($this) {
             self::Draft, self::Confirmed => true,
-            self::Posted, self::Cancelled => false,
+            self::Posted, self::Paid, self::Received, self::Cancelled => false,
         };
     }
 
@@ -29,7 +31,7 @@ enum DocumentStatus: string
     {
         return match ($this) {
             self::Draft => true,
-            self::Confirmed, self::Posted, self::Cancelled => false,
+            self::Confirmed, self::Posted, self::Paid, self::Received, self::Cancelled => false,
         };
     }
 
@@ -42,6 +44,8 @@ enum DocumentStatus: string
             self::Draft => 'Draft',
             self::Confirmed => 'Confirmed',
             self::Posted => 'Posted',
+            self::Paid => 'Paid',
+            self::Received => 'Received',
             self::Cancelled => 'Cancelled',
         };
     }

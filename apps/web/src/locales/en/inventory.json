@@ -1,0 +1,40 @@
+{
+  "products": {
+    "title": "Products",
+    "new": "Add Product",
+    "edit": "Edit Product",
+    "name": "Name",
+    "sku": "SKU",
+    "category": "Category",
+    "price": "Price",
+    "cost": "Cost",
+    "stock": "Stock",
+    "description": "Description",
+    "empty": {
+      "title": "No products yet",
+      "description": "Get started by adding your first product."
+    }
+  },
+  "stock": {
+    "title": "Stock Levels",
+    "location": "Location",
+    "quantity": "Quantity",
+    "reserved": "Reserved",
+    "available": "Available",
+    "adjust": "Adjust Stock",
+    "transfer": "Transfer Stock",
+    "receive": "Receive Stock"
+  },
+  "movements": {
+    "title": "Stock Movements",
+    "type": "Type",
+    "reference": "Reference",
+    "date": "Date",
+    "types": {
+      "in": "Stock In",
+      "out": "Stock Out",
+      "transfer": "Transfer",
+      "adjustment": "Adjustment"
+    }
+  }
+}

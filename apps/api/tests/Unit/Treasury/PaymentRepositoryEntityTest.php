@@ -33,7 +33,7 @@ class PaymentRepositoryEntityTest extends TestCase
 
     public function test_payment_repository_has_required_properties(): void
     {
-        $repository = new PaymentRepository();
+        $repository = new PaymentRepository;
         $fillable = $repository->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
@@ -45,7 +45,7 @@ class PaymentRepositoryEntityTest extends TestCase
 
     public function test_payment_repository_has_bank_properties(): void
     {
-        $repository = new PaymentRepository();
+        $repository = new PaymentRepository;
         $fillable = $repository->getFillable();
 
         $this->assertContains('bank_name', $fillable);

@@ -33,6 +33,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property numeric-string|null $discount_amount
  * @property numeric-string|null $tax_amount
  * @property numeric-string|null $total
+ * @property numeric-string|null $balance_due
+ * @property string|null $fiscal_hash
+ * @property string|null $previous_hash
+ * @property int|null $chain_sequence
  * @property string|null $notes
  * @property string|null $internal_notes
  * @property string|null $reference
@@ -79,6 +83,10 @@ class Document extends Model
         'discount_amount',
         'tax_amount',
         'total',
+        'balance_due',
+        'fiscal_hash',
+        'previous_hash',
+        'chain_sequence',
         'notes',
         'internal_notes',
         'reference',
@@ -97,6 +105,11 @@ class Document extends Model
             'document_date' => 'date',
             'due_date' => 'date',
             'valid_until' => 'date',
+            'subtotal' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
+            'total' => 'decimal:2',
+            'balance_due' => 'decimal:2',
             'payload' => 'array',
         ];
     }

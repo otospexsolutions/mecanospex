@@ -26,6 +26,100 @@ class DocumentController extends Controller
     ) {}
 
     /**
+     * List all documents regardless of type
+     */
+    public function indexAll(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $query = Document::forTenant($user->tenant_id);
+
+        // Filter by type
+        $typeParam = $request->query('type');
+        if (is_string($typeParam) && $typeParam !== '') {
+            $typeEnum = DocumentType::tryFrom($typeParam);
+            if ($typeEnum !== null) {
+                $query->ofType($typeEnum);
+            }
+        }
+
+        // Filter by status
+        $status = $request->query('status');
+        if (is_string($status) && $status !== '') {
+            $statusEnum = DocumentStatus::tryFrom($status);
+            if ($statusEnum !== null) {
+                $query->inStatus($statusEnum);
+            }
+        }
+
+        // Filter by partner
+        $partnerId = $request->query('partner_id');
+        if (is_string($partnerId) && $partnerId !== '') {
+            $query->where('partner_id', $partnerId);
+        }
+
+        // Search by document number
+        $search = $request->query('search');
+        if (is_string($search) && $search !== '') {
+            $query->where('document_number', 'like', "%{$search}%");
+        }
+
+        // Handle limit parameter
+        $limit = $request->query('limit');
+        if (is_string($limit) && is_numeric($limit)) {
+            $documents = $query->orderBy('created_at', 'desc')->take((int) $limit)->get();
+
+            return response()->json([
+                'data' => $documents->map(fn (Document $doc): DocumentData => DocumentData::fromModel($doc, false)),
+                'meta' => [
+                    'total' => $documents->count(),
+                ],
+            ]);
+        }
+
+        $documents = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        return response()->json([
+            'data' => $documents->map(fn (Document $doc): DocumentData => DocumentData::fromModel($doc, false)),
+            'meta' => [
+                'current_page' => $documents->currentPage(),
+                'per_page' => $documents->perPage(),
+                'total' => $documents->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get a single document by ID (any type)
+     */
+    public function showAny(Request $request, string $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $documentModel = Document::forTenant($user->tenant_id)
+            ->with('lines')
+            ->find($document);
+
+        if ($documentModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Document not found',
+                ],
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => DocumentData::fromModel($documentModel),
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
      * List documents of a specific type
      */
     public function index(Request $request, DocumentType $type): JsonResponse
@@ -113,6 +207,12 @@ class DocumentController extends Controller
         $lines = $validated['lines'] ?? [];
         unset($validated['lines']);
 
+        // Normalize issue_date to document_date (frontend sends issue_date)
+        if (isset($validated['issue_date']) && ! isset($validated['document_date'])) {
+            $validated['document_date'] = $validated['issue_date'];
+            unset($validated['issue_date']);
+        }
+
         return DB::transaction(function () use ($user, $type, $validated, $lines): JsonResponse {
             // Generate document number
             $documentNumber = $this->numberingService->generateNumber($user->tenant_id, $type);
@@ -123,11 +223,11 @@ class DocumentController extends Controller
 
             foreach ($lines as $line) {
                 /** @var numeric-string $quantity */
-                $quantity = $line['quantity'];
+                $quantity = (string) $line['quantity'];
                 /** @var numeric-string $unitPrice */
-                $unitPrice = $line['unit_price'];
+                $unitPrice = (string) $line['unit_price'];
                 /** @var numeric-string $taxRate */
-                $taxRate = $line['tax_rate'] ?? '0';
+                $taxRate = (string) ($line['tax_rate'] ?? '0');
 
                 $lineSubtotal = bcmul($quantity, $unitPrice, 2);
                 $lineTax = bcmul($lineSubtotal, bcdiv($taxRate, '100', 4), 2);
@@ -154,9 +254,9 @@ class DocumentController extends Controller
             // Create lines
             foreach ($lines as $index => $lineData) {
                 /** @var numeric-string $quantity */
-                $quantity = $lineData['quantity'];
+                $quantity = (string) $lineData['quantity'];
                 /** @var numeric-string $unitPrice */
-                $unitPrice = $lineData['unit_price'];
+                $unitPrice = (string) $lineData['unit_price'];
                 $lineTotal = bcmul($quantity, $unitPrice, 2);
 
                 DocumentLine::create([
@@ -166,9 +266,9 @@ class DocumentController extends Controller
                     'description' => $lineData['description'],
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
-                    'discount_percent' => $lineData['discount_percent'] ?? null,
-                    'discount_amount' => $lineData['discount_amount'] ?? null,
-                    'tax_rate' => $lineData['tax_rate'] ?? null,
+                    'discount_percent' => isset($lineData['discount_percent']) ? (string) $lineData['discount_percent'] : null,
+                    'discount_amount' => isset($lineData['discount_amount']) ? (string) $lineData['discount_amount'] : null,
+                    'tax_rate' => isset($lineData['tax_rate']) ? (string) $lineData['tax_rate'] : null,
                     'line_total' => $lineTotal,
                     'notes' => $lineData['notes'] ?? null,
                 ]);
@@ -223,6 +323,12 @@ class DocumentController extends Controller
         $lines = $validated['lines'] ?? null;
         unset($validated['lines']);
 
+        // Normalize issue_date to document_date (frontend sends issue_date)
+        if (isset($validated['issue_date']) && ! isset($validated['document_date'])) {
+            $validated['document_date'] = $validated['issue_date'];
+            unset($validated['issue_date']);
+        }
+
         return DB::transaction(function () use ($documentModel, $validated, $lines): JsonResponse {
             // Update document fields (excluding lines)
             $documentModel->update($validated);
@@ -238,11 +344,11 @@ class DocumentController extends Controller
 
                 foreach ($lines as $index => $lineData) {
                     /** @var numeric-string $quantity */
-                    $quantity = $lineData['quantity'];
+                    $quantity = (string) $lineData['quantity'];
                     /** @var numeric-string $unitPrice */
-                    $unitPrice = $lineData['unit_price'];
+                    $unitPrice = (string) $lineData['unit_price'];
                     /** @var numeric-string $taxRate */
-                    $taxRate = $lineData['tax_rate'] ?? '0';
+                    $taxRate = (string) ($lineData['tax_rate'] ?? '0');
 
                     $lineSubtotal = bcmul($quantity, $unitPrice, 2);
                     $lineTax = bcmul($lineSubtotal, bcdiv($taxRate, '100', 4), 2);
@@ -257,8 +363,8 @@ class DocumentController extends Controller
                         'description' => $lineData['description'],
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
-                        'discount_percent' => $lineData['discount_percent'] ?? null,
-                        'discount_amount' => $lineData['discount_amount'] ?? null,
+                        'discount_percent' => isset($lineData['discount_percent']) ? (string) $lineData['discount_percent'] : null,
+                        'discount_amount' => isset($lineData['discount_amount']) ? (string) $lineData['discount_amount'] : null,
                         'tax_rate' => $taxRate,
                         'line_total' => $lineSubtotal,
                         'notes' => $lineData['notes'] ?? null,
@@ -619,6 +725,49 @@ class DocumentController extends Controller
                 ],
             ], 201);
         });
+    }
+
+    /**
+     * Receive a purchase order (mark goods as received)
+     */
+    public function receive(Request $request, DocumentType $type, string $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $documentModel = Document::forTenant($user->tenant_id)
+            ->ofType($type)
+            ->find($document);
+
+        if ($documentModel === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_FOUND',
+                    'message' => 'Document not found',
+                ],
+            ], 404);
+        }
+
+        if (! $documentModel->isConfirmed()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'DOCUMENT_NOT_CONFIRMED',
+                    'message' => 'Only confirmed purchase orders can be received',
+                ],
+            ], 422);
+        }
+
+        $documentModel->update(['status' => DocumentStatus::Received]);
+
+        /** @var Document $freshDocument */
+        $freshDocument = $documentModel->fresh(['lines']);
+
+        return response()->json([
+            'data' => DocumentData::fromModel($freshDocument),
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
     }
 
     /**

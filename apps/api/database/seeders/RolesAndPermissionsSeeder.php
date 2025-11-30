@@ -52,6 +52,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'vehicles.delete',
 
             // Sales Documents (Quotes, Orders, Invoices)
+            'documents.view',  // Unified document view
             'quotes.view',
             'quotes.create',
             'quotes.update',
@@ -63,6 +64,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'orders.update',
             'orders.delete',
             'orders.confirm',
+
+            // Purchase Orders
+            'purchase-orders.view',
+            'purchase-orders.create',
+            'purchase-orders.update',
+            'purchase-orders.delete',
+            'purchase-orders.confirm',
+            'purchase-orders.receive',
 
             'invoices.view',
             'invoices.create',
@@ -138,7 +147,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission, 'guard_name' => 'sanctum']);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'sanctum']);
         }
 
         $this->command->info('Created '.count($permissions).' permissions');
@@ -150,18 +159,20 @@ class RolesAndPermissionsSeeder extends Seeder
     private function createRoles(): void
     {
         // Admin - Full access
-        $admin = Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
-        $admin->givePermissionTo(Permission::all());
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
+        $admin->syncPermissions(Permission::all());
         $this->command->info('Created role: admin (all permissions)');
 
         // Manager - Operations management
-        $manager = Role::create(['name' => 'manager', 'guard_name' => 'sanctum']);
-        $manager->givePermissionTo([
+        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'sanctum']);
+        $manager->syncPermissions([
             'partners.view', 'partners.create', 'partners.update',
             'products.view', 'products.create', 'products.update', 'products.import',
             'vehicles.view', 'vehicles.create', 'vehicles.update',
+            'documents.view',
             'quotes.view', 'quotes.create', 'quotes.update', 'quotes.convert',
             'orders.view', 'orders.create', 'orders.update', 'orders.confirm',
+            'purchase-orders.view', 'purchase-orders.create', 'purchase-orders.update', 'purchase-orders.confirm', 'purchase-orders.receive',
             'invoices.view', 'invoices.create', 'invoices.update', 'invoices.post', 'invoices.print',
             'credit-notes.view', 'credit-notes.create', 'credit-notes.post',
             'inventory.view', 'inventory.adjust', 'inventory.transfer', 'inventory.receive',
@@ -169,6 +180,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payments.view', 'payments.create', 'payments.allocate',
             'instruments.view', 'instruments.create', 'instruments.transfer',
             'repositories.view',
+            'treasury.view',
             'journal.view',
             'accounts.view',
             'reports.financial', 'reports.operational',
@@ -179,11 +191,12 @@ class RolesAndPermissionsSeeder extends Seeder
         $this->command->info('Created role: manager');
 
         // Cashier - Point of sale operations
-        $cashier = Role::create(['name' => 'cashier', 'guard_name' => 'sanctum']);
-        $cashier->givePermissionTo([
+        $cashier = Role::firstOrCreate(['name' => 'cashier', 'guard_name' => 'sanctum']);
+        $cashier->syncPermissions([
             'partners.view', 'partners.create',
             'products.view',
             'vehicles.view',
+            'documents.view',
             'quotes.view', 'quotes.create',
             'orders.view',
             'invoices.view', 'invoices.create', 'invoices.print',
@@ -196,13 +209,15 @@ class RolesAndPermissionsSeeder extends Seeder
         $this->command->info('Created role: cashier');
 
         // Viewer - Read-only access
-        $viewer = Role::create(['name' => 'viewer', 'guard_name' => 'sanctum']);
-        $viewer->givePermissionTo([
+        $viewer = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'sanctum']);
+        $viewer->syncPermissions([
             'partners.view',
             'products.view',
             'vehicles.view',
+            'documents.view',
             'quotes.view',
             'orders.view',
+            'purchase-orders.view',
             'invoices.view',
             'credit-notes.view',
             'inventory.view',
@@ -214,12 +229,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'accounts.view',
             'reports.operational',
             'work-orders.view',
+            'settings.view',
         ]);
         $this->command->info('Created role: viewer');
 
         // Technician - Workshop operations
-        $technician = Role::create(['name' => 'technician', 'guard_name' => 'sanctum']);
-        $technician->givePermissionTo([
+        $technician = Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'sanctum']);
+        $technician->syncPermissions([
             'partners.view',
             'products.view',
             'vehicles.view',
@@ -228,10 +244,29 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
         $this->command->info('Created role: technician');
 
+        // Operator - Standard operations staff
+        $operator = Role::firstOrCreate(['name' => 'operator', 'guard_name' => 'sanctum']);
+        $operator->syncPermissions([
+            'partners.view', 'partners.create', 'partners.update',
+            'products.view',
+            'vehicles.view', 'vehicles.create', 'vehicles.update',
+            'documents.view',
+            'quotes.view', 'quotes.create', 'quotes.update',
+            'orders.view', 'orders.create', 'orders.update',
+            'purchase-orders.view', 'purchase-orders.create', 'purchase-orders.update',
+            'invoices.view', 'invoices.create', 'invoices.print',
+            'inventory.view',
+            'deliveries.view', 'deliveries.create',
+            'payments.view', 'payments.create',
+            'work-orders.view', 'work-orders.create', 'work-orders.update',
+        ]);
+        $this->command->info('Created role: operator');
+
         // Accountant - Financial operations
-        $accountant = Role::create(['name' => 'accountant', 'guard_name' => 'sanctum']);
-        $accountant->givePermissionTo([
+        $accountant = Role::firstOrCreate(['name' => 'accountant', 'guard_name' => 'sanctum']);
+        $accountant->syncPermissions([
             'partners.view',
+            'documents.view',
             'invoices.view', 'invoices.post',
             'credit-notes.view', 'credit-notes.post',
             'payments.view', 'payments.create', 'payments.allocate',

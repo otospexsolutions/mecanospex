@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use App\Modules\Product\Presentation\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function () {
     // Product CRUD with permission middleware
     Route::get('products', [ProductController::class, 'index'])
         ->middleware('can:products.view')

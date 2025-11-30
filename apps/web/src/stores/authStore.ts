@@ -17,6 +17,7 @@ interface User {
  */
 interface AuthState {
   user: User | null
+  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
 }
@@ -25,9 +26,11 @@ interface AuthState {
  * Auth actions interface
  */
 interface AuthActions {
+  setAuth: (user: User, token: string) => void
   setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   logout: () => void
+  getToken: () => string | null
 }
 
 /**
@@ -40,6 +43,7 @@ type AuthStore = AuthState & AuthActions
  */
 const initialState: AuthState = {
   user: null,
+  token: null,
   isAuthenticated: false,
   isLoading: true,
 }
@@ -52,8 +56,16 @@ const initialState: AuthState = {
  */
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
+
+      setAuth: (user, token) =>
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+        }),
 
       setUser: (user) =>
         set({
@@ -67,14 +79,18 @@ export const useAuthStore = create<AuthStore>()(
       logout: () =>
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
           isLoading: false,
         }),
+
+      getToken: () => get().token,
     }),
     {
       name: 'autoerp-auth',
       partialize: (state) => ({
         user: state.user,
+        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     }

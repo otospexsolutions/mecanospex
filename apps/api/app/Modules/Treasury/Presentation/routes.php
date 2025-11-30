@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
+use App\Modules\Treasury\Presentation\Controllers\PaymentController;
+use App\Modules\Treasury\Presentation\Controllers\PaymentInstrumentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentMethodController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentRepositoryController;
 use Illuminate\Support\Facades\Route;
@@ -15,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
+Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
     // Payment Methods
     Route::get('/payment-methods', [PaymentMethodController::class, 'index'])
         ->middleware('can:treasury.view')
@@ -53,4 +56,46 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
     Route::patch('/payment-repositories/{repository}', [PaymentRepositoryController::class, 'update'])
         ->middleware('can:repositories.manage')
         ->name('payment-repositories.update');
+
+    // Payment Instruments
+    Route::get('/payment-instruments', [PaymentInstrumentController::class, 'index'])
+        ->middleware('can:instruments.view')
+        ->name('payment-instruments.index');
+
+    Route::get('/payment-instruments/{instrument}', [PaymentInstrumentController::class, 'show'])
+        ->middleware('can:instruments.view')
+        ->name('payment-instruments.show');
+
+    Route::post('/payment-instruments', [PaymentInstrumentController::class, 'store'])
+        ->middleware('can:instruments.create')
+        ->name('payment-instruments.store');
+
+    Route::post('/payment-instruments/{instrument}/deposit', [PaymentInstrumentController::class, 'deposit'])
+        ->middleware('can:instruments.transfer')
+        ->name('payment-instruments.deposit');
+
+    Route::post('/payment-instruments/{instrument}/clear', [PaymentInstrumentController::class, 'clear'])
+        ->middleware('can:instruments.clear')
+        ->name('payment-instruments.clear');
+
+    Route::post('/payment-instruments/{instrument}/bounce', [PaymentInstrumentController::class, 'bounce'])
+        ->middleware('can:instruments.clear')
+        ->name('payment-instruments.bounce');
+
+    Route::post('/payment-instruments/{instrument}/transfer', [PaymentInstrumentController::class, 'transfer'])
+        ->middleware('can:instruments.transfer')
+        ->name('payment-instruments.transfer');
+
+    // Payments
+    Route::get('/payments', [PaymentController::class, 'index'])
+        ->middleware('can:payments.view')
+        ->name('payments.index');
+
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])
+        ->middleware('can:payments.view')
+        ->name('payments.show');
+
+    Route::post('/payments', [PaymentController::class, 'store'])
+        ->middleware('can:payments.create')
+        ->name('payments.store');
 });

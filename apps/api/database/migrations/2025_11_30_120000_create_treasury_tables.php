@@ -85,10 +85,106 @@ return new class extends Migration
             $table->unique(['tenant_id', 'code']);
             $table->index(['tenant_id', 'is_active']);
         });
+
+        Schema::create('payment_instruments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignUuid('payment_method_id')->constrained('payment_methods')->onDelete('restrict');
+
+            // Identification
+            $table->string('reference', 100);
+            $table->uuid('partner_id')->nullable();
+            $table->string('drawer_name', 150)->nullable();
+
+            // Amount
+            $table->decimal('amount', 15, 2);
+            $table->string('currency', 3)->default('TND');
+
+            // Dates
+            $table->date('received_date');
+            $table->date('maturity_date')->nullable();
+            $table->date('expiry_date')->nullable();
+
+            // Status & Location
+            $table->string('status', 30)->default('received');
+            $table->foreignUuid('repository_id')->nullable()->constrained('payment_repositories')->onDelete('restrict');
+
+            // Bank information
+            $table->string('bank_name', 100)->nullable();
+            $table->string('bank_branch', 100)->nullable();
+            $table->string('bank_account', 50)->nullable();
+
+            // Deposit tracking
+            $table->timestamp('deposited_at')->nullable();
+            $table->uuid('deposited_to_id')->nullable();
+
+            // Clearing/Bouncing
+            $table->timestamp('cleared_at')->nullable();
+            $table->timestamp('bounced_at')->nullable();
+            $table->string('bounce_reason', 255)->nullable();
+
+            // Link to payment when used
+            $table->uuid('payment_id')->nullable();
+
+            // Audit
+            $table->uuid('created_by')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'status']);
+            $table->index(['tenant_id', 'partner_id']);
+            $table->index(['tenant_id', 'maturity_date']);
+            $table->index(['tenant_id', 'repository_id']);
+        });
+
+        Schema::create('payments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignUuid('partner_id')->constrained('partners')->onDelete('restrict');
+            $table->foreignUuid('payment_method_id')->constrained('payment_methods')->onDelete('restrict');
+            $table->uuid('instrument_id')->nullable();
+            $table->uuid('repository_id')->nullable();
+
+            // Amount
+            $table->decimal('amount', 15, 2);
+            $table->string('currency', 3)->default('TND');
+
+            // Date and status
+            $table->date('payment_date');
+            $table->string('status', 30)->default('pending');
+
+            // Reference
+            $table->string('reference', 100)->nullable();
+            $table->text('notes')->nullable();
+
+            // GL integration
+            $table->uuid('journal_entry_id')->nullable();
+
+            // Audit
+            $table->uuid('created_by')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'partner_id']);
+            $table->index(['tenant_id', 'payment_date']);
+            $table->index(['tenant_id', 'status']);
+        });
+
+        Schema::create('payment_allocations', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('payment_id')->constrained('payments')->onDelete('cascade');
+            $table->foreignUuid('document_id')->constrained('documents')->onDelete('restrict');
+            $table->decimal('amount', 15, 2);
+            $table->timestamps();
+
+            $table->index('payment_id');
+            $table->index('document_id');
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('payment_allocations');
+        Schema::dropIfExists('payments');
+        Schema::dropIfExists('payment_instruments');
         Schema::dropIfExists('payment_methods');
         Schema::dropIfExists('payment_repositories');
     }

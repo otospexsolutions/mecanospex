@@ -1,0 +1,65 @@
+{
+  "appName": "AutoERP",
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "view": "Voir",
+    "back": "Retour",
+    "close": "Fermer",
+    "open": "Ouvrir",
+    "confirm": "Confirmer",
+    "submit": "Envoyer",
+    "reset": "Réinitialiser",
+    "viewAll": "Voir tout",
+    "expand": "Développer",
+    "collapse": "Réduire"
+  },
+  "status": {
+    "loading": "Chargement...",
+    "saving": "Enregistrement...",
+    "noResults": "Aucun résultat trouvé",
+    "error": "Une erreur est survenue",
+    "success": "Succès"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "sales": "Ventes",
+    "customers": "Clients",
+    "quotes": "Devis",
+    "salesOrders": "Commandes",
+    "invoices": "Factures",
+    "purchases": "Achats",
+    "suppliers": "Fournisseurs",
+    "purchaseOrders": "Commandes fournisseurs",
+    "inventory": "Inventaire",
+    "products": "Produits",
+    "stockLevels": "Niveaux de stock",
+    "deliveryNotes": "Bons de livraison",
+    "vehicles": "Véhicules",
+    "treasury": "Trésorerie",
+    "payments": "Paiements",
+    "instruments": "Instruments",
+    "repositories": "Dépôts",
+    "reports": "Rapports",
+    "settings": "Paramètres"
+  },
+  "table": {
+    "actions": "Actions",
+    "noData": "Aucune donnée disponible"
+  },
+  "pagination": {
+    "showing": "Affichage de {{from}} à {{to}} sur {{total}} résultats",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "confirmation": {
+    "delete": "Êtes-vous sûr de vouloir supprimer cet élément ?",
+    "unsavedChanges": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?"
+  }
+}

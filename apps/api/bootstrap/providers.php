@@ -11,4 +11,7 @@ return [
     App\Modules\Accounting\Providers\AccountingServiceProvider::class,
     App\Modules\Inventory\Providers\InventoryServiceProvider::class,
     App\Modules\Treasury\Providers\TreasuryServiceProvider::class,
+    App\Modules\Compliance\Providers\ComplianceServiceProvider::class,
+    App\Modules\Import\Providers\ImportServiceProvider::class,
+    App\Modules\Dashboard\Providers\DashboardServiceProvider::class,
 ];

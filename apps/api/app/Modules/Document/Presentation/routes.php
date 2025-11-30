@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Document\Presentation\Controllers\DocumentController;
+use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,7 +17,16 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
+Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
+    // All documents (unified view)
+    Route::get('/documents', [DocumentController::class, 'indexAll'])
+        ->middleware('can:documents.view')
+        ->name('documents.index');
+
+    Route::get('/documents/{document}', [DocumentController::class, 'showAny'])
+        ->middleware('can:documents.view')
+        ->name('documents.show');
+
     // Quotes
     Route::get('/quotes', function (Request $request) {
         return app(DocumentController::class)->index($request, DocumentType::Quote);
@@ -156,6 +166,42 @@ Route::prefix('api/v1')->middleware(['auth:sanctum'])->group(function (): void {
     Route::post('/credit-notes/{creditNote}/post', function (Request $request, string $creditNote) {
         return app(DocumentController::class)->post($request, DocumentType::CreditNote, $creditNote);
     })->middleware('can:credit-notes.post')->name('credit-notes.post');
+
+    // Purchase Orders
+    Route::get('/purchase-orders', function (Request $request) {
+        return app(DocumentController::class)->index($request, DocumentType::PurchaseOrder);
+    })->middleware('can:purchase-orders.view')->name('purchase-orders.index');
+
+    Route::get('/purchase-orders/{purchaseOrder}', function (Request $request, string $purchaseOrder) {
+        return app(DocumentController::class)->show($request, DocumentType::PurchaseOrder, $purchaseOrder);
+    })->middleware('can:purchase-orders.view')->name('purchase-orders.show');
+
+    Route::post('/purchase-orders', function (Request $request) {
+        return app(DocumentController::class)->store(
+            app(\App\Modules\Document\Presentation\Requests\CreateDocumentRequest::class),
+            DocumentType::PurchaseOrder
+        );
+    })->middleware('can:purchase-orders.create')->name('purchase-orders.store');
+
+    Route::patch('/purchase-orders/{purchaseOrder}', function (Request $request, string $purchaseOrder) {
+        return app(DocumentController::class)->update(
+            app(\App\Modules\Document\Presentation\Requests\UpdateDocumentRequest::class),
+            DocumentType::PurchaseOrder,
+            $purchaseOrder
+        );
+    })->middleware('can:purchase-orders.update')->name('purchase-orders.update');
+
+    Route::delete('/purchase-orders/{purchaseOrder}', function (Request $request, string $purchaseOrder) {
+        return app(DocumentController::class)->destroy($request, DocumentType::PurchaseOrder, $purchaseOrder);
+    })->middleware('can:purchase-orders.delete')->name('purchase-orders.destroy');
+
+    Route::post('/purchase-orders/{purchaseOrder}/confirm', function (Request $request, string $purchaseOrder) {
+        return app(DocumentController::class)->confirm($request, DocumentType::PurchaseOrder, $purchaseOrder);
+    })->middleware('can:purchase-orders.confirm')->name('purchase-orders.confirm');
+
+    Route::post('/purchase-orders/{purchaseOrder}/receive', function (Request $request, string $purchaseOrder) {
+        return app(DocumentController::class)->receive($request, DocumentType::PurchaseOrder, $purchaseOrder);
+    })->middleware('can:purchase-orders.receive')->name('purchase-orders.receive');
 
     // Delivery Notes
     Route::get('/delivery-notes', function (Request $request) {

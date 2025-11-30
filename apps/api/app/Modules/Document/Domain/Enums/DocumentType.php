@@ -8,6 +8,7 @@ enum DocumentType: string
 {
     case Quote = 'quote';
     case SalesOrder = 'sales_order';
+    case PurchaseOrder = 'purchase_order';
     case Invoice = 'invoice';
     case CreditNote = 'credit_note';
     case DeliveryNote = 'delivery_note';
@@ -20,6 +21,7 @@ enum DocumentType: string
         return match ($this) {
             self::Quote => 'QT',
             self::SalesOrder => 'SO',
+            self::PurchaseOrder => 'PO',
             self::Invoice => 'INV',
             self::CreditNote => 'CN',
             self::DeliveryNote => 'DN',
@@ -34,6 +36,7 @@ enum DocumentType: string
         return match ($this) {
             self::Quote => 'Quote',
             self::SalesOrder => 'Sales Order',
+            self::PurchaseOrder => 'Purchase Order',
             self::Invoice => 'Invoice',
             self::CreditNote => 'Credit Note',
             self::DeliveryNote => 'Delivery Note',

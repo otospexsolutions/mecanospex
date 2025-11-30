@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Modules\Identity\Presentation\Controllers\AuthController;
 use App\Modules\Identity\Presentation\Controllers\RoleController;
+use App\Modules\Identity\Presentation\Controllers\UserController;
+use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,17 +22,27 @@ Route::prefix('api/v1/auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('auth.login');
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function () {
         Route::get('me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::post('logout-all', [AuthController::class, 'logoutAll'])->name('auth.logout-all');
     });
 });
 
-Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function () {
     // Role management (requires roles.view or roles.manage permission)
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
     Route::get('permissions', [RoleController::class, 'permissions'])->name('permissions.index');
+
+    // User management (requires users.* permissions)
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::post('users', [UserController::class, 'store'])->name('users.store');
+    Route::get('users/{id}', [UserController::class, 'show'])->name('users.show');
+    Route::patch('users/{id}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::post('users/{id}/activate', [UserController::class, 'activate'])->name('users.activate');
+    Route::post('users/{id}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
     // User role assignment (requires users.assign-roles permission)
     Route::get('users/{userId}/roles', [RoleController::class, 'userRoles'])->name('users.roles');

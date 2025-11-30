@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | General API Messages
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines are used for general API responses
+    | throughout the application.
+    |
+    */
+
+    // General
+    'success' => 'Operation completed successfully.',
+    'error' => 'An error occurred.',
+    'not_found' => 'Resource not found.',
+    'forbidden' => 'You do not have permission to perform this action.',
+    'server_error' => 'Internal server error. Please try again later.',
+
+    // CRUD operations
+    'created' => ':resource created successfully.',
+    'updated' => ':resource updated successfully.',
+    'deleted' => ':resource deleted successfully.',
+    'restored' => ':resource restored successfully.',
+
+    // Documents
+    'document' => [
+        'posted' => 'Document posted successfully.',
+        'cancelled' => 'Document cancelled successfully.',
+        'confirmed' => 'Document confirmed successfully.',
+        'cannot_edit_posted' => 'Posted documents cannot be edited.',
+        'cannot_delete_posted' => 'Posted documents cannot be deleted.',
+        'already_posted' => 'This document has already been posted.',
+        'invalid_status_transition' => 'Invalid status transition.',
+    ],
+
+    // Partners
+    'partner' => [
+        'has_documents' => 'Cannot delete partner with associated documents.',
+        'has_balance' => 'Cannot delete partner with outstanding balance.',
+    ],
+
+    // Products
+    'product' => [
+        'has_stock' => 'Cannot delete product with existing stock.',
+        'has_documents' => 'Cannot delete product with associated documents.',
+        'insufficient_stock' => 'Insufficient stock for :product. Available: :available, Requested: :requested.',
+    ],
+
+    // Payments
+    'payment' => [
+        'recorded' => 'Payment recorded successfully.',
+        'cancelled' => 'Payment cancelled successfully.',
+        'amount_exceeds_balance' => 'Payment amount exceeds outstanding balance.',
+        'invalid_allocation' => 'Invalid payment allocation.',
+    ],
+
+    // Treasury
+    'treasury' => [
+        'instrument_not_available' => 'Payment instrument is not available.',
+        'insufficient_funds' => 'Insufficient funds in repository.',
+        'transfer_completed' => 'Transfer completed successfully.',
+    ],
+
+    // Inventory
+    'inventory' => [
+        'adjustment_recorded' => 'Stock adjustment recorded successfully.',
+        'transfer_completed' => 'Stock transfer completed successfully.',
+        'insufficient_stock' => 'Insufficient stock available.',
+    ],
+
+    // Workshop
+    'workshop' => [
+        'work_order_created' => 'Work order created successfully.',
+        'work_order_completed' => 'Work order completed successfully.',
+        'work_order_cancelled' => 'Work order cancelled successfully.',
+    ],
+];

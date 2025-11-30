@@ -1,0 +1,4 @@
+export { SettingsPage } from './SettingsPage'
+export { RolesPage } from './RolesPage'
+export { UsersPage } from './UsersPage'
+export { CompanyPage } from './CompanyPage'

@@ -31,8 +31,10 @@ return new class extends Migration
 
             // Index for type filtering
             $table->index(['tenant_id', 'type']);
+        });
 
-            // Self-referential FK for parent
+        // Self-referential FK for parent - must be added after table is created
+        Schema::table('accounts', function (Blueprint $table): void {
             $table->foreign('parent_id')
                 ->references('id')
                 ->on('accounts')

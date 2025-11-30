@@ -1,25 +1,150 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Modules\Identity\Domain\User;
+use App\Modules\Partner\Domain\Partner;
+use App\Modules\Tenant\Domain\Tenant;
+use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
+use App\Modules\Tenant\Domain\Enums\TenantStatus;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Seed the application's database with test data.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('Creating roles and permissions...');
+        $this->call(RolesAndPermissionsSeeder::class);
 
-        User::factory()->create([
+        $this->command->info('Creating demo tenant...');
+        $tenant = $this->createTenant();
+
+        $this->command->info('Creating test users...');
+        $this->createUsers($tenant);
+
+        $this->command->info('Creating test partners...');
+        $this->createPartners($tenant);
+
+        $this->command->info('Database seeding completed!');
+    }
+
+    private function createTenant(): Tenant
+    {
+        return Tenant::create([
+            'name' => 'Demo Garage',
+            'slug' => 'demo-garage',
+            'status' => TenantStatus::Active,
+            'plan' => SubscriptionPlan::Professional,
+            'tax_id' => 'FR12345678901',
+            'country_code' => 'FR',
+            'currency_code' => 'EUR',
+            'settings' => [
+                'timezone' => 'Europe/Paris',
+                'locale' => 'fr',
+                'date_format' => 'd/m/Y',
+                'fiscal_year_start' => '01-01',
+            ],
+            'trial_ends_at' => null,
+            'subscription_ends_at' => now()->addYear(),
+        ]);
+    }
+
+    private function createUsers(Tenant $tenant): void
+    {
+        // Set the team (tenant) context for Spatie permissions
+        setPermissionsTeamId($tenant->id);
+
+        // Test User - assign manager role (full operational access)
+        $testUser = User::create([
+            'id' => Str::uuid()->toString(),
+            'tenant_id' => $tenant->id,
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'password' => Hash::make('password'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'preferences' => [],
         ]);
+
+        // Assign manager role with tenant scope
+        $managerRole = Role::where('name', 'manager')->where('guard_name', 'sanctum')->first();
+        if ($managerRole) {
+            $testUser->assignRole($managerRole);
+            $this->command->info('Assigned manager role to test@example.com');
+        }
+
+        // Admin User - assign admin role (full access)
+        $adminUser = User::create([
+            'id' => Str::uuid()->toString(),
+            'tenant_id' => $tenant->id,
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('admin123'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'preferences' => [],
+        ]);
+
+        // Assign admin role with tenant scope
+        $adminRole = Role::where('name', 'admin')->where('guard_name', 'sanctum')->first();
+        if ($adminRole) {
+            $adminUser->assignRole($adminRole);
+            $this->command->info('Assigned admin role to admin@example.com');
+        }
+    }
+
+    private function createPartners(Tenant $tenant): void
+    {
+        $partners = [
+            [
+                'name' => 'Acme Corporation',
+                'type' => 'customer',
+                'code' => 'ACME',
+                'email' => 'contact@acme.com',
+                'phone' => '+33123456789',
+            ],
+            [
+                'name' => 'TechSupply Inc',
+                'type' => 'supplier',
+                'code' => 'TECH',
+                'email' => 'orders@techsupply.com',
+                'phone' => '+33987654321',
+            ],
+            [
+                'name' => 'Auto Parts France',
+                'type' => 'customer',
+                'code' => 'APF',
+                'email' => 'info@autoparts.fr',
+                'phone' => '+33111222333',
+            ],
+            [
+                'name' => 'Client Premium SA',
+                'type' => 'customer',
+                'code' => 'PREM',
+                'email' => 'premium@client.com',
+                'phone' => '+33444555666',
+            ],
+        ];
+
+        foreach ($partners as $partner) {
+            Partner::create([
+                'id' => Str::uuid()->toString(),
+                'tenant_id' => $tenant->id,
+                'type' => $partner['type'],
+                'code' => $partner['code'],
+                'name' => $partner['name'],
+                'email' => $partner['email'],
+                'phone' => $partner['phone'],
+                'country_code' => 'FR',
+            ]);
+        }
     }
 }

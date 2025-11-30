@@ -1,0 +1,88 @@
+{
+  "partners": {
+    "title": "Partners",
+    "new": "Add Partner",
+    "edit": "Edit Partner",
+    "name": "Name",
+    "type": "Type",
+    "contact": "Contact",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "postalCode": "Postal Code",
+    "country": "Country",
+    "taxId": "Tax ID",
+    "notes": "Notes",
+    "created": "Created",
+    "types": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Both"
+    },
+    "empty": {
+      "title": "No partners yet",
+      "description": "Get started by adding your first partner."
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "new": "New Document",
+    "number": "Number",
+    "type": "Type",
+    "status": "Status",
+    "partner": "Partner",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "total": "Total",
+    "notes": "Notes",
+    "lineItems": "Line Items",
+    "types": {
+      "quote": "Quote",
+      "salesOrder": "Sales Order",
+      "invoice": "Invoice",
+      "creditNote": "Credit Note",
+      "deliveryNote": "Delivery Note"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "confirmed": "Confirmed",
+      "posted": "Posted",
+      "paid": "Paid",
+      "cancelled": "Cancelled",
+      "partiallyPaid": "Partially Paid"
+    },
+    "empty": {
+      "title": "No documents yet",
+      "description": "Get started by creating your first document."
+    }
+  },
+  "lineItems": {
+    "item": "Item",
+    "description": "Description",
+    "quantity": "Qty",
+    "unitPrice": "Unit Price",
+    "tax": "Tax",
+    "total": "Total"
+  },
+  "quotes": {
+    "title": "Quotes",
+    "new": "New Quote",
+    "convertToOrder": "Convert to Order"
+  },
+  "orders": {
+    "title": "Orders",
+    "new": "New Order",
+    "convertToInvoice": "Convert to Invoice"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "new": "New Invoice",
+    "post": "Post Invoice",
+    "createCreditNote": "Create Credit Note"
+  },
+  "creditNotes": {
+    "title": "Credit Notes",
+    "new": "New Credit Note"
+  }
+}

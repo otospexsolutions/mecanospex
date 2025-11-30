@@ -1,0 +1,61 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Treasury\Domain;
+
+use App\Modules\Document\Domain\Document;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * Payment allocation linking payments to documents.
+ *
+ * @property string $id
+ * @property string $payment_id
+ * @property string $document_id
+ * @property numeric-string $amount
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Payment $payment
+ * @property-read Document $document
+ */
+class PaymentAllocation extends Model
+{
+    use HasUuids;
+
+    protected $table = 'payment_allocations';
+
+    protected $fillable = [
+        'payment_id',
+        'document_id',
+        'amount',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Payment, $this>
+     */
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * @return BelongsTo<Document, $this>
+     */
+    public function document(): BelongsTo
+    {
+        return $this->belongsTo(Document::class);
+    }
+}

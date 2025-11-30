@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios'
+import { useAuthStore } from '../stores/authStore'
 
 /**
  * API Response Format (per CLAUDE.md)
@@ -71,11 +72,11 @@ function createApiClient(): AxiosInstance {
   // Request interceptor for auth token
   client.interceptors.request.use(
     (config) => {
-      // Token is handled via cookies (Sanctum) or can be added from store
-      // const token = useAuthStore.getState().token
-      // if (token) {
-      //   config.headers.Authorization = `Bearer ${token}`
-      // }
+      // Get token from auth store and add to Authorization header
+      const token = useAuthStore.getState().token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
       return config
     },
     (error: unknown) => Promise.reject(new Error(String(error)))
@@ -91,11 +92,15 @@ function createApiClient(): AxiosInstance {
           return Promise.reject(new Error('Network error'))
         }
 
-        // Handle 401 Unauthorized - redirect to login
+        // Handle 401 Unauthorized
+        // Don't redirect for /auth/me - that's expected when not logged in
+        // The AuthProvider handles the redirect via React Router
         if (response.status === 401) {
-          // Clear auth state and redirect
-          // useAuthStore.getState().logout()
-          window.location.href = '/login'
+          const url = error.config?.url ?? ''
+          if (!url.includes('/auth/me')) {
+            // For other endpoints, let the caller handle 401
+            console.warn('Unauthorized request:', url)
+          }
         }
 
         // Handle 403 Forbidden

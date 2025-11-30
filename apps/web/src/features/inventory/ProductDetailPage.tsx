@@ -1,0 +1,342 @@
+import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, Edit, Trash2, Package, DollarSign, Barcode, Tag, Clock } from 'lucide-react'
+import { api, apiDelete } from '../../lib/api'
+
+type ProductType = 'part' | 'service' | 'consumable'
+
+interface Product {
+  id: string
+  name: string
+  sku: string
+  type: ProductType
+  description: string | null
+  sale_price: string | null
+  purchase_price: string | null
+  tax_rate: string | null
+  unit: string | null
+  barcode: string | null
+  is_active: boolean
+  oem_numbers: string[] | null
+  cross_references: Array<{ brand: string; reference: string }> | null
+  created_at: string
+  updated_at: string | null
+}
+
+interface ProductResponse {
+  data: Product
+}
+
+const typeColors: Record<ProductType, string> = {
+  part: 'bg-blue-100 text-blue-800',
+  service: 'bg-purple-100 text-purple-800',
+  consumable: 'bg-orange-100 text-orange-800',
+}
+
+const typeLabels: Record<ProductType, string> = {
+  part: 'Part',
+  service: 'Service',
+  consumable: 'Consumable',
+}
+
+export function ProductDetailPage() {
+  const { t } = useTranslation()
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Product ID is required')
+      const response = await api.get<ProductResponse>(`/products/${id}`)
+      return response.data.data
+    },
+    enabled: !!id,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      if (!id) throw new Error('Product ID is required')
+      return apiDelete(`/products/${id}`)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['products'] })
+      void navigate('/inventory/products')
+    },
+  })
+
+  const handleDelete = () => {
+    if (confirm(t('messages.confirmDelete', 'Are you sure you want to delete this product?'))) {
+      deleteMutation.mutate()
+    }
+  }
+
+  const formatCurrency = (amount: string | null) => {
+    if (!amount) return '-'
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(parseFloat(amount))
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-500">{t('status.loading')}</div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="rounded-lg bg-red-50 p-4 text-red-700">
+        {t('errors.loadingFailed', 'Error loading product. Please try again.')}
+      </div>
+    )
+  }
+
+  const product = data
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/inventory/products"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('actions.back')}
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[product.type]}`}
+              >
+                {typeLabels[product.type]}
+              </span>
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  product.is_active
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {product.is_active ? t('status.active') : t('status.inactive')}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500">SKU: {product.sku}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/inventory/products/${product.id}/edit`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Edit className="h-4 w-4" />
+            {t('actions.edit')}
+          </Link>
+          <button
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            {deleteMutation.isPending ? t('status.deleting') : t('actions.delete')}
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Basic Information */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              {t('sections.basicInfo', 'Basic Information')}
+            </h2>
+            <div className="space-y-4">
+              {product.description && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Description</label>
+                  <p className="mt-1 text-gray-900">{product.description}</p>
+                </div>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Unit</label>
+                  <p className="mt-1 text-gray-900">{product.unit ?? '-'}</p>
+                </div>
+                {product.barcode && (
+                  <div className="flex items-center gap-2">
+                    <Barcode className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Barcode</label>
+                      <p className="mt-1 text-gray-900">{product.barcode}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <DollarSign className="h-5 w-5 text-gray-400" />
+              {t('sections.pricing', 'Pricing')}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg bg-green-50 p-4">
+                <label className="text-sm font-medium text-green-700">Sale Price</label>
+                <p className="mt-1 text-xl font-bold text-green-900">
+                  {formatCurrency(product.sale_price)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-blue-50 p-4">
+                <label className="text-sm font-medium text-blue-700">Purchase Price</label>
+                <p className="mt-1 text-xl font-bold text-blue-900">
+                  {formatCurrency(product.purchase_price)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <label className="text-sm font-medium text-gray-700">Tax Rate</label>
+                <p className="mt-1 text-xl font-bold text-gray-900">
+                  {product.tax_rate ? `${product.tax_rate}%` : '-'}
+                </p>
+              </div>
+            </div>
+            {product.sale_price && product.purchase_price && (
+              <div className="mt-4 rounded-lg bg-yellow-50 p-4">
+                <label className="text-sm font-medium text-yellow-700">Margin</label>
+                <p className="mt-1 text-lg font-semibold text-yellow-900">
+                  {formatCurrency(
+                    String(parseFloat(product.sale_price) - parseFloat(product.purchase_price))
+                  )}{' '}
+                  ({(
+                    ((parseFloat(product.sale_price) - parseFloat(product.purchase_price)) /
+                      parseFloat(product.purchase_price)) *
+                    100
+                  ).toFixed(1)}%)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Automotive Info */}
+          {(product.oem_numbers?.length || product.cross_references?.length) && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+                <Tag className="h-5 w-5 text-gray-400" />
+                {t('sections.automotiveInfo', 'Automotive Information')}
+              </h2>
+              <div className="space-y-4">
+                {product.oem_numbers && product.oem_numbers.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">OEM Numbers</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {product.oem_numbers.map((oem, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex rounded-md bg-gray-100 px-2.5 py-1 text-sm font-mono text-gray-700"
+                        >
+                          {oem}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {product.cross_references && product.cross_references.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Cross References</label>
+                    <div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-start text-xs font-medium uppercase text-gray-500">
+                              Brand
+                            </th>
+                            <th className="px-4 py-2 text-start text-xs font-medium uppercase text-gray-500">
+                              Reference
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {product.cross_references.map((ref, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-2 text-sm text-gray-900">{ref.brand}</td>
+                              <td className="px-4 py-2 text-sm font-mono text-gray-600">
+                                {ref.reference}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Stock Info (Placeholder) */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <Package className="h-5 w-5 text-gray-400" />
+              {t('sections.stockLevels', 'Stock Levels')}
+            </h2>
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500">Stock information coming soon</p>
+              <Link
+                to="/inventory/stock"
+                className="mt-2 inline-block text-sm text-blue-600 hover:text-blue-800"
+              >
+                View all stock levels
+              </Link>
+            </div>
+          </div>
+
+          {/* Metadata */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <Clock className="h-5 w-5 text-gray-400" />
+              {t('sections.metadata', 'Metadata')}
+            </h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Created</span>
+                <span className="text-gray-900">{formatDate(product.created_at)}</span>
+              </div>
+              {product.updated_at && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Last Updated</span>
+                  <span className="text-gray-900">{formatDate(product.updated_at)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-gray-500">ID</span>
+                <span className="font-mono text-xs text-gray-500">{product.id}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
