@@ -7,8 +7,8 @@
 
 ## Current Status
 
-**Phase:** 2 - Multi-Tenancy & Auth
-**Task:** 2.3 - RBAC
+**Phase:** 3 - Core Domain Models
+**Task:** 3.1 - Partners Module
 **Last Updated:** 2025-11-30
 
 ---
@@ -216,11 +216,11 @@ php artisan test --filter=AuthenticationTest
 ```
 
 ### 2.3 RBAC
-- [ ] Configure spatie/permission for multi-tenant
-- [ ] Create default roles: admin, manager, cashier, viewer
-- [ ] Create base permissions per module
-- [ ] Implement permission middleware
-- [ ] Create role assignment endpoints
+- [x] Configure spatie/permission for multi-tenant
+- [x] Create default roles: admin, manager, cashier, viewer, technician, accountant
+- [x] Create base permissions per module (71 permissions)
+- [x] Implement permission middleware
+- [x] Create role assignment endpoints
 
 **Verification:**
 ```bash

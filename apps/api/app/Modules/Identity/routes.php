@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Identity\Presentation\Controllers\AuthController;
+use App\Modules\Identity\Presentation\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,4 +25,15 @@ Route::prefix('api/v1/auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::post('logout-all', [AuthController::class, 'logoutAll'])->name('auth.logout-all');
     });
+});
+
+Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
+    // Role management (requires roles.view or roles.manage permission)
+    Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::get('permissions', [RoleController::class, 'permissions'])->name('permissions.index');
+
+    // User role assignment (requires users.assign-roles permission)
+    Route::get('users/{userId}/roles', [RoleController::class, 'userRoles'])->name('users.roles');
+    Route::post('users/{userId}/roles', [RoleController::class, 'assignRole'])->name('users.roles.assign');
+    Route::delete('users/{userId}/roles', [RoleController::class, 'removeRole'])->name('users.roles.remove');
 });
