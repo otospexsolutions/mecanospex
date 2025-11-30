@@ -16,22 +16,29 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 /**
  * Tenant model for AutoERP multi-tenancy.
  *
+ * IMPORTANT: Tenant = Account/Person (subscription holder), NOT a company.
+ * Company-specific data (tax_id, legal_name, etc.) lives in the Company model.
+ *
  * @property string $id UUID of the tenant
- * @property string $name Business name
- * @property string|null $legal_name Legal/registered business name
+ * @property string $name Account/Display name
+ * @property string|null $first_name Personal first name
+ * @property string|null $last_name Personal last name
+ * @property string $preferred_locale Preferred UI locale (default: fr)
+ * @property string|null $full_name Computed full name (accessor)
+ * @property string|null $legal_name Legal/registered business name (deprecated - use Company)
  * @property string $slug URL-friendly identifier
  * @property TenantStatus $status Tenant lifecycle status
  * @property SubscriptionPlan $plan Subscription plan
- * @property string|null $tax_id VAT/Tax identification number
- * @property string|null $registration_number Company registration number
- * @property array<string, mixed> $address Address object (street, city, postal_code, country)
+ * @property string|null $tax_id VAT/Tax identification number (deprecated - use Company)
+ * @property string|null $registration_number Company registration number (deprecated - use Company)
+ * @property array<string, mixed> $address Address object (deprecated - use Company)
  * @property string|null $phone Contact phone number
  * @property string|null $email Contact email
  * @property string|null $website Website URL
  * @property string|null $logo_path Path to logo file
  * @property string $primary_color Brand primary color (hex)
- * @property string|null $country_code ISO 3166-1 alpha-2 country code
- * @property string|null $currency_code ISO 4217 currency code
+ * @property string|null $country_code ISO 3166-1 alpha-2 country code (deprecated - use Company)
+ * @property string|null $currency_code ISO 4217 currency code (deprecated - use Company)
  * @property string $timezone Timezone identifier
  * @property string $date_format Date display format
  * @property string $locale Default locale
@@ -54,6 +61,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
+        'preferred_locale',
         'legal_name',
         'slug',
         'status',
@@ -105,6 +115,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'id',
             'name',
+            'first_name',
+            'last_name',
+            'preferred_locale',
             'legal_name',
             'slug',
             'status',
@@ -160,6 +173,20 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         }
 
         return $this->subscription_ends_at !== null && $this->subscription_ends_at->isFuture();
+    }
+
+    /**
+     * Get the full name of the tenant account holder.
+     *
+     * @return string|null
+     */
+    public function getFullNameAttribute(): ?string
+    {
+        if ($this->first_name === null && $this->last_name === null) {
+            return null;
+        }
+
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
     }
 
     /**
