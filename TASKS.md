@@ -7,8 +7,8 @@
 
 ## Current Status
 
-**Phase:** 3 - Core Domain Models
-**Task:** 3.3 - Vehicles Module
+**Phase:** 4 - Document System
+**Task:** 4.1 - Unified Document Structure
 **Last Updated:** 2025-11-30
 
 ---
@@ -279,15 +279,16 @@ php artisan test --filter=Product
 ```
 
 ### 3.3 Vehicles Module
-- [ ] Create Vehicle entity
-- [ ] Create migrations
-- [ ] Implement VIN decoder service interface
-- [ ] Create vehicle CRUD endpoints
-- [ ] Link vehicles to work orders
+- [x] Create Vehicle entity
+- [x] Create migrations
+- [x] Implement VIN validation (17-char format, excludes I/O/Q)
+- [x] Create vehicle CRUD endpoints
+- [ ] Link vehicles to work orders (deferred to Phase 4)
 
 **Verification:**
 ```bash
-php artisan test --filter=VehicleTest
+php artisan test --filter=Vehicle
+# ✓ 48 tests passing (151 assertions)
 ```
 
 ---

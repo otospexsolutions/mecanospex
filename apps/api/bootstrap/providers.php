@@ -7,4 +7,5 @@ return [
     App\Modules\Partner\PartnerServiceProvider::class,
     App\Modules\Product\ProductServiceProvider::class,
     App\Modules\Vehicle\Providers\VehicleServiceProvider::class,
+    App\Modules\Document\Providers\DocumentServiceProvider::class,
 ];

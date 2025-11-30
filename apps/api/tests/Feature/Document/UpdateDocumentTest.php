@@ -1,0 +1,261 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Document;
+
+use App\Modules\Document\Domain\Document;
+use App\Modules\Document\Domain\DocumentLine;
+use App\Modules\Document\Domain\Enums\DocumentStatus;
+use App\Modules\Document\Domain\Enums\DocumentType;
+use App\Modules\Identity\Domain\Enums\UserStatus;
+use App\Modules\Identity\Domain\User;
+use App\Modules\Partner\Domain\Enums\PartnerType;
+use App\Modules\Partner\Domain\Partner;
+use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
+use App\Modules\Tenant\Domain\Enums\TenantStatus;
+use App\Modules\Tenant\Domain\Tenant;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\PermissionRegistrar;
+use Tests\TestCase;
+
+class UpdateDocumentTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Tenant $tenant;
+
+    private User $user;
+
+    private Partner $customer;
+
+    private Document $quote;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->tenant = Tenant::create([
+            'name' => 'Test Tenant',
+            'slug' => 'test-tenant',
+            'status' => TenantStatus::Active,
+            'plan' => SubscriptionPlan::Professional,
+        ]);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $this->user = User::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test User',
+            'email' => 'user@example.com',
+            'password' => 'password123',
+            'status' => UserStatus::Active,
+        ]);
+        $this->user->assignRole('admin');
+
+        $this->customer = Partner::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'John Doe',
+            'type' => PartnerType::Customer,
+        ]);
+
+        $this->quote = Document::create([
+            'tenant_id' => $this->tenant->id,
+            'partner_id' => $this->customer->id,
+            'type' => DocumentType::Quote,
+            'status' => DocumentStatus::Draft,
+            'document_number' => 'QT-2025-0001',
+            'document_date' => now()->toDateString(),
+            'currency' => 'EUR',
+            'subtotal' => '100.00',
+            'tax_amount' => '20.00',
+            'total' => '120.00',
+        ]);
+
+        DocumentLine::create([
+            'document_id' => $this->quote->id,
+            'line_number' => 1,
+            'description' => 'Original Service',
+            'quantity' => '1.00',
+            'unit_price' => '100.00',
+            'tax_rate' => '20.00',
+            'line_total' => '100.00',
+        ]);
+    }
+
+    public function test_can_update_draft_document_notes(): void
+    {
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$this->quote->id}", [
+                'notes' => 'Updated notes',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.notes', 'Updated notes');
+
+        $this->assertDatabaseHas('documents', [
+            'id' => $this->quote->id,
+            'notes' => 'Updated notes',
+        ]);
+    }
+
+    public function test_can_update_document_lines(): void
+    {
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$this->quote->id}", [
+                'lines' => [
+                    [
+                        'description' => 'Updated Service',
+                        'quantity' => '2.00',
+                        'unit_price' => '75.00',
+                        'tax_rate' => '20.00',
+                    ],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.subtotal', '150.00')
+            ->assertJsonPath('data.tax_amount', '30.00')
+            ->assertJsonPath('data.total', '180.00')
+            ->assertJsonCount(1, 'data.lines')
+            ->assertJsonPath('data.lines.0.description', 'Updated Service');
+    }
+
+    public function test_can_change_partner_on_draft_document(): void
+    {
+        $newCustomer = Partner::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Jane Smith',
+            'type' => PartnerType::Customer,
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$this->quote->id}", [
+                'partner_id' => $newCustomer->id,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.partner_id', $newCustomer->id);
+    }
+
+    public function test_cannot_update_posted_document(): void
+    {
+        $invoice = Document::create([
+            'tenant_id' => $this->tenant->id,
+            'partner_id' => $this->customer->id,
+            'type' => DocumentType::Invoice,
+            'status' => DocumentStatus::Posted,
+            'document_number' => 'INV-2025-0001',
+            'document_date' => now()->toDateString(),
+            'currency' => 'EUR',
+            'subtotal' => '100.00',
+            'tax_amount' => '20.00',
+            'total' => '120.00',
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/invoices/{$invoice->id}", [
+                'notes' => 'Trying to update posted invoice',
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJson([
+                'error' => [
+                    'code' => 'DOCUMENT_NOT_EDITABLE',
+                    'message' => 'Posted documents cannot be modified',
+                ],
+            ]);
+    }
+
+    public function test_cannot_update_cancelled_document(): void
+    {
+        $this->quote->update(['status' => DocumentStatus::Cancelled]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$this->quote->id}", [
+                'notes' => 'Trying to update cancelled document',
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJson([
+                'error' => [
+                    'code' => 'DOCUMENT_NOT_EDITABLE',
+                ],
+            ]);
+    }
+
+    public function test_returns_404_for_nonexistent_document(): void
+    {
+        $fakeId = '00000000-0000-0000-0000-000000000000';
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$fakeId}", [
+                'notes' => 'Test',
+            ]);
+
+        $response->assertNotFound();
+    }
+
+    public function test_unauthenticated_user_cannot_update_document(): void
+    {
+        $response = $this->patchJson("/api/v1/quotes/{$this->quote->id}", [
+            'notes' => 'Test',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_user_without_permission_cannot_update_quote(): void
+    {
+        $viewerUser = User::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Viewer User',
+            'email' => 'viewer@example.com',
+            'password' => 'password123',
+            'status' => UserStatus::Active,
+        ]);
+        $viewerUser->assignRole('viewer');
+
+        $response = $this->actingAs($viewerUser, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$this->quote->id}", [
+                'notes' => 'Test',
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_cannot_update_document_from_another_tenant(): void
+    {
+        $otherTenant = Tenant::create([
+            'name' => 'Other Tenant',
+            'slug' => 'other-tenant',
+            'status' => TenantStatus::Active,
+            'plan' => SubscriptionPlan::Professional,
+        ]);
+
+        $otherPartner = Partner::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Customer',
+            'type' => PartnerType::Customer,
+        ]);
+
+        $otherDocument = Document::create([
+            'tenant_id' => $otherTenant->id,
+            'partner_id' => $otherPartner->id,
+            'type' => DocumentType::Quote,
+            'status' => DocumentStatus::Draft,
+            'document_number' => 'QT-2025-0001',
+            'document_date' => now(),
+            'currency' => 'EUR',
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/quotes/{$otherDocument->id}", [
+                'notes' => 'Hacking attempt',
+            ]);
+
+        $response->assertNotFound();
+    }
+}

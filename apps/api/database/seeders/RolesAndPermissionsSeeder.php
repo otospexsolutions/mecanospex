@@ -67,6 +67,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'invoices.view',
             'invoices.create',
             'invoices.update',
+            'invoices.delete',
             'invoices.post',
             'invoices.cancel',
             'invoices.print',
