@@ -6,4 +6,5 @@ return [
     App\Modules\Tenant\Infrastructure\Providers\TenantServiceProvider::class,
     App\Modules\Partner\PartnerServiceProvider::class,
     App\Modules\Product\ProductServiceProvider::class,
+    App\Modules\Vehicle\Providers\VehicleServiceProvider::class,
 ];
