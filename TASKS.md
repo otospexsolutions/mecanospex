@@ -7,8 +7,8 @@
 
 ## Current Status
 
-**Phase:** 4 - Document System
-**Task:** 4.2 - Document Types
+**Phase:** 5 - Accounting System
+**Task:** 5.1 - Chart of Accounts
 **Last Updated:** 2025-11-30
 
 ---
@@ -310,27 +310,31 @@ php artisan test --filter=Document
 ```
 
 ### 4.2 Document Types
-- [ ] Implement Quote type with metadata
-- [ ] Implement SalesOrder type
-- [ ] Implement Invoice type with fiscal fields
-- [ ] Implement CreditNote type
-- [ ] Implement DeliveryNote type with DDT
+- [x] Implement Quote type with metadata
+- [x] Implement SalesOrder type
+- [x] Implement Invoice type with fiscal fields
+- [x] Implement CreditNote type
+- [x] Implement DeliveryNote type with DDT
 
 **Verification:**
 ```bash
-php artisan test --filter=DocumentTypesTest
+php artisan test --filter=Document
+# ✓ 31 document type tests passing
 ```
 
 ### 4.3 Document Lifecycle
-- [ ] Implement quote → order conversion
-- [ ] Implement order → invoice conversion
-- [ ] Implement invoice posting (GL integration)
-- [ ] Implement cancellation with reversal
-- [ ] Add document PDF generation
+- [x] Implement quote → order conversion
+- [x] Implement order → invoice conversion
+- [x] Implement invoice posting (status transition)
+- [x] Implement cancellation
+- [x] Implement credit note creation from invoice
+- [ ] Add document PDF generation (deferred)
+- [ ] GL integration (Phase 5)
 
 **Verification:**
 ```bash
-php artisan test --filter=DocumentLifecycleTest
+php artisan test --filter=Document
+# ✓ All 94 document tests passing (258 assertions)
 ```
 
 ---
