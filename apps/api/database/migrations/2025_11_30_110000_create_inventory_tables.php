@@ -10,19 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('locations', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('tenant_id')->constrained('tenants')->cascadeOnDelete();
-            $table->string('code');
-            $table->string('name');
-            $table->text('address')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_default')->default(false);
-            $table->timestamps();
-
-            $table->unique(['tenant_id', 'code']);
-            $table->index(['tenant_id', 'is_active']);
-        });
+        // Note: locations table is now created in 2025_11_30_215820_create_locations_table.php
+        // as part of Phase 0 architecture refactor (locations are scoped to company, not tenant)
 
         Schema::create('stock_levels', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -65,6 +54,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('stock_movements');
         Schema::dropIfExists('stock_levels');
-        Schema::dropIfExists('locations');
+        // Note: locations table is now handled in 2025_11_30_215820_create_locations_table.php
     }
 };

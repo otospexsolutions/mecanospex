@@ -26,11 +26,12 @@
 - [x] Commit: `Phase 0.1.1: Add personal info columns to tenants table` (952d54b)
 
 ### 0.1.2 Create Companies Table
-- [ ] Write failing test for companies table
-- [ ] Create migration with all company fields
-- [ ] Run migration
-- [ ] Test passes
-- [ ] Commit: `Phase 0.1.2: Create companies table`
+- [x] Write failing test for companies table (12 tests)
+- [x] Create migration with all company fields (60+ columns)
+- [x] Create Company model with enums
+- [x] Run migration
+- [x] Test passes
+- [x] Commit: `Phase 0.1.2: Create companies table` (701883f)
 
 ### 0.1.3 Create Locations Table
 - [ ] Write failing test for locations table

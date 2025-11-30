@@ -194,7 +194,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /**
      * Get all companies owned by this tenant (account).
      *
-     * @return HasMany<Company>
+     * @return HasMany<Company, $this>
      */
     public function companies(): HasMany
     {

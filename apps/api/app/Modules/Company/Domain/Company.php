@@ -199,6 +199,16 @@ class Company extends Model
     }
 
     /**
+     * Get all locations for this company.
+     *
+     * @return HasMany<Location, $this>
+     */
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
+
+    /**
      * Check if the company is active.
      */
     public function isActive(): bool
