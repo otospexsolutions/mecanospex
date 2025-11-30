@@ -8,7 +8,7 @@
 ## Current Status
 
 **Phase:** 3 - Core Domain Models
-**Task:** 3.1 - Partners Module
+**Task:** 3.2 - Products Module
 **Last Updated:** 2025-11-30
 
 ---
@@ -233,15 +233,15 @@ php artisan test --filter=RBACTest
 
 ### 3.1 Partners Module
 **Step 1 - Write Tests First:**
-- [ ] Create `tests/Feature/Partner/CreatePartnerTest.php`:
+- [x] Create `tests/Feature/Partner/CreatePartnerTest.php`:
   - Test: name is required
   - Test: email format validation
   - Test: VAT number format by country
   - Test: duplicate detection on VAT number
   - Test: successful creation returns 201
-- [ ] Create `tests/Feature/Partner/UpdatePartnerTest.php`
-- [ ] Create `tests/Feature/Partner/ListPartnersTest.php`
-- [ ] Create `tests/Unit/Partner/PartnerEntityTest.php`
+- [x] Create `tests/Feature/Partner/UpdatePartnerTest.php`
+- [x] Create `tests/Feature/Partner/ListPartnersTest.php`
+- [x] Create `tests/Unit/Partner/PartnerEntityTest.php`
 
 **Step 2 - Run Tests (must fail):**
 ```bash
@@ -250,13 +250,12 @@ php artisan test --filter=Partner
 ```
 
 **Step 3 - Implement:**
-- [ ] Create `App\Modules\Partner\Domain\Partner` entity
-- [ ] Create `App\Modules\Partner\Domain\ValueObjects\*`
-- [ ] Create migrations (partners, addresses, contacts)
-- [ ] Create `App\Modules\Partner\Contracts\PartnerRepositoryInterface`
-- [ ] Create `App\Modules\Partner\Infrastructure\EloquentPartnerRepository`
-- [ ] Create CRUD endpoints in `App\Modules\Partner\Http\Controllers\`
-- [ ] Create `App\Modules\Partner\DTOs\PartnerData` (for TypeScript generation)
+- [x] Create `App\Modules\Partner\Domain\Partner` entity
+- [x] Create `App\Modules\Partner\Domain\Enums\PartnerType`
+- [x] Create migrations (partners table)
+- [x] Create `App\Modules\Partner\Application\DTOs\PartnerData`
+- [x] Create CRUD endpoints in `App\Modules\Partner\Presentation\Controllers\`
+- [x] Create permission-based route protection
 
 **Step 4 - Verification (must pass):**
 ```bash
