@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Product\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Product\Application\DTOs\ProductData;
 use App\Modules\Product\Domain\Product;
@@ -15,16 +16,19 @@ use Illuminate\Routing\Controller;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     /**
-     * List all products for the current tenant.
+     * List all products for the current company.
      */
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
         $query = Product::query()
-            ->where('tenant_id', $user->tenant_id);
+            ->where('company_id', $companyId);
 
         // Filter by type
         if ($request->has('type')) {
@@ -73,7 +77,7 @@ class ProductController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $productModel = Product::where('tenant_id', $user->tenant_id)
+        $productModel = Product::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $product)
             ->first();
 
@@ -104,14 +108,16 @@ class ProductController extends Controller
      */
     public function store(CreateProductRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var array<string, mixed> $validated */
         $validated = $request->validated();
 
         $product = Product::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             ...$validated,
         ]);
 
@@ -132,7 +138,7 @@ class ProductController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $productModel = Product::where('tenant_id', $user->tenant_id)
+        $productModel = Product::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $product)
             ->first();
 
@@ -173,7 +179,7 @@ class ProductController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $productModel = Product::where('tenant_id', $user->tenant_id)
+        $productModel = Product::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $product)
             ->first();
 

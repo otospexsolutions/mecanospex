@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider } from './features/auth'
+import { CompanyProvider } from './features/company/CompanyProvider'
+import { LocationProvider } from './features/location/LocationProvider'
 import { AppRoutes } from './routes'
 import { languages } from './lib/i18n'
 
@@ -16,7 +18,11 @@ function App() {
 
   return (
     <AuthProvider>
-      <AppRoutes />
+      <CompanyProvider>
+        <LocationProvider>
+          <AppRoutes />
+        </LocationProvider>
+      </CompanyProvider>
     </AuthProvider>
   )
 }

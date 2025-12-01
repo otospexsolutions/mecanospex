@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Document\Domain;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Location;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Partner\Domain\Partner;
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $partner_id
  * @property string|null $vehicle_id
  * @property DocumentType $type
@@ -46,8 +49,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read Partner $partner
  * @property-read Vehicle|null $vehicle
+ * @property-read Location|null $location
  * @property-read Document|null $sourceDocument
  * @property-read Collection<int, DocumentLine> $lines
  *
@@ -70,6 +75,8 @@ class Document extends Model
      */
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'location_id',
         'partner_id',
         'vehicle_id',
         'type',
@@ -120,6 +127,22 @@ class Document extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     /**
@@ -233,6 +256,17 @@ class Document extends Model
     public function scopeInStatus(Builder $query, DocumentStatus $status): Builder
     {
         return $query->where('status', $status);
+    }
+
+    /**
+     * Scope to filter documents by company
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 
     /**

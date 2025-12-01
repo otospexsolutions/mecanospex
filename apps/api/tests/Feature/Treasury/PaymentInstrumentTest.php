@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Treasury;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Enums\PartnerType;
@@ -24,6 +28,8 @@ class PaymentInstrumentTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
+    private Company $company;
 
     private User $user;
 
@@ -46,6 +52,18 @@ class PaymentInstrumentTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -58,8 +76,17 @@ class PaymentInstrumentTest extends TestCase
         ]);
         $this->user->givePermissionTo(['instruments.view', 'instruments.create', 'instruments.transfer', 'instruments.clear']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->checkMethod = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CHECK',
             'name' => 'Check',
             'is_physical' => true,
@@ -69,6 +96,7 @@ class PaymentInstrumentTest extends TestCase
 
         $this->checkSafe = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CHECK_SAFE',
             'name' => 'Check Safe',
             'type' => 'safe',
@@ -77,6 +105,7 @@ class PaymentInstrumentTest extends TestCase
 
         $this->bankAccount = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'BANK_MAIN',
             'name' => 'Main Bank',
             'type' => 'bank_account',
@@ -85,6 +114,7 @@ class PaymentInstrumentTest extends TestCase
 
         $this->partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'ACME Corporation',
             'type' => PartnerType::Customer,
             'is_active' => true,
@@ -95,6 +125,7 @@ class PaymentInstrumentTest extends TestCase
     {
         PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -133,6 +164,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $pdcMethod = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'PDC',
             'name' => 'Post-dated Check',
             'is_physical' => true,
@@ -158,6 +190,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $instrument = PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -180,6 +213,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $instrument = PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -201,6 +235,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $instrument = PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -225,6 +260,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $secondSafe = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'SAFE_02',
             'name' => 'Secondary Safe',
             'type' => 'safe',
@@ -233,6 +269,7 @@ class PaymentInstrumentTest extends TestCase
 
         $instrument = PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -255,6 +292,7 @@ class PaymentInstrumentTest extends TestCase
     {
         PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -266,6 +304,7 @@ class PaymentInstrumentTest extends TestCase
 
         PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-002',
             'partner_id' => $this->partner->id,
@@ -288,6 +327,7 @@ class PaymentInstrumentTest extends TestCase
     {
         $otherPartner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Other Corp',
             'type' => PartnerType::Customer,
             'is_active' => true,
@@ -295,6 +335,7 @@ class PaymentInstrumentTest extends TestCase
 
         PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-001',
             'partner_id' => $this->partner->id,
@@ -306,6 +347,7 @@ class PaymentInstrumentTest extends TestCase
 
         PaymentInstrument::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'payment_method_id' => $this->checkMethod->id,
             'reference' => 'CHK-002',
             'partner_id' => $otherPartner->id,

@@ -6,6 +6,9 @@ namespace Tests\Feature\Accounting;
 
 use App\Modules\Accounting\Domain\Account;
 use App\Modules\Accounting\Domain\Enums\AccountType;
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -22,6 +25,8 @@ class ListAccountsTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -35,6 +40,18 @@ class ListAccountsTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -46,12 +63,21 @@ class ListAccountsTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->givePermissionTo(['accounts.view', 'accounts.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_user_can_list_accounts(): void
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,
@@ -59,6 +85,7 @@ class ListAccountsTest extends TestCase
 
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '2000',
             'name' => 'Liabilities',
             'type' => AccountType::Liability,
@@ -75,6 +102,7 @@ class ListAccountsTest extends TestCase
         // Account for current tenant
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,
@@ -88,8 +116,21 @@ class ListAccountsTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         Account::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'code' => '1000',
             'name' => 'Other Assets',
             'type' => AccountType::Asset,
@@ -106,6 +147,7 @@ class ListAccountsTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,
@@ -113,6 +155,7 @@ class ListAccountsTest extends TestCase
 
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '2000',
             'name' => 'Liabilities',
             'type' => AccountType::Liability,
@@ -129,6 +172,7 @@ class ListAccountsTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1100',
             'name' => 'Cash and Cash Equivalents',
             'type' => AccountType::Asset,
@@ -136,6 +180,7 @@ class ListAccountsTest extends TestCase
 
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1200',
             'name' => 'Accounts Receivable',
             'type' => AccountType::Asset,
@@ -152,6 +197,7 @@ class ListAccountsTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '2000',
             'name' => 'Liabilities',
             'type' => AccountType::Liability,
@@ -159,6 +205,7 @@ class ListAccountsTest extends TestCase
 
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,
@@ -175,6 +222,7 @@ class ListAccountsTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Active Account',
             'type' => AccountType::Asset,
@@ -183,6 +231,7 @@ class ListAccountsTest extends TestCase
 
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1001',
             'name' => 'Inactive Account',
             'type' => AccountType::Asset,
@@ -209,6 +258,7 @@ class ListAccountsTest extends TestCase
     {
         $account = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,
@@ -225,6 +275,7 @@ class ListAccountsTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,

@@ -17,7 +17,7 @@ final class AuditService
      * @param  array<string, mixed>  $metadata
      */
     public function record(
-        string $tenantId,
+        string $companyId,
         ?string $userId,
         string $eventType,
         string $aggregateType,
@@ -26,7 +26,7 @@ final class AuditService
         array $metadata = []
     ): AuditEvent {
         $event = new AuditEvent(
-            tenantId: $tenantId,
+            companyId: $companyId,
             userId: $userId,
             eventType: $eventType,
             aggregateType: $aggregateType,
@@ -41,13 +41,13 @@ final class AuditService
     }
 
     /**
-     * Get all audit events for a tenant
+     * Get all audit events for a company
      *
      * @return Collection<int, AuditEvent>
      */
-    public function getEventsForTenant(string $tenantId, int $limit = 100): Collection
+    public function getEventsForCompany(string $companyId, int $limit = 100): Collection
     {
-        return AuditEvent::where('tenant_id', $tenantId)
+        return AuditEvent::where('company_id', $companyId)
             ->orderByDesc('occurred_at')
             ->limit($limit)
             ->get();
@@ -72,12 +72,12 @@ final class AuditService
      * @return Collection<int, AuditEvent>
      */
     public function getEventsInRange(
-        string $tenantId,
+        string $companyId,
         Carbon $from,
         Carbon $to,
         ?string $eventType = null
     ): Collection {
-        $query = AuditEvent::where('tenant_id', $tenantId)
+        $query = AuditEvent::where('company_id', $companyId)
             ->whereBetween('occurred_at', [$from, $to]);
 
         if ($eventType !== null) {
@@ -88,13 +88,13 @@ final class AuditService
     }
 
     /**
-     * Get events by type for a tenant
+     * Get events by type for a company
      *
      * @return Collection<int, AuditEvent>
      */
-    public function getEventsByType(string $tenantId, string $eventType, int $limit = 100): Collection
+    public function getEventsByType(string $companyId, string $eventType, int $limit = 100): Collection
     {
-        return AuditEvent::where('tenant_id', $tenantId)
+        return AuditEvent::where('company_id', $companyId)
             ->where('event_type', $eventType)
             ->orderByDesc('occurred_at')
             ->limit($limit)
@@ -105,12 +105,12 @@ final class AuditService
      * Count events of a specific type within a time range
      */
     public function countEventsByType(
-        string $tenantId,
+        string $companyId,
         string $eventType,
         Carbon $from,
         Carbon $to
     ): int {
-        return AuditEvent::where('tenant_id', $tenantId)
+        return AuditEvent::where('company_id', $companyId)
             ->where('event_type', $eventType)
             ->whereBetween('occurred_at', [$from, $to])
             ->count();
@@ -121,9 +121,9 @@ final class AuditService
      *
      * @return Collection<int, AuditEvent>
      */
-    public function getEventsByUser(string $tenantId, string $userId, int $limit = 100): Collection
+    public function getEventsByUser(string $companyId, string $userId, int $limit = 100): Collection
     {
-        return AuditEvent::where('tenant_id', $tenantId)
+        return AuditEvent::where('company_id', $companyId)
             ->where('user_id', $userId)
             ->orderByDesc('occurred_at')
             ->limit($limit)

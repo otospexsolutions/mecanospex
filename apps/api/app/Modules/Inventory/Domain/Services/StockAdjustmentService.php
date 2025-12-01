@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Domain\Services;
 
+use App\Modules\Company\Domain\Location;
 use App\Modules\Inventory\Domain\Enums\MovementType;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\StockLevel;
 use App\Modules\Inventory\Domain\StockMovement;
 use App\Modules\Product\Domain\Product;
@@ -271,7 +271,7 @@ final class StockAdjustmentService
     private function getOrCreateStockLevel(string $productId, string $locationId): StockLevel
     {
         $product = Product::findOrFail($productId);
-        Location::findOrFail($locationId);
+        $location = Location::findOrFail($locationId);
 
         return StockLevel::firstOrCreate(
             [
@@ -280,6 +280,7 @@ final class StockAdjustmentService
             ],
             [
                 'tenant_id' => $product->tenant_id,
+                'company_id' => $location->company_id,
                 'quantity' => '0.00',
                 'reserved' => '0.00',
             ]
@@ -325,8 +326,11 @@ final class StockAdjustmentService
         string $reference,
         string $userId,
     ): StockMovement {
+        $location = Location::findOrFail($locationId);
+
         return StockMovement::create([
             'tenant_id' => $tenantId,
+            'company_id' => $location->company_id,
             'product_id' => $productId,
             'location_id' => $locationId,
             'movement_type' => $type,

@@ -4,43 +4,45 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Presentation\Controllers;
 
-use App\Modules\Identity\Domain\User;
-use App\Modules\Inventory\Domain\Location;
+use App\Modules\Company\Domain\Location;
+use App\Modules\Company\Services\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class LocationController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
+    public function index(): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
         $locations = Location::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('company_id', $companyId)
             ->orderBy('code')
             ->get();
 
         return response()->json([
-            'data' => $locations->map(fn (Location $location) => [
+            'data' => $locations->map(fn (Location $location): array => [
                 'id' => $location->id,
                 'code' => $location->code,
                 'name' => $location->name,
-                'address' => $location->address,
+                'address' => $location->full_address,
                 'is_active' => $location->is_active,
                 'is_default' => $location->is_default,
             ]),
         ]);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
         $location = Location::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('company_id', $companyId)
             ->findOrFail($id);
 
         return response()->json([
@@ -48,7 +50,7 @@ class LocationController extends Controller
                 'id' => $location->id,
                 'code' => $location->code,
                 'name' => $location->name,
-                'address' => $location->address,
+                'address' => $location->full_address,
                 'is_active' => $location->is_active,
                 'is_default' => $location->is_default,
             ],
@@ -57,21 +59,20 @@ class LocationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
-            'address' => ['nullable', 'string'],
+            'address_street' => ['nullable', 'string'],
             'is_default' => ['nullable', 'boolean'],
         ]);
 
         $location = Location::create([
-            'tenant_id' => $user->tenant_id,
+            'company_id' => $companyId,
             'code' => $validated['code'],
             'name' => $validated['name'],
-            'address' => $validated['address'] ?? null,
+            'address_street' => $validated['address_street'] ?? null,
             'is_active' => true,
             'is_default' => $validated['is_default'] ?? false,
         ]);

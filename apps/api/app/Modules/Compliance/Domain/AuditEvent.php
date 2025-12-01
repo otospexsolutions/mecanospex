@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Compliance\Domain;
 
+use App\Modules\Company\Domain\Company;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string|null $user_id
  * @property string $event_type
  * @property string $aggregate_type
@@ -36,6 +39,7 @@ class AuditEvent extends Model
      */
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'user_id',
         'event_type',
         'aggregate_type',
@@ -50,6 +54,8 @@ class AuditEvent extends Model
      * Virtual properties for constructor-based creation (non-persisted)
      */
     public string $tenantId = '';
+
+    public string $companyId = '';
 
     public ?string $userId = null;
 
@@ -69,7 +75,7 @@ class AuditEvent extends Model
      * @param  array<string, mixed>  $attributes
      */
     public function __construct(
-        ?string $tenantId = null,
+        ?string $companyId = null,
         ?string $userId = null,
         ?string $eventType = null,
         ?string $aggregateType = null,
@@ -81,8 +87,8 @@ class AuditEvent extends Model
         parent::__construct($attributes);
 
         // Handle both constructor-style and Eloquent-style creation
-        if ($tenantId !== null) {
-            $this->tenantId = $tenantId;
+        if ($companyId !== null) {
+            $this->companyId = $companyId;
             $this->userId = $userId;
             $this->eventType = $eventType ?? '';
             $this->aggregateType = $aggregateType ?? '';
@@ -90,8 +96,17 @@ class AuditEvent extends Model
             $this->occurredAt = now();
             $this->eventHash = $this->calculateHash($payload);
 
+            // Look up tenant_id from company
+            $company = Company::find($companyId);
+            if ($company === null) {
+                throw new \InvalidArgumentException("Company not found with ID: {$companyId}");
+            }
+            $tenantId = $company->tenant_id;
+            $this->tenantId = $tenantId;
+
             // Set attributes for persistence
             $this->attributes['tenant_id'] = $tenantId;
+            $this->attributes['company_id'] = $companyId;
             $this->attributes['user_id'] = $userId;
             $this->attributes['event_type'] = $eventType;
             $this->attributes['aggregate_type'] = $aggregateType;
@@ -101,6 +116,14 @@ class AuditEvent extends Model
             $this->attributes['event_hash'] = $this->eventHash;
             $this->attributes['occurred_at'] = $this->occurredAt->format('Y-m-d H:i:s');
         }
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -123,7 +146,7 @@ class AuditEvent extends Model
     private function calculateHash(array $payload): string
     {
         $data = json_encode([
-            'tenant_id' => $this->tenantId,
+            'company_id' => $this->companyId,
             'user_id' => $this->userId,
             'event_type' => $this->eventType,
             'aggregate_type' => $this->aggregateType,
@@ -133,5 +156,16 @@ class AuditEvent extends Model
         ], JSON_THROW_ON_ERROR);
 
         return hash('sha256', $data);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function scopeForCompany(\Illuminate\Database\Eloquent\Builder $query, string $companyId): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

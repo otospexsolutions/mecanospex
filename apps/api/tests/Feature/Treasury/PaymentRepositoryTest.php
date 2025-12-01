@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Treasury;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -21,6 +25,8 @@ class PaymentRepositoryTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -34,6 +40,18 @@ class PaymentRepositoryTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -45,12 +63,21 @@ class PaymentRepositoryTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->givePermissionTo(['repositories.view', 'repositories.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_can_list_payment_repositories(): void
     {
         PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Main Cash Register',
             'type' => 'cash_register',
@@ -59,6 +86,7 @@ class PaymentRepositoryTest extends TestCase
 
         PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'BANK_01',
             'name' => 'Main Bank Account',
             'type' => 'bank_account',
@@ -86,6 +114,7 @@ class PaymentRepositoryTest extends TestCase
 
         $this->assertDatabaseHas('payment_repositories', [
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'type' => 'cash_register',
         ]);
@@ -137,6 +166,7 @@ class PaymentRepositoryTest extends TestCase
     {
         PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Cash Register',
             'type' => 'cash_register',
@@ -157,6 +187,7 @@ class PaymentRepositoryTest extends TestCase
     {
         $repository = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Cash Register',
             'type' => 'cash_register',
@@ -175,6 +206,7 @@ class PaymentRepositoryTest extends TestCase
     {
         $repository = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Cash Register',
             'type' => 'cash_register',
@@ -191,6 +223,7 @@ class PaymentRepositoryTest extends TestCase
     {
         $repository = PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Cash Register',
             'type' => 'cash_register',
@@ -221,6 +254,7 @@ class PaymentRepositoryTest extends TestCase
     {
         PaymentRepository::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH_REG_01',
             'name' => 'Cash Register',
             'type' => 'cash_register',
@@ -235,6 +269,18 @@ class PaymentRepositoryTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($otherTenant->id);
 
         $otherUser = User::create([
@@ -245,6 +291,14 @@ class PaymentRepositoryTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $otherUser->givePermissionTo(['repositories.view', 'repositories.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($otherCompany->id);
 
         $response = $this->actingAs($otherUser)->getJson('/api/v1/payment-repositories');
 

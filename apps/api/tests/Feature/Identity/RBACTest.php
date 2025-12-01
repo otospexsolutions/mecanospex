@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Identity;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -22,6 +25,8 @@ class RBACTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $adminUser;
 
     protected function setUp(): void
@@ -33,6 +38,18 @@ class RBACTest extends TestCase
             'slug' => 'test-tenant',
             'status' => TenantStatus::Active,
             'plan' => SubscriptionPlan::Professional,
+        ]);
+
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
         ]);
 
         // Set the tenant context for permissions (teams feature)
@@ -49,6 +66,12 @@ class RBACTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->adminUser->assignRole('admin');
+
+        UserCompanyMembership::create([
+            'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
     }
 
     public function test_roles_are_created_by_seeder(): void

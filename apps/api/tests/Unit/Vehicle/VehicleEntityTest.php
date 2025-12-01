@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Vehicle;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Partner\Domain\Enums\PartnerType;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -19,6 +21,8 @@ class VehicleEntityTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private Partner $customer;
 
     protected function setUp(): void
@@ -32,8 +36,23 @@ class VehicleEntityTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->customer = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'John Doe',
             'type' => PartnerType::Customer,
         ]);
@@ -43,6 +62,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -59,6 +79,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -72,6 +93,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
@@ -87,6 +109,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -100,6 +123,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
@@ -131,6 +155,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'DEL-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -147,6 +172,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -160,6 +186,7 @@ class VehicleEntityTest extends TestCase
     {
         $vehicle = Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'ABC-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -172,6 +199,7 @@ class VehicleEntityTest extends TestCase
     {
         Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'MY-123',
             'brand' => 'Toyota',
             'model' => 'Corolla',
@@ -184,8 +212,21 @@ class VehicleEntityTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         Vehicle::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'license_plate' => 'OTHER-123',
             'brand' => 'Honda',
             'model' => 'Civic',
@@ -201,6 +242,7 @@ class VehicleEntityTest extends TestCase
     {
         Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'license_plate' => 'OWNED-123',
             'brand' => 'Toyota',
@@ -209,6 +251,7 @@ class VehicleEntityTest extends TestCase
 
         Vehicle::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'license_plate' => 'UNOWNED-123',
             'brand' => 'Honda',
             'model' => 'Civic',

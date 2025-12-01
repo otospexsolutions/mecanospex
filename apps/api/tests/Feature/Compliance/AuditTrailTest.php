@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Compliance;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Compliance\Domain\AuditEvent;
 use App\Modules\Compliance\Services\AnomalyDetectionService;
 use App\Modules\Compliance\Services\AuditService;
@@ -23,6 +25,8 @@ class AuditTrailTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -36,6 +40,15 @@ class AuditTrailTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'country_code' => 'TN',
+            'currency' => 'TND',
+            'locale' => 'fr_TN',
+            'timezone' => 'Africa/Tunis',
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -47,6 +60,13 @@ class AuditTrailTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->assignRole('admin');
+
+        // Create company membership for the user
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
     }
 
     public function test_audit_event_class_exists(): void
@@ -67,7 +87,7 @@ class AuditTrailTest extends TestCase
     public function test_audit_event_has_required_properties(): void
     {
         $event = new AuditEvent(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -76,7 +96,7 @@ class AuditTrailTest extends TestCase
             metadata: ['ip_address' => '192.168.1.1']
         );
 
-        $this->assertEquals($this->tenant->id, $event->tenantId);
+        $this->assertEquals($this->company->id, $event->companyId);
         $this->assertEquals($this->user->id, $event->userId);
         $this->assertEquals('document.created', $event->eventType);
         $this->assertEquals('Document', $event->aggregateType);
@@ -88,7 +108,7 @@ class AuditTrailTest extends TestCase
     public function test_audit_event_generates_hash(): void
     {
         $event = new AuditEvent(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -106,7 +126,7 @@ class AuditTrailTest extends TestCase
         $auditService = app(AuditService::class);
 
         $event = $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -118,14 +138,14 @@ class AuditTrailTest extends TestCase
         $this->assertNotNull($event->id);
     }
 
-    public function test_can_query_audit_events_by_tenant(): void
+    public function test_can_query_audit_events_by_company(): void
     {
         /** @var AuditService $auditService */
         $auditService = app(AuditService::class);
 
         // Record multiple events
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -134,7 +154,7 @@ class AuditTrailTest extends TestCase
         );
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.posted',
             aggregateType: 'Document',
@@ -142,16 +162,18 @@ class AuditTrailTest extends TestCase
             payload: []
         );
 
-        // Create event for another tenant
-        $otherTenant = Tenant::create([
-            'name' => 'Other Tenant',
-            'slug' => 'other-tenant',
-            'status' => TenantStatus::Active,
-            'plan' => SubscriptionPlan::Professional,
+        // Create event for another company
+        $otherCompany = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Other Company',
+            'country_code' => 'TN',
+            'currency' => 'TND',
+            'locale' => 'fr_TN',
+            'timezone' => 'Africa/Tunis',
         ]);
 
         $auditService->record(
-            tenantId: $otherTenant->id,
+            companyId: $otherCompany->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -159,7 +181,7 @@ class AuditTrailTest extends TestCase
             payload: []
         );
 
-        $events = $auditService->getEventsForTenant($this->tenant->id);
+        $events = $auditService->getEventsForCompany($this->company->id);
 
         $this->assertCount(2, $events);
     }
@@ -170,7 +192,7 @@ class AuditTrailTest extends TestCase
         $auditService = app(AuditService::class);
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -179,7 +201,7 @@ class AuditTrailTest extends TestCase
         );
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.posted',
             aggregateType: 'Document',
@@ -188,7 +210,7 @@ class AuditTrailTest extends TestCase
         );
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -207,7 +229,7 @@ class AuditTrailTest extends TestCase
         $auditService = app(AuditService::class);
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -216,7 +238,7 @@ class AuditTrailTest extends TestCase
         );
 
         $events = $auditService->getEventsInRange(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             from: now()->subHour(),
             to: now()->addHour()
         );
@@ -230,7 +252,7 @@ class AuditTrailTest extends TestCase
         $auditService = app(AuditService::class);
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -262,7 +284,7 @@ class AuditTrailTest extends TestCase
         $auditService = app(AuditService::class);
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.created',
             aggregateType: 'Document',
@@ -271,7 +293,7 @@ class AuditTrailTest extends TestCase
         );
 
         $auditService->record(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             userId: $this->user->id,
             eventType: 'document.posted',
             aggregateType: 'Document',
@@ -301,7 +323,7 @@ class AuditTrailTest extends TestCase
         // Record many events rapidly to simulate unusual activity
         for ($i = 0; $i < 50; $i++) {
             $auditService->record(
-                tenantId: $this->tenant->id,
+                companyId: $this->company->id,
                 userId: $this->user->id,
                 eventType: 'document.voided',
                 aggregateType: 'Document',
@@ -314,7 +336,7 @@ class AuditTrailTest extends TestCase
         $anomalyService = app(AnomalyDetectionService::class);
 
         $anomalies = $anomalyService->detectAnomalies(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             from: now()->subHour(),
             to: now()
         );
@@ -332,7 +354,7 @@ class AuditTrailTest extends TestCase
 
         // Simulate after-hours activity check (business hours: 8am-8pm)
         $afterHoursEvents = $anomalyService->detectAfterHoursActivity(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             businessHoursStart: 8,
             businessHoursEnd: 20
         );

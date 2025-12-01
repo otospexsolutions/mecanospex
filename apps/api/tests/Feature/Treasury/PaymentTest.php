@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Treasury;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
@@ -27,6 +31,8 @@ class PaymentTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     private PaymentMethod $cashMethod;
@@ -46,6 +52,18 @@ class PaymentTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -58,8 +76,17 @@ class PaymentTest extends TestCase
         ]);
         $this->user->givePermissionTo(['payments.view', 'payments.create', 'payments.allocate']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->cashMethod = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => false,
@@ -68,6 +95,7 @@ class PaymentTest extends TestCase
 
         $this->customer = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'ACME Corporation',
             'type' => PartnerType::Customer,
             'is_active' => true,
@@ -75,6 +103,7 @@ class PaymentTest extends TestCase
 
         $this->invoice = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'type' => DocumentType::Invoice,
             'document_number' => 'INV-2025-0001',
             'partner_id' => $this->customer->id,
@@ -92,6 +121,7 @@ class PaymentTest extends TestCase
     {
         Payment::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'payment_method_id' => $this->cashMethod->id,
             'amount' => '500.00',
@@ -210,6 +240,7 @@ class PaymentTest extends TestCase
     {
         $otherPartner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Other Corp',
             'type' => PartnerType::Customer,
             'is_active' => true,
@@ -217,6 +248,7 @@ class PaymentTest extends TestCase
 
         Payment::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'payment_method_id' => $this->cashMethod->id,
             'amount' => '500.00',
@@ -228,6 +260,7 @@ class PaymentTest extends TestCase
 
         Payment::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $otherPartner->id,
             'payment_method_id' => $this->cashMethod->id,
             'amount' => '300.00',
@@ -247,6 +280,7 @@ class PaymentTest extends TestCase
     {
         $payment = Payment::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'payment_method_id' => $this->cashMethod->id,
             'amount' => '500.00',
@@ -282,6 +316,7 @@ class PaymentTest extends TestCase
     {
         $invoice2 = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'type' => DocumentType::Invoice,
             'document_number' => 'INV-2025-0002',
             'partner_id' => $this->customer->id,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Vehicle\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Identity\Domain\User;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Vehicle\Application\DTOs\VehicleData;
 use App\Modules\Vehicle\Domain\Vehicle;
 use App\Modules\Vehicle\Presentation\Requests\CreateVehicleRequest;
@@ -16,15 +16,20 @@ use Illuminate\Http\Response;
 
 class VehicleController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     /**
      * List all vehicles for the current tenant
      */
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $query = Vehicle::forTenant($user->tenant_id);
+        $query = Vehicle::forTenant($tenantId);
 
         // Filter by partner
         $partnerId = $request->query('partner_id');
@@ -60,10 +65,11 @@ class VehicleController extends Controller
      */
     public function show(Request $request, string $vehicle): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $vehicleModel = Vehicle::forTenant($user->tenant_id)->find($vehicle);
+        $vehicleModel = Vehicle::forTenant($tenantId)->find($vehicle);
 
         if ($vehicleModel === null) {
             return response()->json([
@@ -87,15 +93,17 @@ class VehicleController extends Controller
      */
     public function store(CreateVehicleRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var array<string, mixed> $validated */
         $validated = $request->validated();
 
         $vehicleModel = Vehicle::create([
             ...$validated,
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
         ]);
 
         /** @var Vehicle $freshVehicle */
@@ -114,10 +122,11 @@ class VehicleController extends Controller
      */
     public function update(UpdateVehicleRequest $request, string $vehicle): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $vehicleModel = Vehicle::forTenant($user->tenant_id)->find($vehicle);
+        $vehicleModel = Vehicle::forTenant($tenantId)->find($vehicle);
 
         if ($vehicleModel === null) {
             return response()->json([
@@ -149,10 +158,11 @@ class VehicleController extends Controller
      */
     public function destroy(Request $request, string $vehicle): Response|JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $vehicleModel = Vehicle::forTenant($user->tenant_id)->find($vehicle);
+        $vehicleModel = Vehicle::forTenant($tenantId)->find($vehicle);
 
         if ($vehicleModel === null) {
             return response()->json([

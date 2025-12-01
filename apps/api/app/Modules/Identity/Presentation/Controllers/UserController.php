@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Presentation\Controllers;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Compliance\Domain\AuditEvent;
 use App\Modules\Identity\Application\DTOs\UserData;
 use App\Modules\Identity\Application\Notifications\UserInvitation;
@@ -32,7 +34,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.view')) {
+        if (! $currentUser->can('users.view')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -52,19 +54,17 @@ class UserController extends Controller
         // Search by name or email (use LIKE for SQLite compatibility in tests)
         if ($request->has('search') && $request->get('search') !== null) {
             $search = $request->get('search');
-            $driver = $query->getConnection()->getDriverName();
-            $likeOperator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
 
-            $query->where(function ($q) use ($search, $likeOperator) {
-                $q->whereRaw("LOWER(name) LIKE LOWER(?)", ["%{$search}%"])
-                    ->orWhereRaw("LOWER(email) LIKE LOWER(?)", ["%{$search}%"]);
+            $query->where(function ($q) use ($search): void {
+                $q->whereRaw('LOWER(name) LIKE LOWER(?)', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE LOWER(?)', ["%{$search}%"]);
             });
         }
 
         $perPage = min((int) $request->get('per_page', 15), 100);
         $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-        $data = $users->getCollection()->map(fn(User $user) => [
+        $data = $users->getCollection()->map(fn (User $user) => [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
@@ -96,7 +96,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.view')) {
+        if (! $currentUser->can('users.view')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -135,7 +135,8 @@ class UserController extends Controller
         $currentUser = $request->user();
         $validated = $request->validated();
 
-        $tenant = Tenant::find($currentUser->tenant_id);
+        /** @var Tenant $tenant */
+        $tenant = Tenant::findOrFail($currentUser->tenant_id);
 
         return DB::transaction(function () use ($validated, $currentUser, $tenant, $request) {
             // Generate a random password (user will set it via invitation email)
@@ -159,7 +160,7 @@ class UserController extends Controller
             // Send invitation email
             $user->notify(new UserInvitation(
                 inviterName: $currentUser->name,
-                tenantName: $tenant?->name ?? 'Organization'
+                tenantName: $tenant->name
             ));
 
             // Log audit event
@@ -167,7 +168,7 @@ class UserController extends Controller
                 eventType: 'user.created',
                 aggregateId: $user->id,
                 userId: $currentUser->id,
-                tenantId: $currentUser->tenant_id,
+                companyId: $request->header('X-Company-Id'),
                 payload: [
                     'name' => $user->name,
                     'email' => $user->email,
@@ -239,7 +240,7 @@ class UserController extends Controller
                 eventType: 'user.updated',
                 aggregateId: $user->id,
                 userId: $currentUser->id,
-                tenantId: $currentUser->tenant_id,
+                companyId: $request->header('X-Company-Id'),
                 payload: ['changes' => $changes]
             );
 
@@ -258,7 +259,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.delete')) {
+        if (! $currentUser->can('users.delete')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -306,7 +307,7 @@ class UserController extends Controller
                 eventType: 'user.deleted',
                 aggregateId: $user->id,
                 userId: $currentUser->id,
-                tenantId: $currentUser->tenant_id,
+                companyId: $request->header('X-Company-Id'),
                 payload: ['email' => $user->email]
             );
 
@@ -325,7 +326,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.update')) {
+        if (! $currentUser->can('users.update')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -368,7 +369,7 @@ class UserController extends Controller
                 eventType: 'user.activated',
                 aggregateId: $user->id,
                 userId: $currentUser->id,
-                tenantId: $currentUser->tenant_id,
+                companyId: $request->header('X-Company-Id'),
                 payload: ['email' => $user->email]
             );
 
@@ -387,7 +388,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.update')) {
+        if (! $currentUser->can('users.update')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -444,7 +445,7 @@ class UserController extends Controller
                 eventType: 'user.deactivated',
                 aggregateId: $user->id,
                 userId: $currentUser->id,
-                tenantId: $currentUser->tenant_id,
+                companyId: $request->header('X-Company-Id'),
                 payload: ['email' => $user->email]
             );
 
@@ -463,7 +464,7 @@ class UserController extends Controller
         /** @var User $currentUser */
         $currentUser = $request->user();
 
-        if (!$currentUser->can('users.update')) {
+        if (! $currentUser->can('users.update')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -496,12 +497,46 @@ class UserController extends Controller
             eventType: 'user.password_reset_triggered',
             aggregateId: $user->id,
             userId: $currentUser->id,
-            tenantId: $currentUser->tenant_id,
+            companyId: $request->header('X-Company-Id'),
             payload: ['email' => $user->email]
         );
 
         return response()->json([
             'data' => ['message' => 'Password reset email sent'],
+            'meta' => $this->getMeta($request),
+        ]);
+    }
+
+    /**
+     * Get companies the current user has access to.
+     */
+    public function companies(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        // Get company IDs from memberships
+        $companyIds = UserCompanyMembership::where('user_id', $user->id)
+            ->pluck('company_id');
+
+        // Fetch companies
+        $companies = Company::whereIn('id', $companyIds)
+            ->orderBy('name')
+            ->get();
+
+        $data = $companies->map(fn (Company $company) => [
+            'id' => $company->id,
+            'name' => $company->name,
+            'legal_name' => $company->legal_name,
+            'tax_id' => $company->tax_id,
+            'country_code' => $company->country_code,
+            'currency' => $company->currency,
+            'locale' => $company->locale,
+            'timezone' => $company->timezone,
+        ]);
+
+        return response()->json([
+            'data' => $data,
             'meta' => $this->getMeta($request),
         ]);
     }
@@ -522,17 +557,23 @@ class UserController extends Controller
     /**
      * Log an audit event.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function logAuditEvent(
         string $eventType,
         string $aggregateId,
         string $userId,
-        string $tenantId,
+        ?string $companyId,
         array $payload = []
     ): void {
+        // Skip audit logging when no company context is available
+        // User management at tenant level doesn't require company context
+        if ($companyId === null) {
+            return;
+        }
+
         $event = new AuditEvent(
-            tenantId: $tenantId,
+            companyId: $companyId,
             userId: $userId,
             eventType: $eventType,
             aggregateType: 'user',

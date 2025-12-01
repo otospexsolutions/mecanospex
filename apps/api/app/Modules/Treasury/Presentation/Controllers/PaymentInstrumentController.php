@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Treasury\Domain\Enums\InstrumentStatus;
 use App\Modules\Treasury\Domain\PaymentInstrument;
@@ -14,13 +15,18 @@ use Illuminate\Routing\Controller;
 
 class PaymentInstrumentController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $query = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['paymentMethod', 'partner', 'repository']);
 
         // Filter by status
@@ -47,11 +53,12 @@ class PaymentInstrumentController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $instrument = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['paymentMethod', 'partner', 'repository', 'depositedTo'])
             ->findOrFail($id);
 
@@ -64,6 +71,9 @@ class PaymentInstrumentController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $validated = $request->validate([
             'payment_method_id' => ['required', 'uuid', 'exists:payment_methods,id'],
@@ -82,7 +92,8 @@ class PaymentInstrumentController extends Controller
         ]);
 
         $instrument = PaymentInstrument::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             'payment_method_id' => $validated['payment_method_id'],
             'reference' => $validated['reference'],
             'partner_id' => $validated['partner_id'] ?? null,
@@ -109,12 +120,13 @@ class PaymentInstrumentController extends Controller
 
     public function deposit(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var PaymentInstrument $instrument */
         $instrument = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         if (! $instrument->status->canDeposit()) {
@@ -158,12 +170,13 @@ class PaymentInstrumentController extends Controller
 
     public function clear(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var PaymentInstrument $instrument */
         $instrument = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         if (! $instrument->status->canClear()) {
@@ -190,12 +203,13 @@ class PaymentInstrumentController extends Controller
 
     public function bounce(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var PaymentInstrument $instrument */
         $instrument = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         if (! $instrument->status->canBounce()) {
@@ -227,12 +241,13 @@ class PaymentInstrumentController extends Controller
 
     public function transfer(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var PaymentInstrument $instrument */
         $instrument = PaymentInstrument::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         if (! $instrument->status->canTransfer()) {

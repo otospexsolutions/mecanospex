@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft, P
 import { api } from '../../lib/api'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterTabs } from '../../components/ui/FilterTabs'
+import { LocationSelector } from '../location/LocationSelector'
+import { useLocation } from '../../hooks/useLocation'
 
 interface StockMovement {
   id: string
@@ -40,14 +42,16 @@ const movementTypeConfig: Record<string, { label: string; color: string; icon: t
 
 export function StockMovementsPage() {
   const { t } = useTranslation()
+  const { currentLocationId } = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
   const [movementFilter, setMovementFilter] = useState<MovementFilter>('all')
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['stock-movements', searchQuery, movementFilter],
+    queryKey: ['stock-movements', searchQuery, movementFilter, currentLocationId],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (searchQuery) params.append('search', searchQuery)
+      if (currentLocationId) params.append('location_id', currentLocationId)
       if (movementFilter !== 'all') {
         if (movementFilter === 'transfer') {
           // Backend doesn't have a combined transfer filter, we'll filter client-side
@@ -97,20 +101,23 @@ export function StockMovementsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          to="/inventory/stock"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('actions.back')}
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Stock Movements</h1>
-          <p className="text-gray-500">
-            {movements.length} movement{movements.length !== 1 ? 's' : ''} recorded
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/inventory/stock"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('actions.back')}
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Stock Movements</h1>
+            <p className="text-gray-500">
+              {movements.length} movement{movements.length !== 1 ? 's' : ''} recorded
+            </p>
+          </div>
         </div>
+        <LocationSelector />
       </div>
 
       {/* Filters */}

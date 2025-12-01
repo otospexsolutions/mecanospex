@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Import\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Import\Domain\Enums\ImportStatus;
 use App\Modules\Import\Domain\Enums\ImportType;
@@ -20,7 +21,8 @@ class ImportController extends Controller
 {
     public function __construct(
         private readonly ImportService $importService,
-        private readonly ValidationEngine $validationEngine
+        private readonly ValidationEngine $validationEngine,
+        private readonly CompanyContext $companyContext,
     ) {}
 
     /**
@@ -28,10 +30,11 @@ class ImportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $jobs = ImportJob::where('tenant_id', $user->tenant_id)
+        $jobs = ImportJob::where('tenant_id', $tenantId)
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -58,13 +61,16 @@ class ImportController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var \Illuminate\Http\UploadedFile $file */
         $file = $request->file('file');
         $type = ImportType::from($request->input('type'));
 
         // Store the file
-        $path = $file->store('imports/'.$user->tenant_id, 'local');
+        $path = $file->store('imports/'.$tenantId, 'local');
         if ($path === false) {
             return response()->json(['error' => 'Failed to store file'], 500);
         }
@@ -77,7 +83,7 @@ class ImportController extends Controller
 
         // Create import job with temporary total_rows
         $job = $this->importService->createJob(
-            tenantId: $user->tenant_id,
+            tenantId: $tenantId,
             userId: $user->id,
             type: $type,
             filename: $file->getClientOriginalName(),
@@ -129,10 +135,11 @@ class ImportController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $job = ImportJob::where('tenant_id', $user->tenant_id)
+        $job = ImportJob::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->first();
 
@@ -150,10 +157,11 @@ class ImportController extends Controller
      */
     public function errors(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $job = ImportJob::where('tenant_id', $user->tenant_id)
+        $job = ImportJob::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->first();
 
@@ -177,10 +185,11 @@ class ImportController extends Controller
      */
     public function execute(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $job = ImportJob::where('tenant_id', $user->tenant_id)
+        $job = ImportJob::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->first();
 

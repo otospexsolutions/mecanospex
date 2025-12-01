@@ -33,7 +33,9 @@ class ComplianceTablesTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Company $company;
+
     private User $user;
 
     protected function setUp(): void

@@ -179,8 +179,6 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     /**
      * Get the full name of the tenant account holder.
-     *
-     * @return string|null
      */
     public function getFullNameAttribute(): ?string
     {
@@ -188,7 +186,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             return null;
         }
 
-        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        return trim(($this->first_name ?? '').' '.($this->last_name ?? ''));
     }
 
     /**

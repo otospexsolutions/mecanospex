@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Document\Types;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
@@ -27,6 +29,8 @@ class SalesOrderDocumentTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private Partner $partner;
 
     protected function setUp(): void
@@ -38,6 +42,18 @@ class SalesOrderDocumentTest extends TestCase
             'slug' => 'test-tenant',
             'status' => TenantStatus::Active,
             'plan' => SubscriptionPlan::Professional,
+        ]);
+
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
         ]);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
@@ -52,8 +68,18 @@ class SalesOrderDocumentTest extends TestCase
         ]);
         $this->user->givePermissionTo(['orders.view', 'orders.create', 'orders.update', 'orders.delete', 'orders.confirm', 'invoices.create']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        // Set company context for the test
+        app(\App\Modules\Company\Services\CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Partner',
             'type' => PartnerType::Customer,
             'email' => 'partner@example.com',
@@ -82,6 +108,7 @@ class SalesOrderDocumentTest extends TestCase
     {
         $order = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::SalesOrder,
             'status' => DocumentStatus::Draft,
@@ -100,6 +127,7 @@ class SalesOrderDocumentTest extends TestCase
     {
         $order = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::SalesOrder,
             'status' => DocumentStatus::Confirmed,
@@ -119,6 +147,7 @@ class SalesOrderDocumentTest extends TestCase
     {
         $order = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::SalesOrder,
             'status' => DocumentStatus::Draft,
@@ -137,6 +166,7 @@ class SalesOrderDocumentTest extends TestCase
     {
         $order = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::SalesOrder,
             'status' => DocumentStatus::Confirmed,

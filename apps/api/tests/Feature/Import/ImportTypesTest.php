@@ -6,13 +6,16 @@ namespace Tests\Feature\Import;
 
 use App\Modules\Accounting\Domain\Account;
 use App\Modules\Accounting\Domain\Enums\AccountType;
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Location;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Import\Domain\Enums\ImportStatus;
 use App\Modules\Import\Domain\Enums\ImportType;
 use App\Modules\Import\Domain\ImportJob;
 use App\Modules\Import\Services\ImportService;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Product\Domain\Product;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -31,6 +34,8 @@ class ImportTypesTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -44,6 +49,18 @@ class ImportTypesTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -55,6 +72,14 @@ class ImportTypesTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->assignRole('admin');
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
 
         Storage::fake('local');
     }
@@ -228,15 +253,19 @@ class ImportTypesTest extends TestCase
         // Create prerequisite data
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Product',
             'sku' => 'TEST-001',
             'type' => \App\Modules\Product\Domain\Enums\ProductType::Part,
         ]);
 
         $location = Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Main Warehouse',
             'code' => 'WH-MAIN',
+            'type' => 'warehouse',
+            'is_default' => true,
+            'is_active' => true,
         ]);
 
         /** @var ImportService $importService */
@@ -275,9 +304,12 @@ class ImportTypesTest extends TestCase
     public function test_stock_level_import_fails_for_missing_product(): void
     {
         Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Main Warehouse',
             'code' => 'WH-MAIN',
+            'type' => 'warehouse',
+            'is_default' => true,
+            'is_active' => true,
         ]);
 
         /** @var ImportService $importService */
@@ -317,6 +349,7 @@ class ImportTypesTest extends TestCase
         // Create prerequisite account
         $account = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Cash',
             'type' => AccountType::Asset,

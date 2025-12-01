@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Tenant;
 use App\Modules\Treasury\Domain\Enums\FeeType;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,7 +36,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $position
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string $company_id
  * @property-read Tenant $tenant
+ * @property-read Company $company
  */
 class PaymentMethod extends Model
 {
@@ -45,6 +48,7 @@ class PaymentMethod extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'code',
         'name',
         'is_physical',
@@ -90,6 +94,14 @@ class PaymentMethod extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -177,5 +189,16 @@ class PaymentMethod extends Model
     public function scopeWithMaturity(Builder $query): Builder
     {
         return $query->where('has_maturity', true);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

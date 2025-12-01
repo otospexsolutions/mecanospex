@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Inventory;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Location;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\Services\StockAdjustmentService;
 use App\Modules\Product\Domain\Enums\ProductType;
 use App\Modules\Product\Domain\Product;
@@ -23,6 +27,8 @@ class StockMovementTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
+    private Company $company;
 
     private User $user;
 
@@ -41,6 +47,18 @@ class StockMovementTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'TN',
+            'currency' => 'TND',
+            'locale' => 'fr_TN',
+            'timezone' => 'Africa/Tunis',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -53,15 +71,26 @@ class StockMovementTest extends TestCase
         ]);
         $this->user->givePermissionTo(['inventory.view', 'inventory.adjust', 'inventory.transfer', 'inventory.receive']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->warehouse = Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'WH-01',
             'name' => 'Main Warehouse',
+            'type' => 'warehouse',
             'is_active' => true,
+            'is_default' => true,
         ]);
 
         $this->product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'sku' => 'PROD-001',
             'name' => 'Test Product',
             'type' => ProductType::Part,
@@ -147,9 +176,10 @@ class StockMovementTest extends TestCase
     public function test_can_transfer_stock_via_api(): void
     {
         $secondWarehouse = Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'WH-02',
             'name' => 'Secondary Warehouse',
+            'type' => 'warehouse',
             'is_active' => true,
         ]);
 
@@ -246,6 +276,7 @@ class StockMovementTest extends TestCase
     {
         $product2 = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'sku' => 'PROD-002',
             'name' => 'Second Product',
             'type' => ProductType::Part,
@@ -311,14 +342,18 @@ class StockMovementTest extends TestCase
     {
         $service = app(StockAdjustmentService::class);
 
-        $service->receive(
+        $receiptMovement = $service->receive(
             productId: $this->product->id,
             locationId: $this->warehouse->id,
             quantity: '100.00',
             reference: 'PO-001',
             userId: $this->user->id,
         );
-        $service->issue(
+
+        // Wait 1 second to ensure different timestamps
+        sleep(1);
+
+        $issueMovement = $service->issue(
             productId: $this->product->id,
             locationId: $this->warehouse->id,
             quantity: '20.00',

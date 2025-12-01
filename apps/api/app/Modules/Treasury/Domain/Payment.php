@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $partner_id
  * @property string $payment_method_id
  * @property string|null $instrument_id
@@ -34,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read Partner|null $partner
  * @property-read PaymentMethod|null $paymentMethod
  * @property-read PaymentInstrument|null $instrument
@@ -49,6 +52,7 @@ class Payment extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'partner_id',
         'payment_method_id',
         'instrument_id',
@@ -81,6 +85,14 @@ class Payment extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -184,5 +196,16 @@ class Payment extends Model
         $allocatedAmount = $this->getAllocatedAmount();
 
         return bcsub($this->amount, $allocatedAmount, 2);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

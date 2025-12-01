@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Dashboard\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
-use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Treasury\Domain\Entities\Payment;
 use Carbon\Carbon;
@@ -18,47 +18,49 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     /**
      * Get dashboard statistics.
      */
     public function stats(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-        $tenantId = $user->tenant_id;
+        $companyId = $this->companyContext->requireCompanyId();
 
         $currentMonthStart = Carbon::now()->startOfMonth();
         $previousMonthStart = Carbon::now()->subMonth()->startOfMonth();
         $previousMonthEnd = Carbon::now()->subMonth()->endOfMonth();
 
         // Revenue calculation (posted invoices)
-        $currentRevenue = Document::where('tenant_id', $tenantId)
+        $currentRevenue = Document::where('company_id', $companyId)
             ->where('type', DocumentType::Invoice)
             ->where('status', DocumentStatus::Posted)
-            ->where('issue_date', '>=', $currentMonthStart)
-            ->sum('total_amount');
+            ->where('document_date', '>=', $currentMonthStart)
+            ->sum('total');
 
-        $previousRevenue = Document::where('tenant_id', $tenantId)
+        $previousRevenue = Document::where('company_id', $companyId)
             ->where('type', DocumentType::Invoice)
             ->where('status', DocumentStatus::Posted)
-            ->whereBetween('issue_date', [$previousMonthStart, $previousMonthEnd])
-            ->sum('total_amount');
+            ->whereBetween('document_date', [$previousMonthStart, $previousMonthEnd])
+            ->sum('total');
 
         $revenueChange = $previousRevenue > 0
             ? round((($currentRevenue - $previousRevenue) / $previousRevenue) * 100, 1)
             : 0;
 
         // Invoice stats
-        $totalInvoices = Document::where('tenant_id', $tenantId)
+        $totalInvoices = Document::where('company_id', $companyId)
             ->where('type', DocumentType::Invoice)
             ->count();
 
-        $pendingInvoices = Document::where('tenant_id', $tenantId)
+        $pendingInvoices = Document::where('company_id', $companyId)
             ->where('type', DocumentType::Invoice)
             ->whereIn('status', [DocumentStatus::Draft, DocumentStatus::Confirmed])
             ->count();
 
-        $overdueInvoices = Document::where('tenant_id', $tenantId)
+        $overdueInvoices = Document::where('company_id', $companyId)
             ->where('type', DocumentType::Invoice)
             ->where('status', DocumentStatus::Posted)
             ->whereNotNull('due_date')
@@ -66,9 +68,9 @@ class DashboardController extends Controller
             ->count();
 
         // Partner stats
-        $totalPartners = Partner::where('tenant_id', $tenantId)->count();
+        $totalPartners = Partner::where('company_id', $companyId)->count();
 
-        $newPartnersThisMonth = Partner::where('tenant_id', $tenantId)
+        $newPartnersThisMonth = Partner::where('company_id', $companyId)
             ->where('created_at', '>=', $currentMonthStart)
             ->count();
 
@@ -79,13 +81,13 @@ class DashboardController extends Controller
         if (class_exists(Payment::class)) {
             try {
                 $paymentsReceived = (float) DB::table('payments')
-                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
                     ->where('direction', 'inbound')
                     ->where('created_at', '>=', $currentMonthStart)
                     ->sum('amount');
 
                 // Calculate pending from unpaid posted invoices
-                $paymentsPending = (float) Document::where('tenant_id', $tenantId)
+                $paymentsPending = (float) Document::where('company_id', $companyId)
                     ->where('type', DocumentType::Invoice)
                     ->where('status', DocumentStatus::Posted)
                     ->sum('total_amount') - $paymentsReceived;

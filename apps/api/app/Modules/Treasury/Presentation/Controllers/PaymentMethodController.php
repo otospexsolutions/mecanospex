@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Presentation\Controllers;
 
-use App\Modules\Identity\Domain\User;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Treasury\Domain\PaymentMethod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,13 +13,18 @@ use Illuminate\Validation\Rule;
 
 class PaymentMethodController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $methods = PaymentMethod::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->orderBy('position')
             ->orderBy('name')
             ->get();
@@ -31,11 +36,12 @@ class PaymentMethodController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $method = PaymentMethod::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         return response()->json([
@@ -45,15 +51,16 @@ class PaymentMethodController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $validated = $request->validate([
             'code' => [
                 'required',
                 'string',
                 'max:30',
-                Rule::unique('payment_methods', 'code')->where('tenant_id', $user->tenant_id),
+                Rule::unique('payment_methods', 'code')->where('tenant_id', $tenantId),
             ],
             'name' => ['required', 'string', 'max:100'],
             'is_physical' => ['nullable', 'boolean'],
@@ -73,7 +80,8 @@ class PaymentMethodController extends Controller
         ]);
 
         $method = PaymentMethod::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             'code' => $validated['code'],
             'name' => $validated['name'],
             'is_physical' => $validated['is_physical'] ?? false,
@@ -100,11 +108,12 @@ class PaymentMethodController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $method = PaymentMethod::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -113,7 +122,7 @@ class PaymentMethodController extends Controller
                 'string',
                 'max:30',
                 Rule::unique('payment_methods', 'code')
-                    ->where('tenant_id', $user->tenant_id)
+                    ->where('tenant_id', $tenantId)
                     ->ignore($method->id),
             ],
             'name' => ['sometimes', 'string', 'max:100'],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Import\Providers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Import\Services\ImportService;
 use App\Modules\Import\Services\MigrationWizardService;
 use App\Modules\Import\Services\ValidationEngine;
@@ -19,7 +20,10 @@ class ImportServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(ImportService::class, function ($app) {
-            return new ImportService($app->make(ValidationEngine::class));
+            return new ImportService(
+                $app->make(ValidationEngine::class),
+                $app->make(CompanyContext::class)
+            );
         });
 
         $this->app->singleton(MigrationWizardService::class, function () {

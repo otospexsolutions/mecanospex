@@ -6,6 +6,9 @@ namespace Tests\Feature\Accounting;
 
 use App\Modules\Accounting\Domain\Account;
 use App\Modules\Accounting\Domain\Enums\AccountType;
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -22,6 +25,8 @@ class CreateAccountTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -35,6 +40,18 @@ class CreateAccountTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -46,6 +63,14 @@ class CreateAccountTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->givePermissionTo(['accounts.view', 'accounts.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_user_can_create_account(): void
@@ -101,6 +126,7 @@ class CreateAccountTest extends TestCase
     {
         Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1100',
             'name' => 'Cash',
             'type' => AccountType::Asset,
@@ -120,6 +146,7 @@ class CreateAccountTest extends TestCase
     {
         $parentAccount = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1000',
             'name' => 'Assets',
             'type' => AccountType::Asset,

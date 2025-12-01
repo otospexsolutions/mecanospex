@@ -37,6 +37,7 @@ class PaymentMethodEntityTest extends TestCase
         $fillable = $method->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
+        $this->assertContains('company_id', $fillable);
         $this->assertContains('code', $fillable);
         $this->assertContains('name', $fillable);
         $this->assertContains('is_physical', $fillable);

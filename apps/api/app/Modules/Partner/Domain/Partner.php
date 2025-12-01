@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Partner\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Partner\Domain\Enums\PartnerType;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $name
  * @property PartnerType $type
  * @property string|null $code
@@ -27,6 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  */
 class Partner extends Model
 {
@@ -35,6 +38,7 @@ class Partner extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'name',
         'type',
         'code',
@@ -61,6 +65,14 @@ class Partner extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function isCustomer(): bool
@@ -109,5 +121,16 @@ class Partner extends Model
     public function scopeForTenant(Builder $query, string $tenantId): Builder
     {
         return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Scope a query to only include partners for a specific company.
+     *
+     * @param  Builder<Partner>  $query
+     * @return Builder<Partner>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Enums\MembershipRole;
+use App\Modules\Company\Domain\Enums\MembershipStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Partner;
-use App\Modules\Tenant\Domain\Tenant;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
 use App\Modules\Tenant\Domain\Enums\TenantStatus;
+use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -27,11 +32,14 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Creating demo tenant...');
         $tenant = $this->createTenant();
 
+        $this->command->info('Creating demo company...');
+        $company = $this->createCompany($tenant);
+
         $this->command->info('Creating test users...');
-        $this->createUsers($tenant);
+        $this->createUsers($tenant, $company);
 
         $this->command->info('Creating test partners...');
-        $this->createPartners($tenant);
+        $this->createPartners($tenant, $company);
 
         $this->command->info('Database seeding completed!');
     }
@@ -57,7 +65,25 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 
-    private function createUsers(Tenant $tenant): void
+    private function createCompany(Tenant $tenant): Company
+    {
+        return Company::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Demo Garage',
+            'legal_name' => 'Demo Garage SARL',
+            'country_code' => 'FR',
+            'tax_id' => 'FR12345678901',
+            'currency' => 'EUR',
+            'locale' => 'fr',
+            'timezone' => 'Europe/Paris',
+            'date_format' => 'd/m/Y',
+            'fiscal_year_start_month' => 1,
+            'status' => CompanyStatus::Active,
+            'is_headquarters' => true,
+        ]);
+    }
+
+    private function createUsers(Tenant $tenant, Company $company): void
     {
         // Set the team (tenant) context for Spatie permissions
         setPermissionsTeamId($tenant->id);
@@ -72,6 +98,16 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
             'email_verified_at' => now(),
             'preferences' => [],
+        ]);
+
+        // Create company membership for test user (manager role)
+        UserCompanyMembership::create([
+            'user_id' => $testUser->id,
+            'company_id' => $company->id,
+            'role' => MembershipRole::Manager,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
         ]);
 
         // Assign manager role with tenant scope
@@ -93,6 +129,16 @@ class DatabaseSeeder extends Seeder
             'preferences' => [],
         ]);
 
+        // Create company membership for admin user (owner role)
+        UserCompanyMembership::create([
+            'user_id' => $adminUser->id,
+            'company_id' => $company->id,
+            'role' => MembershipRole::Owner,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
+        ]);
+
         // Assign admin role with tenant scope
         $adminRole = Role::where('name', 'admin')->where('guard_name', 'sanctum')->first();
         if ($adminRole) {
@@ -101,7 +147,7 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    private function createPartners(Tenant $tenant): void
+    private function createPartners(Tenant $tenant, Company $company): void
     {
         $partners = [
             [
@@ -137,7 +183,7 @@ class DatabaseSeeder extends Seeder
         foreach ($partners as $partner) {
             Partner::create([
                 'id' => Str::uuid()->toString(),
-                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
                 'type' => $partner['type'],
                 'code' => $partner['code'],
                 'name' => $partner['name'],

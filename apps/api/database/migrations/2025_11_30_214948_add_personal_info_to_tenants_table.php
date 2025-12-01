@@ -28,7 +28,7 @@ return new class extends Migration
         });
 
         // Migrate existing 'name' data to first_name for existing tenants
-        DB::statement("UPDATE tenants SET first_name = name WHERE first_name IS NULL");
+        DB::statement('UPDATE tenants SET first_name = name WHERE first_name IS NULL');
     }
 
     /**

@@ -37,6 +37,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Company $company
+ * @property-read string|null $full_address Computed full address
  */
 class Location extends Model
 {
@@ -128,5 +129,16 @@ class Location extends Model
     public function isWarehouse(): bool
     {
         return $this->type === LocationType::Warehouse;
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function scopeForCompany(\Illuminate\Database\Eloquent\Builder $query, string $companyId): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

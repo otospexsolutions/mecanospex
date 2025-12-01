@@ -25,17 +25,18 @@ final class GeneralLedgerService
     public function createFromInvoice(Document $invoice, User $user): JournalEntry
     {
         return DB::transaction(function () use ($invoice): JournalEntry {
-            $tenantId = $invoice->tenant_id;
+            $companyId = $invoice->company_id;
 
             // Get or create required accounts
-            $receivableAccount = $this->getAccountByCode($tenantId, '1200');
-            $revenueAccount = $this->getAccountByCode($tenantId, '4000');
-            $taxAccount = $this->getAccountByCode($tenantId, '2100');
+            $receivableAccount = $this->getAccountByCode($companyId, '1200');
+            $revenueAccount = $this->getAccountByCode($companyId, '4000');
+            $taxAccount = $this->getAccountByCode($companyId, '2100');
 
-            $entryNumber = $this->generateEntryNumber($tenantId);
+            $entryNumber = $this->generateEntryNumber($companyId);
 
             $entry = JournalEntry::create([
-                'tenant_id' => $tenantId,
+                'tenant_id' => $invoice->tenant_id,
+                'company_id' => $companyId,
                 'entry_number' => $entryNumber,
                 'entry_date' => $invoice->document_date,
                 'description' => "Invoice {$invoice->document_number}",
@@ -93,17 +94,18 @@ final class GeneralLedgerService
     public function createFromCreditNote(Document $creditNote, User $user): JournalEntry
     {
         return DB::transaction(function () use ($creditNote): JournalEntry {
-            $tenantId = $creditNote->tenant_id;
+            $companyId = $creditNote->company_id;
 
             // Get or create required accounts
-            $receivableAccount = $this->getAccountByCode($tenantId, '1200');
-            $revenueAccount = $this->getAccountByCode($tenantId, '4000');
-            $taxAccount = $this->getAccountByCode($tenantId, '2100');
+            $receivableAccount = $this->getAccountByCode($companyId, '1200');
+            $revenueAccount = $this->getAccountByCode($companyId, '4000');
+            $taxAccount = $this->getAccountByCode($companyId, '2100');
 
-            $entryNumber = $this->generateEntryNumber($tenantId);
+            $entryNumber = $this->generateEntryNumber($companyId);
 
             $entry = JournalEntry::create([
-                'tenant_id' => $tenantId,
+                'tenant_id' => $creditNote->tenant_id,
+                'company_id' => $companyId,
                 'entry_number' => $entryNumber,
                 'entry_date' => $creditNote->document_date,
                 'description' => "Credit Note {$creditNote->document_number}",
@@ -157,18 +159,19 @@ final class GeneralLedgerService
      * Credit: Accounts Receivable
      */
     public function createPaymentEntry(
-        string $tenantId,
+        string $companyId,
         string $amount,
         string $debitAccountId,
         string $creditAccountId,
         string $description,
         User $user,
     ): JournalEntry {
-        return DB::transaction(function () use ($tenantId, $amount, $debitAccountId, $creditAccountId, $description): JournalEntry {
-            $entryNumber = $this->generateEntryNumber($tenantId);
+        return DB::transaction(function () use ($companyId, $amount, $debitAccountId, $creditAccountId, $description, $user): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
 
             $entry = JournalEntry::create([
-                'tenant_id' => $tenantId,
+                'tenant_id' => $user->tenant_id,
+                'company_id' => $companyId,
                 'entry_number' => $entryNumber,
                 'entry_date' => now()->toDateString(),
                 'description' => $description,
@@ -209,7 +212,7 @@ final class GeneralLedgerService
             throw new \InvalidArgumentException('Only draft entries can be posted');
         }
 
-        $previousHash = $this->getPreviousHash($entry->tenant_id);
+        $previousHash = $this->getPreviousHash($entry->company_id);
         $hash = $this->calculateHash($entry, $previousHash);
 
         $entry->update([
@@ -221,25 +224,25 @@ final class GeneralLedgerService
         ]);
     }
 
-    private function getAccountByCode(string $tenantId, string $code): Account
+    private function getAccountByCode(string $companyId, string $code): Account
     {
         $account = Account::query()
-            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
             ->where('code', $code)
             ->first();
 
         if ($account === null) {
-            throw new \RuntimeException("Account with code {$code} not found for tenant");
+            throw new \RuntimeException("Account with code {$code} not found for company");
         }
 
         return $account;
     }
 
-    private function generateEntryNumber(string $tenantId): string
+    private function generateEntryNumber(string $companyId): string
     {
         $year = date('Y');
         $lastEntry = JournalEntry::query()
-            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
             ->where('entry_number', 'like', "JE-{$year}-%")
             ->orderByDesc('entry_number')
             ->first();
@@ -270,10 +273,10 @@ final class GeneralLedgerService
         return hash('sha256', $previousHash.'|'.$data);
     }
 
-    private function getPreviousHash(string $tenantId): string
+    private function getPreviousHash(string $companyId): string
     {
         $lastPosted = JournalEntry::query()
-            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
             ->where('status', JournalEntryStatus::Posted)
             ->whereNotNull('hash')
             ->orderByDesc('posted_at')

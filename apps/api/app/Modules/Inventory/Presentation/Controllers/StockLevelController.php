@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Presentation\Controllers;
 
-use App\Modules\Identity\Domain\User;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Inventory\Domain\StockLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,13 +12,18 @@ use Illuminate\Routing\Controller;
 
 class StockLevelController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $query = StockLevel::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['product', 'location']);
 
         if ($request->has('product_id')) {
@@ -57,11 +62,12 @@ class StockLevelController extends Controller
 
     public function show(Request $request, string $productId, string $locationId): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $stockLevel = StockLevel::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->where('product_id', $productId)
             ->where('location_id', $locationId)
             ->with(['product', 'location'])

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Accounting\Domain;
 
 use App\Modules\Accounting\Domain\Enums\AccountType;
+use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string|null $parent_id
  * @property string $code
  * @property string $name
@@ -27,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read Account|null $parent
  * @property-read Collection<int, Account> $children
  *
@@ -48,6 +51,7 @@ class Account extends Model
      */
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'parent_id',
         'code',
         'name',
@@ -85,6 +89,14 @@ class Account extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -174,5 +186,16 @@ class Account extends Model
     public function scopeOfType(Builder $query, AccountType $type): Builder
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Scope to filter accounts by company
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

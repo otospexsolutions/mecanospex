@@ -24,7 +24,7 @@ class SetPermissionsTeam
         /** @var User|null $user */
         $user = $request->user();
 
-        if ($user !== null && $user->tenant_id !== null) {
+        if ($user !== null) {
             setPermissionsTeamId($user->tenant_id);
         }
 

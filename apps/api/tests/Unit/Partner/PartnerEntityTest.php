@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Partner;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Partner\Domain\Enums\PartnerType;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -18,6 +19,8 @@ class PartnerEntityTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,12 +31,25 @@ class PartnerEntityTest extends TestCase
             'status' => TenantStatus::Active,
             'plan' => SubscriptionPlan::Professional,
         ]);
+
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
     }
 
     public function test_partner_has_uuid_primary_key(): void
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Partner',
             'type' => PartnerType::Customer,
         ]);
@@ -49,6 +65,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Partner',
             'type' => PartnerType::Customer,
         ]);
@@ -61,6 +78,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Partner',
             'type' => PartnerType::Customer,
         ]);
@@ -73,6 +91,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Customer Partner',
             'type' => PartnerType::Customer,
         ]);
@@ -85,6 +104,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Supplier Partner',
             'type' => PartnerType::Supplier,
         ]);
@@ -97,6 +117,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Both Partner',
             'type' => PartnerType::Both,
         ]);
@@ -109,6 +130,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Full Partner',
             'type' => PartnerType::Customer,
             'email' => 'partner@example.com',
@@ -130,6 +152,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Delete Me',
             'type' => PartnerType::Customer,
         ]);
@@ -148,6 +171,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'ACME Corporation',
             'type' => PartnerType::Customer,
         ]);
@@ -159,6 +183,7 @@ class PartnerEntityTest extends TestCase
     {
         $partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Partner',
             'type' => PartnerType::Customer,
             'code' => 'CUST-001',
@@ -171,18 +196,21 @@ class PartnerEntityTest extends TestCase
     {
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Customer',
             'type' => PartnerType::Customer,
         ]);
 
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Supplier',
             'type' => PartnerType::Supplier,
         ]);
 
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Both',
             'type' => PartnerType::Both,
         ]);
@@ -196,18 +224,21 @@ class PartnerEntityTest extends TestCase
     {
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Customer',
             'type' => PartnerType::Customer,
         ]);
 
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Supplier',
             'type' => PartnerType::Supplier,
         ]);
 
         Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Both',
             'type' => PartnerType::Both,
         ]);

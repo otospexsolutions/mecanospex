@@ -216,4 +216,154 @@ class AuthenticationTest extends TestCase
             'type' => 'mobile',
         ]);
     }
+
+    public function test_user_can_register_with_valid_data(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'New User',
+            'email' => 'newuser@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'company_name' => 'New Company',
+            'country_code' => 'FR',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonStructure([
+                'data' => [
+                    'user' => [
+                        'id',
+                        'tenantId',
+                        'name',
+                        'email',
+                        'status',
+                    ],
+                    'token',
+                    'tokenType',
+                ],
+                'meta' => [
+                    'timestamp',
+                    'request_id',
+                ],
+            ]);
+
+        // Verify tenant was created
+        $this->assertDatabaseHas('tenants', [
+            'name' => 'New Company',
+        ]);
+
+        // Verify user was created
+        $this->assertDatabaseHas('users', [
+            'name' => 'New User',
+            'email' => 'newuser@example.com',
+        ]);
+
+        // Verify company was created
+        $this->assertDatabaseHas('companies', [
+            'name' => 'New Company',
+            'country_code' => 'FR',
+        ]);
+
+        // Verify user company membership was created
+        $this->assertDatabaseHas('user_company_memberships', [
+            'role' => 'owner',
+            'is_primary' => true,
+        ]);
+    }
+
+    public function test_register_requires_all_mandatory_fields(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', []);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['name', 'email', 'password', 'company_name', 'country_code']);
+    }
+
+    public function test_register_requires_unique_email(): void
+    {
+        // Create existing user
+        User::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Existing User',
+            'email' => 'existing@example.com',
+            'password' => 'password123',
+            'status' => UserStatus::Active,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'New User',
+            'email' => 'existing@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'company_name' => 'New Company',
+            'country_code' => 'FR',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_register_requires_password_confirmation(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'New User',
+            'email' => 'newuser@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'differentpassword',
+            'company_name' => 'New Company',
+            'country_code' => 'FR',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_register_sets_default_currency_for_country(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'French User',
+            'email' => 'french@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'company_name' => 'French Company',
+            'country_code' => 'FR',
+        ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('companies', [
+            'name' => 'French Company',
+            'currency' => 'EUR',
+            'locale' => 'fr',
+        ]);
+    }
+
+    public function test_register_with_optional_company_fields(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'Business User',
+            'email' => 'business@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'company_name' => 'Business Corp',
+            'company_legal_name' => 'Business Corporation SARL',
+            'country_code' => 'TN',
+            'tax_id' => 'TN12345678',
+            'phone' => '+21612345678',
+            'currency' => 'TND',
+            'timezone' => 'Africa/Tunis',
+        ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('companies', [
+            'name' => 'Business Corp',
+            'legal_name' => 'Business Corporation SARL',
+            'country_code' => 'TN',
+            'tax_id' => 'TN12345678',
+            'phone' => '+21612345678',
+            'currency' => 'TND',
+            'timezone' => 'Africa/Tunis',
+        ]);
+    }
 }

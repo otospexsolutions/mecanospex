@@ -20,8 +20,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('api/v1/auth')->group(function () {
     // Public routes
     Route::post('login', [AuthController::class, 'login'])->name('auth.login');
+    Route::post('register', [AuthController::class, 'register'])->name('auth.register');
 
-    // Protected routes
+    // Protected routes (no company context required for auth endpoints)
     Route::middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function () {
         Route::get('me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
@@ -29,7 +30,14 @@ Route::prefix('api/v1/auth')->group(function () {
     });
 });
 
+// Routes that don't require company context
 Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function () {
+    // Current user routes (no company context - used to get available companies)
+    Route::get('user/companies', [UserController::class, 'companies'])->name('user.companies');
+});
+
+// Routes that require company context
+Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::class])->group(function () {
     // Role management (requires roles.view or roles.manage permission)
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
     Route::get('permissions', [RoleController::class, 'permissions'])->name('permissions.index');

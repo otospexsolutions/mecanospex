@@ -32,9 +32,7 @@ final readonly class UserData
     public static function fromUser(User $user): self
     {
         // Set the team context for Spatie permissions before loading roles
-        if ($user->tenant_id !== null) {
-            setPermissionsTeamId($user->tenant_id);
-        }
+        setPermissionsTeamId($user->tenant_id);
 
         /** @var list<string> $roles */
         $roles = $user->getRoleNames()->values()->all();

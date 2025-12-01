@@ -24,7 +24,9 @@ class StockCompanyIdMigrationTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Company $company;
+
     private Location $location;
 
     protected function setUp(): void

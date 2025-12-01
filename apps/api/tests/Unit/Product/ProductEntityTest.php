@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Product;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Product\Domain\Enums\ProductType;
 use App\Modules\Product\Domain\Product;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -18,6 +20,8 @@ class ProductEntityTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,12 +32,27 @@ class ProductEntityTest extends TestCase
             'status' => TenantStatus::Active,
             'plan' => SubscriptionPlan::Professional,
         ]);
+
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_product_has_uuid_primary_key(): void
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Product',
             'sku' => 'TST-001',
             'type' => ProductType::Part,
@@ -50,6 +69,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Product',
             'sku' => 'TST-001',
             'type' => ProductType::Part,
@@ -63,6 +83,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Product',
             'sku' => 'TST-001',
             'type' => ProductType::Part,
@@ -76,6 +97,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Part Product',
             'sku' => 'PRT-001',
             'type' => ProductType::Part,
@@ -89,6 +111,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Service Product',
             'sku' => 'SVC-001',
             'type' => ProductType::Service,
@@ -102,6 +125,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Consumable Product',
             'sku' => 'CON-001',
             'type' => ProductType::Consumable,
@@ -114,6 +138,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Full Product',
             'sku' => 'FUL-001',
             'type' => ProductType::Part,
@@ -141,6 +166,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Delete Me',
             'sku' => 'DEL-001',
             'type' => ProductType::Part,
@@ -157,6 +183,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'OEM Product',
             'sku' => 'OEM-001',
             'type' => ProductType::Part,
@@ -177,6 +204,7 @@ class ProductEntityTest extends TestCase
 
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Cross Ref Product',
             'sku' => 'CRF-001',
             'type' => ProductType::Part,
@@ -192,6 +220,7 @@ class ProductEntityTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Default Active Product',
             'sku' => 'DEF-001',
             'type' => ProductType::Part,
@@ -204,6 +233,7 @@ class ProductEntityTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Active Product',
             'sku' => 'ACT-001',
             'type' => ProductType::Part,
@@ -212,6 +242,7 @@ class ProductEntityTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Inactive Product',
             'sku' => 'INA-001',
             'type' => ProductType::Part,
@@ -228,6 +259,7 @@ class ProductEntityTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Part',
             'sku' => 'PRT-001',
             'type' => ProductType::Part,
@@ -235,6 +267,7 @@ class ProductEntityTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Service',
             'sku' => 'SVC-001',
             'type' => ProductType::Service,
@@ -249,6 +282,7 @@ class ProductEntityTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Part',
             'sku' => 'PRT-001',
             'type' => ProductType::Part,
@@ -256,6 +290,7 @@ class ProductEntityTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Service',
             'sku' => 'SVC-001',
             'type' => ProductType::Service,

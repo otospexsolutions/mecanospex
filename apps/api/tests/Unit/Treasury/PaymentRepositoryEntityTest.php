@@ -37,6 +37,7 @@ class PaymentRepositoryEntityTest extends TestCase
         $fillable = $repository->getFillable();
 
         $this->assertContains('tenant_id', $fillable);
+        $this->assertContains('company_id', $fillable);
         $this->assertContains('code', $fillable);
         $this->assertContains('name', $fillable);
         $this->assertContains('type', $fillable);

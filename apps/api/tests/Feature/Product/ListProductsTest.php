@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Product;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Product\Domain\Enums\ProductType;
@@ -22,6 +25,8 @@ class ListProductsTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -35,6 +40,18 @@ class ListProductsTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -46,12 +63,21 @@ class ListProductsTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->assignRole('admin');
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => \App\Modules\Company\Domain\Enums\MembershipRole::Admin,
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_can_list_products(): void
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Product One',
             'sku' => 'PRD-001',
             'type' => ProductType::Part,
@@ -59,6 +85,7 @@ class ListProductsTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Product Two',
             'sku' => 'PRD-002',
             'type' => ProductType::Service,
@@ -82,6 +109,7 @@ class ListProductsTest extends TestCase
         for ($i = 1; $i <= 25; $i++) {
             Product::create([
                 'tenant_id' => $this->tenant->id,
+                'company_id' => $this->company->id,
                 'name' => "Product {$i}",
                 'sku' => "PRD-{$i}",
                 'type' => ProductType::Part,
@@ -102,6 +130,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Part Product',
             'sku' => 'PART-001',
             'type' => ProductType::Part,
@@ -109,6 +138,7 @@ class ListProductsTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Service Product',
             'sku' => 'SVC-001',
             'type' => ProductType::Service,
@@ -126,6 +156,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Brake Pad Set',
             'sku' => 'BRK-001',
             'type' => ProductType::Part,
@@ -133,6 +164,7 @@ class ListProductsTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Air Filter',
             'sku' => 'FLT-001',
             'type' => ProductType::Part,
@@ -150,6 +182,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Product One',
             'sku' => 'ABC-123',
             'type' => ProductType::Part,
@@ -157,6 +190,7 @@ class ListProductsTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Product Two',
             'sku' => 'XYZ-789',
             'type' => ProductType::Part,
@@ -174,6 +208,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'My Product',
             'sku' => 'MY-001',
             'type' => ProductType::Part,
@@ -186,8 +221,21 @@ class ListProductsTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         Product::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'name' => 'Other Product',
             'sku' => 'OTH-001',
             'type' => ProductType::Part,
@@ -205,6 +253,7 @@ class ListProductsTest extends TestCase
     {
         $product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Single Product',
             'sku' => 'SNG-001',
             'type' => ProductType::Part,
@@ -240,8 +289,21 @@ class ListProductsTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company 2',
+            'legal_name' => 'Other Company 2 LLC',
+            'tax_id' => 'TAX789',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         $otherProduct = Product::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'name' => 'Other Product',
             'sku' => 'OTH-001',
             'type' => ProductType::Part,
@@ -264,6 +326,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Product',
             'sku' => 'TST-001',
             'type' => ProductType::Part,
@@ -278,6 +341,12 @@ class ListProductsTest extends TestCase
         ]);
         $viewerUser->assignRole('viewer');
 
+        UserCompanyMembership::create([
+            'user_id' => $viewerUser->id,
+            'company_id' => $this->company->id,
+            'role' => \App\Modules\Company\Domain\Enums\MembershipRole::Viewer,
+        ]);
+
         $response = $this->actingAs($viewerUser, 'sanctum')
             ->getJson('/api/v1/products');
 
@@ -289,6 +358,7 @@ class ListProductsTest extends TestCase
     {
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Active Product',
             'sku' => 'ACT-001',
             'type' => ProductType::Part,
@@ -297,6 +367,7 @@ class ListProductsTest extends TestCase
 
         Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Inactive Product',
             'sku' => 'INA-001',
             'type' => ProductType::Part,

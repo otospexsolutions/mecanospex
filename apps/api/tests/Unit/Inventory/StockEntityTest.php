@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Inventory;
 
+use App\Modules\Company\Domain\Location;
 use App\Modules\Inventory\Domain\Enums\MovementType;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\StockLevel;
 use App\Modules\Inventory\Domain\StockMovement;
 use Tests\TestCase;
@@ -61,7 +61,7 @@ class StockEntityTest extends TestCase
         $location = new Location;
         $fillable = $location->getFillable();
 
-        $this->assertContains('tenant_id', $fillable);
+        $this->assertContains('company_id', $fillable);
         $this->assertContains('code', $fillable);
         $this->assertContains('name', $fillable);
         $this->assertContains('is_active', $fillable);

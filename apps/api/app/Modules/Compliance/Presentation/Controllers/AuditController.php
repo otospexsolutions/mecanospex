@@ -20,13 +20,13 @@ class AuditController extends Controller
     ) {}
 
     /**
-     * List audit events for the current tenant
+     * List audit events for the current company
      */
     public function index(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
-        $tenantId = $user->tenant_id;
+        $companyId = $this->getCompanyId($request);
 
         $eventType = $request->query('event_type');
         $aggregateType = $request->query('aggregate_type');
@@ -41,15 +41,15 @@ class AuditController extends Controller
             );
         } elseif ($from && $to) {
             $events = $this->auditService->getEventsInRange(
-                $tenantId,
+                $companyId,
                 now()->parse((string) $from),
                 now()->parse((string) $to),
                 $eventType ? (string) $eventType : null
             );
         } elseif ($eventType) {
-            $events = $this->auditService->getEventsByType($tenantId, (string) $eventType);
+            $events = $this->auditService->getEventsByType($companyId, (string) $eventType);
         } else {
-            $events = $this->auditService->getEventsForTenant($tenantId);
+            $events = $this->auditService->getEventsForCompany($companyId);
         }
 
         return response()->json([
@@ -72,9 +72,7 @@ class AuditController extends Controller
      */
     public function anomalies(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-        $tenantId = $user->tenant_id;
+        $companyId = $this->getCompanyId($request);
 
         $from = $request->query('from')
             ? now()->parse((string) $request->query('from'))
@@ -84,7 +82,7 @@ class AuditController extends Controller
             ? now()->parse((string) $request->query('to'))
             : now();
 
-        $anomalies = $this->anomalyService->detectAnomalies($tenantId, $from, $to);
+        $anomalies = $this->anomalyService->detectAnomalies($companyId, $from, $to);
 
         return response()->json([
             'data' => collect($anomalies)->map(fn (array $anomaly) => [
@@ -95,5 +93,35 @@ class AuditController extends Controller
                 'details' => $anomaly['details'],
             ]),
         ]);
+    }
+
+    /**
+     * Get the current company ID from request context.
+     * Falls back to first company membership if not specified.
+     */
+    private function getCompanyId(Request $request): string
+    {
+        // Check for company_id in header (set by middleware in Phase 0.5)
+        $companyId = $request->header('X-Company-Id');
+        if ($companyId !== null) {
+            return $companyId;
+        }
+
+        // Check for company_id in query
+        $companyId = $request->query('company_id');
+        if ($companyId !== null) {
+            return (string) $companyId;
+        }
+
+        // Fallback: get from user's first company membership
+        /** @var User $user */
+        $user = $request->user();
+        $membership = $user->companyMemberships()->first();
+
+        if ($membership === null) {
+            throw new \RuntimeException('User has no company membership');
+        }
+
+        return $membership->company_id;
     }
 }

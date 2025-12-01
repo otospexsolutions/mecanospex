@@ -5,6 +5,7 @@ import { Bell, Search, User, LogOut, Settings, Menu, Globe } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useLogout } from '../../features/auth'
 import { languages } from '../../lib/i18n'
+import { CompanySelector } from './CompanySelector'
 
 interface TopBarProps {
   onMenuClick?: () => void
@@ -81,6 +82,9 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
       {/* Right side actions */}
       <div className="flex items-center gap-2">
+        {/* Company selector for multi-company users */}
+        <CompanySelector />
+
         {/* Language selector */}
         <div className="relative" ref={langMenuRef}>
           <button

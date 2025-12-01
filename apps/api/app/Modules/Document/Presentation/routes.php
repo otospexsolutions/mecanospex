@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
+Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
     // All documents (unified view)
     Route::get('/documents', [DocumentController::class, 'indexAll'])
         ->middleware('can:documents.view')

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Import\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Import\Domain\Enums\ImportType;
 use App\Modules\Import\Services\MigrationWizardService;
@@ -15,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 class MigrationWizardController extends Controller
 {
     public function __construct(
-        private readonly MigrationWizardService $wizardService
+        private readonly MigrationWizardService $wizardService,
+        private readonly CompanyContext $companyContext,
     ) {}
 
     /**
@@ -40,6 +42,9 @@ class MigrationWizardController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         try {
             $importType = ImportType::from($type);
@@ -47,7 +52,7 @@ class MigrationWizardController extends Controller
             return response()->json(['error' => 'Invalid import type'], 400);
         }
 
-        $result = $this->wizardService->checkDependencies($user->tenant_id, $importType);
+        $result = $this->wizardService->checkDependencies($tenantId, $importType);
 
         return response()->json(['data' => $result]);
     }
@@ -111,10 +116,11 @@ class MigrationWizardController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $status = $this->wizardService->getMigrationStatus($user->tenant_id);
+        $status = $this->wizardService->getMigrationStatus($tenantId);
 
         return response()->json(['data' => $status]);
     }

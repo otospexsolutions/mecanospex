@@ -11,27 +11,28 @@ use Illuminate\Support\Facades\DB;
 class DocumentNumberingService
 {
     /**
-     * Generate the next document number for a tenant and type
+     * Generate the next document number for a company and type
      *
      * Format: PREFIX-YYYY-NNNN (e.g., INV-2025-0001)
      */
-    public function generateNumber(string $tenantId, DocumentType $type): string
+    public function generateNumber(string $tenantId, string $companyId, DocumentType $type): string
     {
-        return DB::transaction(function () use ($tenantId, $type): string {
+        return DB::transaction(function () use ($tenantId, $companyId, $type): string {
             $year = (int) date('Y');
             $prefix = $type->getPrefix();
 
             // Lock the sequence row for update
-            $sequence = DocumentSequence::where('tenant_id', $tenantId)
+            $sequence = DocumentSequence::where('company_id', $companyId)
                 ->where('type', $type->value)
                 ->where('year', $year)
                 ->lockForUpdate()
                 ->first();
 
             if ($sequence === null) {
-                // Create new sequence for this tenant/type/year
+                // Create new sequence for this company/type/year
                 $sequence = DocumentSequence::create([
                     'tenant_id' => $tenantId,
+                    'company_id' => $companyId,
                     'type' => $type->value,
                     'year' => $year,
                     'last_number' => 0,
@@ -50,11 +51,11 @@ class DocumentNumberingService
     /**
      * Get the current sequence number without incrementing
      */
-    public function getCurrentNumber(string $tenantId, DocumentType $type): int
+    public function getCurrentNumber(string $companyId, DocumentType $type): int
     {
         $year = (int) date('Y');
 
-        $sequence = DocumentSequence::where('tenant_id', $tenantId)
+        $sequence = DocumentSequence::where('company_id', $companyId)
             ->where('type', $type->value)
             ->where('year', $year)
             ->first();

@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios'
 import { useAuthStore } from '../stores/authStore'
+import { useCompanyStore } from '../stores/companyStore'
 
 /**
  * API Response Format (per CLAUDE.md)
@@ -69,7 +70,7 @@ function createApiClient(): AxiosInstance {
     withCredentials: true, // For Sanctum cookie-based auth
   })
 
-  // Request interceptor for auth token
+  // Request interceptor for auth token and company context
   client.interceptors.request.use(
     (config) => {
       // Get token from auth store and add to Authorization header
@@ -77,6 +78,13 @@ function createApiClient(): AxiosInstance {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
+
+      // Add company context header for multi-company support
+      const companyId = useCompanyStore.getState().currentCompanyId
+      if (companyId) {
+        config.headers['X-Company-Id'] = companyId
+      }
+
       return config
     },
     (error: unknown) => Promise.reject(new Error(String(error)))

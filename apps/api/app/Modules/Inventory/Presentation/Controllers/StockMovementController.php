@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Services\StockAdjustmentService;
@@ -16,15 +17,17 @@ class StockMovementController extends Controller
 {
     public function __construct(
         private readonly StockAdjustmentService $stockService,
+        private readonly CompanyContext $companyContext,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $query = StockMovement::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['product', 'location', 'user']);
 
         if ($request->has('product_id')) {

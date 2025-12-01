@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Application\Notifications;
 
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Modules\Identity\Domain\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -36,22 +36,27 @@ class UserInvitation extends Notification
 
     /**
      * Get the mail representation of the notification.
+     *
+     * @param  User  $notifiable
      */
     public function toMail(object $notifiable): MailMessage
     {
+        /** @var User $user */
+        $user = $notifiable;
+
         // Generate password reset token for the user
-        $token = Password::createToken($notifiable);
-        $email = $notifiable->email;
+        $token = Password::createToken($user);
+        $email = $user->email;
 
         // Build the set password URL
-        $url = config('app.frontend_url', config('app.url')) . '/set-password?' . http_build_query([
+        $url = config('app.frontend_url', config('app.url')).'/set-password?'.http_build_query([
             'token' => $token,
             'email' => $email,
         ]);
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject("You've been invited to join {$this->tenantName}")
-            ->greeting("Hello {$notifiable->name}!")
+            ->greeting("Hello {$user->name}!")
             ->line("{$this->inviterName} has invited you to join {$this->tenantName}.")
             ->line('Click the button below to set your password and activate your account.')
             ->action('Set Your Password', $url)

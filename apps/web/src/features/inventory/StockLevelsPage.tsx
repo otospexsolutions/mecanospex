@@ -6,6 +6,8 @@ import { Package, AlertTriangle, MapPin, Plus, Minus, RefreshCw, X } from 'lucid
 import { api, apiPost } from '../../lib/api'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterTabs } from '../../components/ui/FilterTabs'
+import { LocationSelector } from '../location/LocationSelector'
+import { useLocation } from '../../hooks/useLocation'
 
 interface StockLevel {
   id: string
@@ -59,6 +61,7 @@ const adjustmentReasons = [
 export function StockLevelsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const { currentLocationId } = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
   const [selectedStock, setSelectedStock] = useState<StockLevel | null>(null)
@@ -68,10 +71,11 @@ export function StockLevelsPage() {
   const [adjustmentNotes, setAdjustmentNotes] = useState('')
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['stock-levels', searchQuery],
+    queryKey: ['stock-levels', searchQuery, currentLocationId],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (searchQuery) params.append('search', searchQuery)
+      if (currentLocationId) params.append('location_id', currentLocationId)
       const queryString = params.toString()
       const response = await api.get<StockLevelsResponse>(`/stock-levels${queryString ? `?${queryString}` : ''}`)
       return response.data
@@ -212,13 +216,16 @@ export function StockLevelsPage() {
             {total} product{total !== 1 ? 's' : ''} in stock
           </p>
         </div>
-        <Link
-          to="/inventory/movements"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <RefreshCw className="h-4 w-4" />
-          View Movements
-        </Link>
+        <div className="flex items-center gap-3">
+          <LocationSelector />
+          <Link
+            to="/inventory/movements"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            View Movements
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Document;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\DocumentLine;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
@@ -22,6 +24,8 @@ class DocumentEntityTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private Partner $customer;
 
     protected function setUp(): void
@@ -35,8 +39,23 @@ class DocumentEntityTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->customer = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'John Doe',
             'type' => PartnerType::Customer,
         ]);
@@ -46,6 +65,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -65,6 +85,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -81,6 +102,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Draft,
@@ -98,6 +120,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -134,6 +157,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Draft,
@@ -171,6 +195,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -190,6 +215,7 @@ class DocumentEntityTest extends TestCase
     {
         Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -205,14 +231,28 @@ class DocumentEntityTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         $otherPartner = Partner::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'name' => 'Jane Smith',
             'type' => PartnerType::Customer,
         ]);
 
         Document::create([
             'tenant_id' => $otherTenant->id,
+            'company_id' => $otherCompany->id,
             'partner_id' => $otherPartner->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -231,6 +271,7 @@ class DocumentEntityTest extends TestCase
     {
         Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -241,6 +282,7 @@ class DocumentEntityTest extends TestCase
 
         Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Draft,
@@ -262,6 +304,7 @@ class DocumentEntityTest extends TestCase
     {
         Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Draft,
@@ -272,6 +315,7 @@ class DocumentEntityTest extends TestCase
 
         Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Posted,
@@ -291,6 +335,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,
@@ -308,6 +353,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Invoice,
             'status' => DocumentStatus::Posted,
@@ -325,6 +371,7 @@ class DocumentEntityTest extends TestCase
     {
         $document = Document::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->customer->id,
             'type' => DocumentType::Quote,
             'status' => DocumentStatus::Draft,

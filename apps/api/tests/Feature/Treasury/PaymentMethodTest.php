@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Treasury;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -21,6 +25,8 @@ class PaymentMethodTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -34,6 +40,18 @@ class PaymentMethodTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -45,12 +63,21 @@ class PaymentMethodTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->user->givePermissionTo(['treasury.view', 'treasury.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
     }
 
     public function test_can_list_payment_methods(): void
     {
         PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => true,
@@ -64,6 +91,7 @@ class PaymentMethodTest extends TestCase
 
         PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CHECK',
             'name' => 'Check',
             'is_physical' => true,
@@ -100,6 +128,7 @@ class PaymentMethodTest extends TestCase
 
         $this->assertDatabaseHas('payment_methods', [
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'is_physical' => true,
         ]);
@@ -167,6 +196,7 @@ class PaymentMethodTest extends TestCase
     {
         PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => true,
@@ -192,6 +222,7 @@ class PaymentMethodTest extends TestCase
     {
         $method = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => true,
@@ -215,6 +246,7 @@ class PaymentMethodTest extends TestCase
     {
         $method = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => true,
@@ -236,6 +268,7 @@ class PaymentMethodTest extends TestCase
     {
         $method = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CARD',
             'name' => 'Card',
             'is_physical' => false,
@@ -258,6 +291,7 @@ class PaymentMethodTest extends TestCase
     {
         $method = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'WIRE',
             'name' => 'Wire Transfer',
             'is_physical' => false,
@@ -280,6 +314,7 @@ class PaymentMethodTest extends TestCase
     {
         $method = PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'MOBILE',
             'name' => 'Mobile Money',
             'is_physical' => false,
@@ -316,6 +351,7 @@ class PaymentMethodTest extends TestCase
     {
         PaymentMethod::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'CASH',
             'name' => 'Cash',
             'is_physical' => true,
@@ -330,6 +366,18 @@ class PaymentMethodTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $otherCompany = Company::create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Company',
+            'legal_name' => 'Other Company LLC',
+            'tax_id' => 'TAX456',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => CompanyStatus::Active,
+        ]);
+
         // Permissions already seeded for guard, just set tenant context
         app(PermissionRegistrar::class)->setPermissionsTeamId($otherTenant->id);
 
@@ -341,6 +389,14 @@ class PaymentMethodTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $otherUser->givePermissionTo(['treasury.view', 'treasury.manage']);
+
+        UserCompanyMembership::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($otherCompany->id);
 
         $response = $this->actingAs($otherUser)->getJson('/api/v1/payment-methods');
 

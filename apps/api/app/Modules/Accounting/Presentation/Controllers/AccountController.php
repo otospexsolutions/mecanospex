@@ -10,21 +10,26 @@ use App\Modules\Accounting\Domain\Account;
 use App\Modules\Accounting\Domain\Enums\AccountType;
 use App\Modules\Accounting\Presentation\Requests\CreateAccountRequest;
 use App\Modules\Accounting\Presentation\Requests\UpdateAccountRequest;
-use App\Modules\Identity\Domain\User;
+use App\Modules\Company\Services\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     /**
      * List accounts
      */
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $query = Account::forTenant($user->tenant_id);
+        $query = Account::forTenant($tenantId);
 
         // Filter by type
         $type = $request->query('type');
@@ -65,10 +70,11 @@ class AccountController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $account = Account::forTenant($user->tenant_id)->find($id);
+        $account = Account::forTenant($tenantId)->find($id);
 
         if ($account === null) {
             return response()->json([
@@ -92,14 +98,16 @@ class AccountController extends Controller
      */
     public function store(CreateAccountRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var array<string, mixed> $validated */
         $validated = $request->validated();
 
         $account = Account::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             'code' => $validated['code'],
             'name' => $validated['name'],
             'type' => AccountType::from((string) $validated['type']),
@@ -122,10 +130,11 @@ class AccountController extends Controller
      */
     public function update(UpdateAccountRequest $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
-        $account = Account::forTenant($user->tenant_id)->find($id);
+        $account = Account::forTenant($tenantId)->find($id);
 
         if ($account === null) {
             return response()->json([

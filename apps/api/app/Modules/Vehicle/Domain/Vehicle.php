@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Vehicle\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string|null $partner_id
  * @property string $license_plate
  * @property string $brand
@@ -31,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read Partner|null $partner
  *
  * @method static Builder<static> forTenant(string $tenantId)
@@ -51,6 +54,7 @@ class Vehicle extends Model
      */
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'partner_id',
         'license_plate',
         'brand',
@@ -82,6 +86,14 @@ class Vehicle extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -126,5 +138,16 @@ class Vehicle extends Model
     public function scopeForPartner(Builder $query, string $partnerId): Builder
     {
         return $query->where('partner_id', $partnerId);
+    }
+
+    /**
+     * Scope to filter vehicles by company
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

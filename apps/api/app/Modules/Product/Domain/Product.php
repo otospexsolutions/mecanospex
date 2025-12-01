@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Product\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Product\Domain\Enums\ProductType;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,8 +30,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property array<int, array{brand: string, reference: string}>|null $cross_references
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string $company_id
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  */
 class Product extends Model
 {
@@ -39,6 +42,7 @@ class Product extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'name',
         'sku',
         'type',
@@ -79,6 +83,14 @@ class Product extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function isPart(): bool
@@ -138,5 +150,16 @@ class Product extends Model
     public function scopeForTenant(Builder $query, string $tenantId): Builder
     {
         return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Scope a query to only include products for a specific company.
+     *
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

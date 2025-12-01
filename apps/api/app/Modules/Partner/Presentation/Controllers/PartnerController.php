@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Partner\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Application\DTOs\PartnerData;
 use App\Modules\Partner\Domain\Partner;
@@ -15,16 +16,19 @@ use Illuminate\Routing\Controller;
 
 class PartnerController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     /**
-     * List all partners for the current tenant.
+     * List all partners for the current company.
      */
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
         $query = Partner::query()
-            ->where('tenant_id', $user->tenant_id);
+            ->where('company_id', $companyId);
 
         // Filter by type
         if ($request->has('type')) {
@@ -69,7 +73,7 @@ class PartnerController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $partnerModel = Partner::where('tenant_id', $user->tenant_id)
+        $partnerModel = Partner::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $partner)
             ->first();
 
@@ -100,14 +104,16 @@ class PartnerController extends Controller
      */
     public function store(CreatePartnerRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var array<string, mixed> $validated */
         $validated = $request->validated();
 
         $partner = Partner::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             ...$validated,
         ]);
 
@@ -128,7 +134,7 @@ class PartnerController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $partnerModel = Partner::where('tenant_id', $user->tenant_id)
+        $partnerModel = Partner::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $partner)
             ->first();
 
@@ -169,7 +175,7 @@ class PartnerController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $partnerModel = Partner::where('tenant_id', $user->tenant_id)
+        $partnerModel = Partner::where('company_id', $this->companyContext->requireCompanyId())
             ->where('id', $partner)
             ->first();
 

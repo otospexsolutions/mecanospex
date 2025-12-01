@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Import\Services;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Import\Domain\Enums\ImportStatus;
 use App\Modules\Import\Domain\Enums\ImportType;
 use App\Modules\Import\Domain\ImportJob;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 final class ImportService
 {
     public function __construct(
-        private readonly ValidationEngine $validationEngine
+        private readonly ValidationEngine $validationEngine,
+        private readonly CompanyContext $companyContext
     ) {}
 
     /**
@@ -192,6 +194,7 @@ final class ImportService
     {
         $partner = \App\Modules\Partner\Domain\Partner::create([
             'tenant_id' => $tenantId,
+            'company_id' => $this->companyContext->getCompanyId(),
             'name' => $data['name'],
             'type' => \App\Modules\Partner\Domain\Enums\PartnerType::from($data['type']),
             'email' => $data['email'] ?? null,
@@ -211,6 +214,7 @@ final class ImportService
     {
         $product = \App\Modules\Product\Domain\Product::create([
             'tenant_id' => $tenantId,
+            'company_id' => $this->companyContext->getCompanyId(),
             'name' => $data['name'],
             'sku' => $data['sku'],
             'type' => \App\Modules\Product\Domain\Enums\ProductType::from($data['type']),
@@ -230,19 +234,23 @@ final class ImportService
      */
     private function importStockLevel(string $tenantId, array $data): string
     {
+        $companyId = $this->companyContext->getCompanyId();
+
         // Find product by SKU
         $product = \App\Modules\Product\Domain\Product::where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
             ->where('sku', $data['product_sku'])
             ->firstOrFail();
 
         // Find location by code
-        $location = \App\Modules\Inventory\Domain\Location::where('tenant_id', $tenantId)
+        $location = \App\Modules\Company\Domain\Location::where('company_id', $companyId)
             ->where('code', $data['location_code'])
             ->firstOrFail();
 
         $stockLevel = \App\Modules\Inventory\Domain\StockLevel::updateOrCreate(
             [
                 'tenant_id' => $tenantId,
+                'company_id' => $companyId,
                 'product_id' => $product->id,
                 'location_id' => $location->id,
             ],
@@ -262,8 +270,11 @@ final class ImportService
      */
     private function importOpeningBalance(string $tenantId, array $data): string
     {
+        $companyId = $this->companyContext->getCompanyId();
+
         // Find account by code
         $account = \App\Modules\Accounting\Domain\Account::where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
             ->where('code', $data['account_code'])
             ->firstOrFail();
 
@@ -275,6 +286,7 @@ final class ImportService
         // Create journal entry for opening balance
         $entry = \App\Modules\Accounting\Domain\JournalEntry::create([
             'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             'entry_number' => 'OB-'.now()->format('YmdHis').'-'.random_int(1000, 9999),
             'entry_date' => now(),
             'description' => $description.($reference !== '' ? ' - '.$reference : ''),

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Inventory;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Location;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Inventory\Domain\Enums\MovementType;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\Services\StockAdjustmentService;
 use App\Modules\Inventory\Domain\StockLevel;
 use App\Modules\Inventory\Domain\StockMovement;
@@ -27,6 +31,8 @@ class StockManagementTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $user;
 
     private Location $warehouse;
@@ -44,6 +50,18 @@ class StockManagementTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'TN',
+            'currency' => 'TND',
+            'locale' => 'fr_TN',
+            'timezone' => 'Africa/Tunis',
+            'status' => CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -56,15 +74,26 @@ class StockManagementTest extends TestCase
         ]);
         $this->user->givePermissionTo(['inventory.view', 'inventory.adjust', 'inventory.transfer', 'inventory.receive']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->warehouse = Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'WH-01',
             'name' => 'Main Warehouse',
+            'type' => 'warehouse',
             'is_active' => true,
+            'is_default' => true,
         ]);
 
         $this->product = Product::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'sku' => 'PROD-001',
             'name' => 'Test Product',
             'type' => ProductType::Part,
@@ -246,9 +275,10 @@ class StockManagementTest extends TestCase
         $service = app(StockAdjustmentService::class);
 
         $secondWarehouse = Location::create([
-            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => 'WH-02',
             'name' => 'Secondary Warehouse',
+            'type' => 'warehouse',
             'is_active' => true,
         ]);
 

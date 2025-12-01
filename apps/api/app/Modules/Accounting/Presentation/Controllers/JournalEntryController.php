@@ -10,6 +10,7 @@ use App\Modules\Accounting\Domain\JournalEntry;
 use App\Modules\Accounting\Domain\JournalLine;
 use App\Modules\Accounting\Domain\Services\DoubleEntryValidator;
 use App\Modules\Accounting\Presentation\Requests\CreateJournalEntryRequest;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Identity\Domain\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,15 +21,17 @@ class JournalEntryController extends Controller
 {
     public function __construct(
         private readonly DoubleEntryValidator $validator,
+        private readonly CompanyContext $companyContext,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $entries = JournalEntry::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with('lines')
             ->orderByDesc('entry_date')
             ->orderByDesc('created_at')
@@ -53,6 +56,9 @@ class JournalEntryController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         /** @var array<int, array{account_id: string, debit: string, credit: string, description?: string}> $lines */
         $lines = $request->validated()['lines'];
@@ -76,11 +82,12 @@ class JournalEntryController extends Controller
             ], 422);
         }
 
-        $entry = DB::transaction(function () use ($request, $user, $lines): JournalEntry {
-            $entryNumber = $this->generateEntryNumber($user->tenant_id);
+        $entry = DB::transaction(function () use ($request, $lines, $tenantId, $companyId): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($tenantId);
 
             $entry = JournalEntry::create([
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
                 'entry_number' => $entryNumber,
                 'entry_date' => $request->validated()['entry_date'],
                 'description' => $request->validated()['description'] ?? null,
@@ -108,11 +115,12 @@ class JournalEntryController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $entry = JournalEntry::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with('lines')
             ->findOrFail($id);
 
@@ -125,9 +133,12 @@ class JournalEntryController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $entry = JournalEntry::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with('lines')
             ->findOrFail($id);
 
@@ -145,7 +156,7 @@ class JournalEntryController extends Controller
             'posted_at' => now(),
             'posted_by' => $user->id,
             'hash' => $this->calculateHash($entry),
-            'previous_hash' => $this->getPreviousHash($user->tenant_id),
+            'previous_hash' => $this->getPreviousHash($tenantId),
         ]);
 
         /** @var JournalEntry $freshEntry */

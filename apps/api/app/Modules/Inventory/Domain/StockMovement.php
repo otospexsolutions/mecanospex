@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Domain;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Location;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Inventory\Domain\Enums\MovementType;
 use App\Modules\Product\Domain\Product;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $product_id
  * @property string $location_id
  * @property MovementType $movement_type
@@ -28,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read Product $product
  * @property-read Location $location
  * @property-read User|null $user
@@ -40,6 +44,7 @@ class StockMovement extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'product_id',
         'location_id',
         'movement_type',
@@ -70,6 +75,14 @@ class StockMovement extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -138,5 +151,16 @@ class StockMovement extends Model
     public function scopeOfType(Builder $query, MovementType $type): Builder
     {
         return $query->where('movement_type', $type);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

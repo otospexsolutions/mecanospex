@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Identity\UserManagement;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Enums\MembershipRole;
+use App\Modules\Company\Domain\Enums\MembershipStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -20,6 +25,8 @@ class DeleteUserTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $adminUser;
 
     private User $targetUser;
@@ -35,6 +42,20 @@ class DeleteUserTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company SARL',
+            'country_code' => 'FR',
+            'currency' => 'EUR',
+            'locale' => 'fr',
+            'timezone' => 'Europe/Paris',
+            'date_format' => 'd/m/Y',
+            'fiscal_year_start_month' => 1,
+            'status' => CompanyStatus::Active,
+            'is_headquarters' => true,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -46,6 +67,15 @@ class DeleteUserTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->adminUser->assignRole('admin');
+
+        UserCompanyMembership::create([
+            'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
+            'role' => MembershipRole::Owner,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
+        ]);
 
         $this->targetUser = User::create([
             'tenant_id' => $this->tenant->id,
@@ -145,6 +175,7 @@ class DeleteUserTest extends TestCase
     public function test_delete_is_logged_to_audit_trail(): void
     {
         $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->withHeader('X-Company-Id', $this->company->id)
             ->deleteJson("/api/v1/users/{$this->targetUser->id}");
 
         $response->assertOk();
@@ -154,6 +185,7 @@ class DeleteUserTest extends TestCase
             'aggregate_type' => 'user',
             'aggregate_id' => $this->targetUser->id,
             'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
             'tenant_id' => $this->tenant->id,
         ]);
     }

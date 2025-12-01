@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CompanyContextMiddleware;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -14,9 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Apply SetLocale middleware to all API requests
+        // Apply SetLocale and CompanyContext middleware to all API requests
         $middleware->appendToGroup('api', [
             SetLocale::class,
+            CompanyContextMiddleware::class,
         ]);
 
         // Ensure API requests get JSON responses for auth failures
@@ -24,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson() || $request->is('api/*')) {
                 return null; // Don't redirect, let exception handler deal with it
             }
+
             return route('login');
         });
     })

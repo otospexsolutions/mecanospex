@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Compliance\Commands;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Compliance\Services\FiscalHashService;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
-use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Console\Command;
 
 class VerifyFiscalChainsCommand extends Command
@@ -17,7 +17,7 @@ class VerifyFiscalChainsCommand extends Command
      * @var string
      */
     protected $signature = 'fiscal:verify-chains
-                            {--tenant= : Specific tenant ID to verify}
+                            {--company= : Specific company ID to verify}
                             {--type= : Document type to verify (invoice, credit_note)}
                             {--fix : Attempt to fix broken chains (dangerous)}';
 
@@ -37,16 +37,16 @@ class VerifyFiscalChainsCommand extends Command
         $this->info('Starting fiscal chain verification...');
         $this->newLine();
 
-        $tenantId = $this->option('tenant');
+        $companyId = $this->option('company');
         $documentType = $this->option('type');
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants */
-        $tenants = $tenantId
-            ? Tenant::where('id', $tenantId)->get()
-            : Tenant::all();
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Company> $companies */
+        $companies = $companyId
+            ? Company::where('id', $companyId)->get()
+            : Company::all();
 
-        if ($tenants->isEmpty()) {
-            $this->error('No tenants found.');
+        if ($companies->isEmpty()) {
+            $this->error('No companies found.');
 
             return Command::FAILURE;
         }
@@ -55,9 +55,9 @@ class VerifyFiscalChainsCommand extends Command
         $totalDocuments = 0;
         $invalidChains = 0;
 
-        foreach ($tenants as $tenant) {
-            /** @var Tenant $tenant */
-            $this->info("Verifying tenant: {$tenant->name} ({$tenant->id})");
+        foreach ($companies as $company) {
+            /** @var Company $company */
+            $this->info("Verifying company: {$company->name} ({$company->id})");
 
             /** @var string|null $typeOption */
             $typeOption = $documentType;
@@ -66,7 +66,7 @@ class VerifyFiscalChainsCommand extends Command
                 : [DocumentType::Invoice, DocumentType::CreditNote];
 
             foreach ($types as $type) {
-                $result = $this->verifyChainForTenantAndType($tenant->id, $type);
+                $result = $this->verifyChainForCompanyAndType($company->id, $type);
 
                 $totalDocuments += $result['count'];
 
@@ -104,9 +104,9 @@ class VerifyFiscalChainsCommand extends Command
     /**
      * @return array{valid: bool, count: int, failed_at: int|null, details: string|null}
      */
-    private function verifyChainForTenantAndType(string $tenantId, DocumentType $type): array
+    private function verifyChainForCompanyAndType(string $companyId, DocumentType $type): array
     {
-        $documents = Document::where('tenant_id', $tenantId)
+        $documents = Document::where('company_id', $companyId)
             ->where('type', $type)
             ->where('status', DocumentStatus::Posted)
             ->whereNotNull('fiscal_hash')

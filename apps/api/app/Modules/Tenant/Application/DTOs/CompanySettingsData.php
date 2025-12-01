@@ -9,7 +9,7 @@ use App\Modules\Tenant\Domain\Tenant;
 class CompanySettingsData
 {
     /**
-     * @param array<string, string|null>|null $address
+     * @param  array<string, string|null>|null  $address
      */
     public function __construct(
         public readonly string $name,
@@ -27,8 +27,7 @@ class CompanySettingsData
         public readonly ?string $timezone,
         public readonly ?string $dateFormat,
         public readonly ?string $locale,
-    ) {
-    }
+    ) {}
 
     /**
      * Create from a Tenant model.
@@ -53,7 +52,7 @@ class CompanySettingsData
             'phone' => $tenant->phone,
             'email' => $tenant->email,
             'website' => $tenant->website,
-            'logoUrl' => $tenant->logo_path ? asset('storage/' . $tenant->logo_path) : null,
+            'logoUrl' => $tenant->logo_path ? asset('storage/'.$tenant->logo_path) : null,
             'primaryColor' => $tenant->primary_color,
             'countryCode' => $tenant->country_code,
             'currencyCode' => $tenant->currency_code,

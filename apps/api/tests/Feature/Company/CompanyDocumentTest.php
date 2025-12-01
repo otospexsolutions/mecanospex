@@ -25,7 +25,9 @@ class CompanyDocumentTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Company $company;
+
     private User $user;
 
     protected function setUp(): void
@@ -61,13 +63,13 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax_registration.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax_registration.pdf',
         ]);
 
         $this->assertDatabaseHas('company_documents', [
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax_registration.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax_registration.pdf',
         ]);
 
         $this->assertNotNull($document->id);
@@ -79,7 +81,7 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'business_license',
-            'file_path' => 'companies/' . $this->company->id . '/license.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/license.pdf',
         ]);
 
         $this->assertEquals($this->company->id, $document->company->id);
@@ -90,19 +92,19 @@ class CompanyDocumentTest extends TestCase
         CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
         ]);
 
         CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'business_license',
-            'file_path' => 'companies/' . $this->company->id . '/license.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/license.pdf',
         ]);
 
         CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'vat_certificate',
-            'file_path' => 'companies/' . $this->company->id . '/vat.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/vat.pdf',
         ]);
 
         $this->assertCount(3, $this->company->fresh()->documents);
@@ -113,7 +115,7 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'original_filename' => 'my_tax_registration_2024.pdf',
             'file_size' => 1024000,
             'mime_type' => 'application/pdf',
@@ -129,7 +131,7 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
         ]);
 
         $document->refresh();
@@ -142,14 +144,14 @@ class CompanyDocumentTest extends TestCase
         $approved = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'status' => DocumentReviewStatus::Approved,
         ]);
 
         $rejected = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'business_license',
-            'file_path' => 'companies/' . $this->company->id . '/license.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/license.pdf',
             'status' => DocumentReviewStatus::Rejected,
             'rejection_reason' => 'Document is expired',
         ]);
@@ -164,7 +166,7 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'status' => DocumentReviewStatus::Approved,
             'reviewed_at' => now(),
             'reviewed_by' => $this->user->id,
@@ -179,7 +181,7 @@ class CompanyDocumentTest extends TestCase
         $document = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'expires_at' => now()->addYear(),
         ]);
 
@@ -192,21 +194,21 @@ class CompanyDocumentTest extends TestCase
         $expired = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'expires_at' => now()->subDay(),
         ]);
 
         $valid = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'business_license',
-            'file_path' => 'companies/' . $this->company->id . '/license.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/license.pdf',
             'expires_at' => now()->addMonth(),
         ]);
 
         $noExpiry = CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'vat_certificate',
-            'file_path' => 'companies/' . $this->company->id . '/vat.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/vat.pdf',
             'expires_at' => null,
         ]);
 
@@ -220,14 +222,14 @@ class CompanyDocumentTest extends TestCase
         CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'tax_registration',
-            'file_path' => 'companies/' . $this->company->id . '/tax.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/tax.pdf',
             'status' => DocumentReviewStatus::Pending,
         ]);
 
         CompanyDocument::create([
             'company_id' => $this->company->id,
             'document_type' => 'business_license',
-            'file_path' => 'companies/' . $this->company->id . '/license.pdf',
+            'file_path' => 'companies/'.$this->company->id.'/license.pdf',
             'status' => DocumentReviewStatus::Approved,
         ]);
 

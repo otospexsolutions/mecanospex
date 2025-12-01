@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenant;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Enums\MembershipRole;
+use App\Modules\Company\Domain\Enums\MembershipStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Compliance\Domain\AuditEvent;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
@@ -22,7 +27,11 @@ class CompanySettingsTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
+    private Company $company;
+
     private User $adminUser;
+
     private User $viewerUser;
 
     protected function setUp(): void
@@ -36,6 +45,21 @@ class CompanySettingsTest extends TestCase
             'status' => TenantStatus::Active,
             'plan' => SubscriptionPlan::Professional,
             'settings' => [],
+        ]);
+
+        // Create company
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company SARL',
+            'country_code' => 'FR',
+            'currency' => 'EUR',
+            'locale' => 'fr',
+            'timezone' => 'Europe/Paris',
+            'date_format' => 'd/m/Y',
+            'fiscal_year_start_month' => 1,
+            'status' => CompanyStatus::Active,
+            'is_headquarters' => true,
         ]);
 
         // Set permissions team context and seed roles/permissions
@@ -52,6 +76,16 @@ class CompanySettingsTest extends TestCase
         ]);
         $this->adminUser->assignRole('admin');
 
+        // Create admin company membership
+        UserCompanyMembership::create([
+            'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
+            'role' => MembershipRole::Owner,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
+        ]);
+
         // Create viewer user
         $this->viewerUser = User::create([
             'tenant_id' => $this->tenant->id,
@@ -61,6 +95,16 @@ class CompanySettingsTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->viewerUser->assignRole('viewer');
+
+        // Create viewer company membership
+        UserCompanyMembership::create([
+            'user_id' => $this->viewerUser->id,
+            'company_id' => $this->company->id,
+            'role' => MembershipRole::Viewer,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
+        ]);
     }
 
     // ==================== GET Company Settings Tests ====================
@@ -352,12 +396,14 @@ class CompanySettingsTest extends TestCase
     public function test_update_creates_audit_log(): void
     {
         $this->actingAs($this->adminUser, 'sanctum')
+            ->withHeader('X-Company-Id', $this->company->id)
             ->patchJson('/api/v1/settings/company', [
                 'name' => 'Audited Company',
                 'timezone' => 'America/New_York',
             ]);
 
         $this->assertDatabaseHas('audit_events', [
+            'company_id' => $this->company->id,
             'tenant_id' => $this->tenant->id,
             'user_id' => $this->adminUser->id,
             'event_type' => 'tenant.settings_updated',
@@ -367,7 +413,7 @@ class CompanySettingsTest extends TestCase
 
         // Verify the payload contains the changes
         $auditEvent = AuditEvent::where('event_type', 'tenant.settings_updated')
-            ->where('tenant_id', $this->tenant->id)
+            ->where('company_id', $this->company->id)
             ->first();
 
         $this->assertNotNull($auditEvent);
@@ -556,11 +602,13 @@ class CompanySettingsTest extends TestCase
         $file = UploadedFile::fake()->image('logo.png', 500, 500);
 
         $this->actingAs($this->adminUser, 'sanctum')
+            ->withHeader('X-Company-Id', $this->company->id)
             ->postJson('/api/v1/settings/company/logo', [
                 'logo' => $file,
             ]);
 
         $this->assertDatabaseHas('audit_events', [
+            'company_id' => $this->company->id,
             'tenant_id' => $this->tenant->id,
             'user_id' => $this->adminUser->id,
             'event_type' => 'tenant.logo_updated',

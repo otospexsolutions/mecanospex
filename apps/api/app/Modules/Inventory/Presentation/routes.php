@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Company\Presentation\Controllers\LocationController;
 use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
-use App\Modules\Inventory\Presentation\Controllers\LocationController;
 use App\Modules\Inventory\Presentation\Controllers\StockLevelController;
 use App\Modules\Inventory\Presentation\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
-    // Locations
+Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::class])->group(function (): void {
+    // Locations (using Company module's full-featured LocationController)
     Route::get('/locations', [LocationController::class, 'index'])
         ->middleware('can:inventory.view')
         ->name('locations.index');
@@ -30,6 +30,18 @@ Route::prefix('api/v1')->middleware(['auth:sanctum', SetPermissionsTeam::class])
     Route::post('/locations', [LocationController::class, 'store'])
         ->middleware('can:inventory.adjust')
         ->name('locations.store');
+
+    Route::patch('/locations/{location}', [LocationController::class, 'update'])
+        ->middleware('can:inventory.adjust')
+        ->name('locations.update');
+
+    Route::delete('/locations/{location}', [LocationController::class, 'destroy'])
+        ->middleware('can:inventory.adjust')
+        ->name('locations.destroy');
+
+    Route::post('/locations/{location}/set-default', [LocationController::class, 'setDefault'])
+        ->middleware('can:inventory.adjust')
+        ->name('locations.set-default');
 
     // Stock Levels
     Route::get('/stock-levels', [StockLevelController::class, 'index'])

@@ -22,20 +22,20 @@ final class AnomalyDetectionService
      *
      * @return array<int, array{type: string, severity: string, description: string, detected_at: string, details: array<string, mixed>}>
      */
-    public function detectAnomalies(string $tenantId, Carbon $from, Carbon $to): array
+    public function detectAnomalies(string $companyId, Carbon $from, Carbon $to): array
     {
         $anomalies = [];
 
         // Check for high void rate
-        $voidAnomalies = $this->detectHighVoidRate($tenantId, $from, $to);
+        $voidAnomalies = $this->detectHighVoidRate($companyId, $from, $to);
         $anomalies = array_merge($anomalies, $voidAnomalies);
 
         // Check for high activity rate
-        $activityAnomalies = $this->detectHighActivityRate($tenantId, $from, $to);
+        $activityAnomalies = $this->detectHighActivityRate($companyId, $from, $to);
         $anomalies = array_merge($anomalies, $activityAnomalies);
 
         // Check for unusual patterns
-        $patternAnomalies = $this->detectUnusualPatterns($tenantId, $from, $to);
+        $patternAnomalies = $this->detectUnusualPatterns($companyId, $from, $to);
         $anomalies = array_merge($anomalies, $patternAnomalies);
 
         return $anomalies;
@@ -47,12 +47,12 @@ final class AnomalyDetectionService
      * @return array<int, AuditEvent>
      */
     public function detectAfterHoursActivity(
-        string $tenantId,
+        string $companyId,
         int $businessHoursStart = 8,
         int $businessHoursEnd = 20
     ): array {
         // Fetch all recent events and filter in PHP for database agnostic behavior
-        $events = AuditEvent::where('tenant_id', $tenantId)
+        $events = AuditEvent::where('company_id', $companyId)
             ->orderByDesc('occurred_at')
             ->limit(500)
             ->get();
@@ -72,10 +72,10 @@ final class AnomalyDetectionService
      *
      * @return array<int, array{type: string, severity: string, description: string, detected_at: string, details: array<string, mixed>}>
      */
-    private function detectHighVoidRate(string $tenantId, Carbon $from, Carbon $to): array
+    private function detectHighVoidRate(string $companyId, Carbon $from, Carbon $to): array
     {
         $voidCount = $this->auditService->countEventsByType(
-            $tenantId,
+            $companyId,
             'document.voided',
             $from,
             $to
@@ -104,9 +104,9 @@ final class AnomalyDetectionService
      *
      * @return array<int, array{type: string, severity: string, description: string, detected_at: string, details: array<string, mixed>}>
      */
-    private function detectHighActivityRate(string $tenantId, Carbon $from, Carbon $to): array
+    private function detectHighActivityRate(string $companyId, Carbon $from, Carbon $to): array
     {
-        $totalCount = AuditEvent::where('tenant_id', $tenantId)
+        $totalCount = AuditEvent::where('company_id', $companyId)
             ->whereBetween('occurred_at', [$from, $to])
             ->count();
 
@@ -136,13 +136,13 @@ final class AnomalyDetectionService
      *
      * @return array<int, array{type: string, severity: string, description: string, detected_at: string, details: array<string, mixed>}>
      */
-    private function detectUnusualPatterns(string $tenantId, Carbon $from, Carbon $to): array
+    private function detectUnusualPatterns(string $companyId, Carbon $from, Carbon $to): array
     {
         $anomalies = [];
 
         // Check for repeated identical actions (potential automation/abuse)
         /** @var \Illuminate\Support\Collection<int, object{event_type: string, user_id: string|null, count: int}> $repeatedActions */
-        $repeatedActions = AuditEvent::where('tenant_id', $tenantId)
+        $repeatedActions = AuditEvent::where('company_id', $companyId)
             ->whereBetween('occurred_at', [$from, $to])
             ->selectRaw('event_type, user_id, COUNT(*) as count')
             ->groupBy('event_type', 'user_id')

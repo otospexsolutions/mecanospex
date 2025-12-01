@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Document\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Application\DTOs\DocumentData;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\DocumentLine;
@@ -23,6 +24,7 @@ class DocumentController extends Controller
 {
     public function __construct(
         private readonly DocumentNumberingService $numberingService,
+        private readonly CompanyContext $companyContext,
     ) {}
 
     /**
@@ -30,10 +32,9 @@ class DocumentController extends Controller
      */
     public function indexAll(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
-        $query = Document::forTenant($user->tenant_id);
+        $query = Document::forCompany($companyId);
 
         // Filter by type
         $typeParam = $request->query('type');
@@ -95,10 +96,9 @@ class DocumentController extends Controller
      */
     public function showAny(Request $request, string $document): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($companyId)
             ->with('lines')
             ->find($document);
 
@@ -124,10 +124,9 @@ class DocumentController extends Controller
      */
     public function index(Request $request, DocumentType $type): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
-        $query = Document::forTenant($user->tenant_id)->ofType($type);
+        $query = Document::forCompany($companyId)->ofType($type);
 
         // Filter by status
         $status = $request->query('status');
@@ -167,10 +166,9 @@ class DocumentController extends Controller
      */
     public function show(Request $request, DocumentType $type, string $document): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($companyId)
             ->ofType($type)
             ->with('lines')
             ->find($document);
@@ -213,9 +211,13 @@ class DocumentController extends Controller
             unset($validated['issue_date']);
         }
 
-        return DB::transaction(function () use ($user, $type, $validated, $lines): JsonResponse {
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
+
+        return DB::transaction(function () use ($tenantId, $companyId, $type, $validated, $lines): JsonResponse {
             // Generate document number
-            $documentNumber = $this->numberingService->generateNumber($user->tenant_id, $type);
+            $documentNumber = $this->numberingService->generateNumber($tenantId, $companyId, $type);
 
             // Calculate totals from lines
             $subtotal = '0.00';
@@ -241,7 +243,8 @@ class DocumentController extends Controller
             // Create document
             $document = Document::create([
                 ...$validated,
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
                 'type' => $type,
                 'status' => DocumentStatus::Draft,
                 'document_number' => $documentNumber,
@@ -294,7 +297,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -400,7 +403,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -435,7 +438,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -478,7 +481,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -527,7 +530,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -570,7 +573,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $quoteModel = Document::forTenant($user->tenant_id)
+        $quoteModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType(DocumentType::Quote)
             ->with('lines')
             ->find($quote);
@@ -593,12 +596,13 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        return DB::transaction(function () use ($user, $quoteModel): JsonResponse {
-            $orderNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::SalesOrder);
+        return DB::transaction(function () use ($quoteModel): JsonResponse {
+            $orderNumber = $this->numberingService->generateNumber($quoteModel->tenant_id, $quoteModel->company_id, DocumentType::SalesOrder);
 
-            // Create the sales order
+            // Create the sales order (inherits tenant and company from source document)
             $order = Document::create([
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $quoteModel->tenant_id,
+                'company_id' => $quoteModel->company_id,
                 'partner_id' => $quoteModel->partner_id,
                 'vehicle_id' => $quoteModel->vehicle_id,
                 'type' => DocumentType::SalesOrder,
@@ -652,7 +656,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $orderModel = Document::forTenant($user->tenant_id)
+        $orderModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType(DocumentType::SalesOrder)
             ->with('lines')
             ->find($order);
@@ -675,12 +679,13 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        return DB::transaction(function () use ($user, $orderModel): JsonResponse {
-            $invoiceNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::Invoice);
+        return DB::transaction(function () use ($orderModel): JsonResponse {
+            $invoiceNumber = $this->numberingService->generateNumber($orderModel->tenant_id, $orderModel->company_id, DocumentType::Invoice);
 
-            // Create the invoice
+            // Create the invoice (inherits tenant and company from source document)
             $invoice = Document::create([
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $orderModel->tenant_id,
+                'company_id' => $orderModel->company_id,
                 'partner_id' => $orderModel->partner_id,
                 'vehicle_id' => $orderModel->vehicle_id,
                 'type' => DocumentType::Invoice,
@@ -735,7 +740,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $documentModel = Document::forTenant($user->tenant_id)
+        $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
 
@@ -778,7 +783,7 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $invoiceModel = Document::forTenant($user->tenant_id)
+        $invoiceModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType(DocumentType::Invoice)
             ->with('lines')
             ->find($invoice);
@@ -801,12 +806,13 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        return DB::transaction(function () use ($user, $invoiceModel): JsonResponse {
-            $creditNoteNumber = $this->numberingService->generateNumber($user->tenant_id, DocumentType::CreditNote);
+        return DB::transaction(function () use ($invoiceModel): JsonResponse {
+            $creditNoteNumber = $this->numberingService->generateNumber($invoiceModel->tenant_id, $invoiceModel->company_id, DocumentType::CreditNote);
 
-            // Create the credit note
+            // Create the credit note (inherits tenant and company from source document)
             $creditNote = Document::create([
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $invoiceModel->tenant_id,
+                'company_id' => $invoiceModel->company_id,
                 'partner_id' => $invoiceModel->partner_id,
                 'vehicle_id' => $invoiceModel->vehicle_id,
                 'type' => DocumentType::CreditNote,

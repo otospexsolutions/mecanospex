@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Presentation\Controllers;
 
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Identity\Domain\User;
@@ -17,13 +18,18 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $query = Payment::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['partner', 'paymentMethod', 'allocations.document']);
 
         // Filter by partner
@@ -45,11 +51,12 @@ class PaymentController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $payment = Payment::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->with(['partner', 'paymentMethod', 'allocations.document'])
             ->findOrFail($id);
 
@@ -62,6 +69,9 @@ class PaymentController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $validated = $request->validate([
             'partner_id' => ['required', 'uuid', 'exists:partners,id'],
@@ -128,9 +138,10 @@ class PaymentController extends Controller
         }
 
         // Create payment and allocations in a transaction
-        $payment = DB::transaction(function () use ($validated, $user, $paymentAmount, $allocations) {
+        $payment = DB::transaction(function () use ($validated, $user, $paymentAmount, $allocations, $tenantId, $companyId) {
             $payment = Payment::create([
-                'tenant_id' => $user->tenant_id,
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
                 'partner_id' => $validated['partner_id'],
                 'payment_method_id' => $validated['payment_method_id'],
                 'instrument_id' => $validated['instrument_id'] ?? null,

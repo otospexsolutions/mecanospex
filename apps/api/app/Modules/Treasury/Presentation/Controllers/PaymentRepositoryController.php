@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Presentation\Controllers;
 
-use App\Modules\Identity\Domain\User;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Treasury\Domain\PaymentRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,13 +13,18 @@ use Illuminate\Validation\Rule;
 
 class PaymentRepositoryController extends Controller
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $repositories = PaymentRepository::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->orderBy('name')
             ->get();
 
@@ -30,11 +35,12 @@ class PaymentRepositoryController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $repository = PaymentRepository::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         return response()->json([
@@ -44,15 +50,16 @@ class PaymentRepositoryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $validated = $request->validate([
             'code' => [
                 'required',
                 'string',
                 'max:30',
-                Rule::unique('payment_repositories', 'code')->where('tenant_id', $user->tenant_id),
+                Rule::unique('payment_repositories', 'code')->where('tenant_id', $tenantId),
             ],
             'name' => ['required', 'string', 'max:100'],
             'type' => ['required', 'string', Rule::in(['cash_register', 'safe', 'bank_account', 'virtual'])],
@@ -66,7 +73,8 @@ class PaymentRepositoryController extends Controller
         ]);
 
         $repository = PaymentRepository::create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
             'code' => $validated['code'],
             'name' => $validated['name'],
             'type' => $validated['type'],
@@ -88,11 +96,12 @@ class PaymentRepositoryController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $repository = PaymentRepository::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -101,7 +110,7 @@ class PaymentRepositoryController extends Controller
                 'string',
                 'max:30',
                 Rule::unique('payment_repositories', 'code')
-                    ->where('tenant_id', $user->tenant_id)
+                    ->where('tenant_id', $tenantId)
                     ->ignore($repository->id),
             ],
             'name' => ['sometimes', 'string', 'max:100'],
@@ -128,11 +137,12 @@ class PaymentRepositoryController extends Controller
 
     public function balance(Request $request, string $id): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $companyId = $this->companyContext->requireCompanyId();
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
 
         $repository = PaymentRepository::query()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
         return response()->json([

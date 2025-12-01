@@ -9,6 +9,9 @@ use App\Modules\Accounting\Domain\Enums\AccountType;
 use App\Modules\Accounting\Domain\Enums\JournalEntryStatus;
 use App\Modules\Accounting\Domain\JournalEntry;
 use App\Modules\Accounting\Domain\Services\GeneralLedgerService;
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\UserCompanyMembership;
+use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\DocumentLine;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
@@ -30,6 +33,8 @@ class GLIntegrationTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
+    private Company $company;
 
     private User $user;
 
@@ -54,6 +59,18 @@ class GLIntegrationTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company LLC',
+            'tax_id' => 'TAX123',
+            'country_code' => 'FR',
+            'locale' => 'fr_FR',
+            'timezone' => 'Europe/Paris',
+            'currency' => 'EUR',
+            'status' => \App\Modules\Company\Domain\Enums\CompanyStatus::Active,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -66,8 +83,17 @@ class GLIntegrationTest extends TestCase
         ]);
         $this->user->givePermissionTo(['invoices.view', 'invoices.create', 'invoices.post', 'journal.view', 'journal.create', 'journal.post']);
 
+        UserCompanyMembership::create([
+            'user_id' => $this->user->id,
+            'company_id' => $this->company->id,
+            'role' => 'admin',
+        ]);
+
+        app(CompanyContext::class)->setCompanyId($this->company->id);
+
         $this->partner = Partner::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'name' => 'Test Customer',
             'type' => PartnerType::Customer,
         ]);
@@ -75,6 +101,7 @@ class GLIntegrationTest extends TestCase
         // Create standard accounts
         $this->cashAccount = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1100',
             'name' => 'Cash',
             'type' => AccountType::Asset,
@@ -82,6 +109,7 @@ class GLIntegrationTest extends TestCase
 
         $this->receivableAccount = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '1200',
             'name' => 'Accounts Receivable',
             'type' => AccountType::Asset,
@@ -89,6 +117,7 @@ class GLIntegrationTest extends TestCase
 
         $this->revenueAccount = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '4000',
             'name' => 'Sales Revenue',
             'type' => AccountType::Revenue,
@@ -96,6 +125,7 @@ class GLIntegrationTest extends TestCase
 
         $this->taxAccount = Account::create([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'code' => '2100',
             'name' => 'VAT Payable',
             'type' => AccountType::Liability,
@@ -201,7 +231,7 @@ class GLIntegrationTest extends TestCase
         $service = app(GeneralLedgerService::class);
 
         $journalEntry = $service->createPaymentEntry(
-            tenantId: $this->tenant->id,
+            companyId: $this->company->id,
             amount: '120.00',
             debitAccountId: $this->cashAccount->id,
             creditAccountId: $this->receivableAccount->id,
@@ -258,6 +288,7 @@ class GLIntegrationTest extends TestCase
     {
         $document = Document::create(array_merge([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::Invoice,
             'document_number' => 'INV-2025-000001',
@@ -287,6 +318,7 @@ class GLIntegrationTest extends TestCase
     {
         return Document::create(array_merge([
             'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::CreditNote,
             'document_number' => 'CN-2025-000001',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Tenant;
 use App\Modules\Treasury\Domain\Enums\RepositoryType;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $code
  * @property string $name
  * @property RepositoryType $type
@@ -34,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read User|null $responsibleUser
  */
 class PaymentRepository extends Model
@@ -44,6 +47,7 @@ class PaymentRepository extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'code',
         'name',
         'type',
@@ -80,6 +84,14 @@ class PaymentRepository extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -121,5 +133,16 @@ class PaymentRepository extends Model
     public function scopeOfType(Builder $query, RepositoryType $type): Builder
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

@@ -26,7 +26,7 @@ class CompanySettingsController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user->can('settings.view')) {
+        if (! $user->can('settings.view')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -109,7 +109,7 @@ class CompanySettingsController extends Controller
             eventType: 'tenant.settings_updated',
             aggregateId: $tenant->id,
             userId: $user->id,
-            tenantId: $user->tenant_id,
+            companyId: $request->header('X-Company-Id'),
             payload: ['changes' => $changes]
         );
 
@@ -146,7 +146,7 @@ class CompanySettingsController extends Controller
 
         // Store the new logo
         $file = $request->file('logo');
-        $path = $file->store('logos/' . $tenant->id, 'public');
+        $path = $file->store('logos/'.$tenant->id, 'public');
 
         // Update tenant
         $tenant->update(['logo_path' => $path]);
@@ -156,13 +156,13 @@ class CompanySettingsController extends Controller
             eventType: 'tenant.logo_updated',
             aggregateId: $tenant->id,
             userId: $user->id,
-            tenantId: $user->tenant_id,
+            companyId: $request->header('X-Company-Id'),
             payload: ['logo_path' => $path]
         );
 
         return response()->json([
             'data' => [
-                'logoUrl' => asset('storage/' . $path),
+                'logoUrl' => asset('storage/'.$path),
             ],
             'meta' => $this->getMeta($request),
         ]);
@@ -176,7 +176,7 @@ class CompanySettingsController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user->can('settings.update')) {
+        if (! $user->can('settings.update')) {
             return response()->json([
                 'error' => [
                     'code' => 'FORBIDDEN',
@@ -217,7 +217,7 @@ class CompanySettingsController extends Controller
             eventType: 'tenant.logo_deleted',
             aggregateId: $tenant->id,
             userId: $user->id,
-            tenantId: $user->tenant_id,
+            companyId: $request->header('X-Company-Id'),
             payload: []
         );
 
@@ -243,17 +243,22 @@ class CompanySettingsController extends Controller
     /**
      * Log an audit event.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function logAuditEvent(
         string $eventType,
         string $aggregateId,
         string $userId,
-        string $tenantId,
+        ?string $companyId,
         array $payload = []
     ): void {
+        // Skip audit logging when no company context is available
+        if ($companyId === null) {
+            return;
+        }
+
         $event = new AuditEvent(
-            tenantId: $tenantId,
+            companyId: $companyId,
             userId: $userId,
             eventType: $eventType,
             aggregateType: 'tenant',

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Identity\UserManagement;
 
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Enums\CompanyStatus;
+use App\Modules\Company\Domain\Enums\MembershipRole;
+use App\Modules\Company\Domain\Enums\MembershipStatus;
+use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Identity\Domain\Enums\UserStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
@@ -21,6 +26,8 @@ class CreateUserTest extends TestCase
 
     private Tenant $tenant;
 
+    private Company $company;
+
     private User $adminUser;
 
     protected function setUp(): void
@@ -34,6 +41,20 @@ class CreateUserTest extends TestCase
             'plan' => SubscriptionPlan::Professional,
         ]);
 
+        $this->company = Company::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Test Company',
+            'legal_name' => 'Test Company SARL',
+            'country_code' => 'FR',
+            'currency' => 'EUR',
+            'locale' => 'fr',
+            'timezone' => 'Europe/Paris',
+            'date_format' => 'd/m/Y',
+            'fiscal_year_start_month' => 1,
+            'status' => CompanyStatus::Active,
+            'is_headquarters' => true,
+        ]);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(RolesAndPermissionsSeeder::class);
 
@@ -45,6 +66,15 @@ class CreateUserTest extends TestCase
             'status' => UserStatus::Active,
         ]);
         $this->adminUser->assignRole('admin');
+
+        UserCompanyMembership::create([
+            'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
+            'role' => MembershipRole::Owner,
+            'is_primary' => true,
+            'status' => MembershipStatus::Active,
+            'accepted_at' => now(),
+        ]);
     }
 
     public function test_unauthenticated_user_cannot_create_user(): void
@@ -327,6 +357,7 @@ class CreateUserTest extends TestCase
         Notification::fake();
 
         $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->withHeader('X-Company-Id', $this->company->id)
             ->postJson('/api/v1/users', [
                 'name' => 'Audited User',
                 'email' => 'audited@example.com',
@@ -337,12 +368,13 @@ class CreateUserTest extends TestCase
 
         $user = User::where('email', 'audited@example.com')->first();
 
-        // Verify audit trail entry exists
+        // Verify audit trail entry exists with company context
         $this->assertDatabaseHas('audit_events', [
             'event_type' => 'user.created',
             'aggregate_type' => 'user',
             'aggregate_id' => $user->id,
             'user_id' => $this->adminUser->id,
+            'company_id' => $this->company->id,
             'tenant_id' => $this->tenant->id,
         ]);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Domain;
 
+use App\Modules\Company\Domain\Company;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property string $id
  * @property string $tenant_id
+ * @property string $company_id
  * @property string $payment_method_id
  * @property string $reference
  * @property string|null $partner_id
@@ -42,6 +44,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Tenant $tenant
+ * @property-read Company $company
  * @property-read PaymentMethod|null $paymentMethod
  * @property-read Partner|null $partner
  * @property-read PaymentRepository|null $repository
@@ -56,6 +59,7 @@ class PaymentInstrument extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'payment_method_id',
         'reference',
         'partner_id',
@@ -102,6 +106,14 @@ class PaymentInstrument extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -202,5 +214,16 @@ class PaymentInstrument extends Model
     public function scopeMaturingOn(Builder $query, \DateTimeInterface $date): Builder
     {
         return $query->whereDate('maturity_date', $date);
+    }
+
+    /**
+     * Scope to filter by company.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForCompany(Builder $query, string $companyId): Builder
+    {
+        return $query->where('company_id', $companyId);
     }
 }

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Import\Services;
 
 use App\Modules\Accounting\Domain\Account;
+use App\Modules\Company\Domain\Company;
+use App\Modules\Company\Domain\Location;
 use App\Modules\Import\Domain\Enums\ImportType;
-use App\Modules\Inventory\Domain\Location;
 use App\Modules\Inventory\Domain\StockLevel;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Product\Domain\Product;
@@ -54,7 +55,12 @@ final class MigrationWizardService
                 if (Product::where('tenant_id', $tenantId)->count() === 0) {
                     $missing[] = 'products';
                 }
-                if (Location::where('tenant_id', $tenantId)->count() === 0) {
+                // Check locations through company (new architecture)
+                $locationCount = Location::whereIn(
+                    'company_id',
+                    Company::where('tenant_id', $tenantId)->pluck('id')
+                )->count();
+                if ($locationCount === 0) {
                     $missing[] = 'locations';
                 }
                 break;

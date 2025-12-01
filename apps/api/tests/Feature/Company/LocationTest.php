@@ -24,6 +24,7 @@ class LocationTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Company $company;
 
     protected function setUp(): void
