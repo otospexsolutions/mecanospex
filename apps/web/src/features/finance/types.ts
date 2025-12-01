@@ -116,3 +116,22 @@ export interface ProfitLossFilters {
   date_from?: string | undefined
   date_to?: string | undefined
 }
+
+export interface BalanceSheetLine {
+  account_code: string
+  account_name: string
+  amount: string
+}
+
+export interface BalanceSheetData {
+  assets: BalanceSheetLine[]
+  liabilities: BalanceSheetLine[]
+  equity: BalanceSheetLine[]
+  total_assets: string
+  total_liabilities: string
+  total_equity: string
+}
+
+export interface BalanceSheetFilters {
+  as_of_date?: string | undefined
+}

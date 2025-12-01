@@ -11,6 +11,8 @@ import type {
   TrialBalanceFilters,
   ProfitLossData,
   ProfitLossFilters,
+  BalanceSheetData,
+  BalanceSheetFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -122,4 +124,19 @@ export async function getProfitLoss(
   const url = queryString ? `/reports/profit-loss?${queryString}` : '/reports/profit-loss'
 
   return apiGet<ProfitLossData>(url)
+}
+
+export async function getBalanceSheet(
+  filters?: BalanceSheetFilters
+): Promise<BalanceSheetData> {
+  const params = new URLSearchParams()
+
+  if (filters?.as_of_date) {
+    params.append('as_of_date', filters.as_of_date)
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/reports/balance-sheet?${queryString}` : '/reports/balance-sheet'
+
+  return apiGet<BalanceSheetData>(url)
 }
