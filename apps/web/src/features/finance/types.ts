@@ -97,3 +97,22 @@ export interface TrialBalanceLine {
 export interface TrialBalanceFilters {
   as_of_date?: string | undefined
 }
+
+export interface ProfitLossLine {
+  account_code: string
+  account_name: string
+  amount: string
+}
+
+export interface ProfitLossData {
+  revenue: ProfitLossLine[]
+  expenses: ProfitLossLine[]
+  total_revenue: string
+  total_expenses: string
+  net_income: string
+}
+
+export interface ProfitLossFilters {
+  date_from?: string | undefined
+  date_to?: string | undefined
+}

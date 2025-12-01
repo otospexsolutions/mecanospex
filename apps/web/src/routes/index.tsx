@@ -51,6 +51,7 @@ const CompanyPage = lazy(() => import('../features/settings/CompanyPage').then((
 const ChartOfAccountsPage = lazy(() => import('../features/finance/pages/ChartOfAccountsPage').then((m) => ({ default: m.ChartOfAccountsPage })))
 const GeneralLedgerPage = lazy(() => import('../features/finance/pages/GeneralLedgerPage').then((m) => ({ default: m.GeneralLedgerPage })))
 const TrialBalancePage = lazy(() => import('../features/finance/pages/TrialBalancePage').then((m) => ({ default: m.TrialBalancePage })))
+const ProfitLossPage = lazy(() => import('../features/finance/pages/ProfitLossPage').then((m) => ({ default: m.ProfitLossPage })))
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -597,6 +598,16 @@ export function AppRoutes() {
               <RequirePermission permission="accounts.view">
                 <SuspenseWrapper>
                   <TrialBalancePage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="profit-loss"
+            element={
+              <RequirePermission permission="accounts.view">
+                <SuspenseWrapper>
+                  <ProfitLossPage />
                 </SuspenseWrapper>
               </RequirePermission>
             }

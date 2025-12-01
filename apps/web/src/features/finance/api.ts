@@ -9,6 +9,8 @@ import type {
   LedgerFilters,
   TrialBalanceLine,
   TrialBalanceFilters,
+  ProfitLossData,
+  ProfitLossFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -101,4 +103,23 @@ export async function getTrialBalance(
   const url = queryString ? `/reports/trial-balance?${queryString}` : '/reports/trial-balance'
 
   return apiGet<TrialBalanceLine[]>(url)
+}
+
+export async function getProfitLoss(
+  filters?: ProfitLossFilters
+): Promise<ProfitLossData> {
+  const params = new URLSearchParams()
+
+  if (filters?.date_from) {
+    params.append('date_from', filters.date_from)
+  }
+
+  if (filters?.date_to) {
+    params.append('date_to', filters.date_to)
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/reports/profit-loss?${queryString}` : '/reports/profit-loss'
+
+  return apiGet<ProfitLossData>(url)
 }
