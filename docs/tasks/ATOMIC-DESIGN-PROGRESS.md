@@ -51,7 +51,15 @@ Completed:
 - FilterTabs → molecules/FilterTabs/
 - Tabs → molecules/Tabs/
 - Breadcrumb → molecules/Breadcrumb/
-## Phase 5: Organisms - [ ]
+
+## Phase 5: Organisms - [x]
+Completed:
+- TopBar → organisms/TopBar/
+- Sidebar → organisms/Sidebar/
+- CompanySelector → organisms/CompanySelector/
+- LocationSelector → organisms/LocationSelector/
+- AddLocationModal → organisms/AddLocationModal/
+- AddCompanyModal → organisms/AddCompanyModal/
 ## Phase 6: Templates - [ ]
 ## Phase 7: Features - [ ]
 ## Phase 8: Imports - [ ]
