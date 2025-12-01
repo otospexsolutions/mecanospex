@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Document\Presentation\Controllers\DocumentController;
+use App\Modules\Document\Presentation\Controllers\DocumentConversionController;
 use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -59,9 +60,13 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
         return app(DocumentController::class)->confirm($request, DocumentType::Quote, $quote);
     })->middleware('can:quotes.update')->name('quotes.confirm');
 
-    Route::post('/quotes/{quote}/convert-to-order', function (Request $request, string $quote) {
-        return app(DocumentController::class)->convertQuoteToOrder($request, $quote);
-    })->middleware('can:quotes.convert')->name('quotes.convert-to-order');
+    Route::post('/quotes/{quote}/convert-to-order', [DocumentConversionController::class, 'convertQuoteToOrder'])
+        ->middleware('can:quotes.convert')
+        ->name('quotes.convert-to-order');
+
+    Route::get('/quotes/{quote}/check-expiry', [DocumentConversionController::class, 'checkQuoteExpiry'])
+        ->middleware('can:quotes.view')
+        ->name('quotes.check-expiry');
 
     // Sales Orders
     Route::get('/orders', function (Request $request) {
@@ -95,9 +100,17 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
         return app(DocumentController::class)->confirm($request, DocumentType::SalesOrder, $order);
     })->middleware('can:orders.confirm')->name('orders.confirm');
 
-    Route::post('/orders/{order}/convert-to-invoice', function (Request $request, string $order) {
-        return app(DocumentController::class)->convertOrderToInvoice($request, $order);
-    })->middleware('can:invoices.create')->name('orders.convert-to-invoice');
+    Route::post('/orders/{order}/convert-to-invoice', [DocumentConversionController::class, 'convertOrderToInvoice'])
+        ->middleware('can:invoices.create')
+        ->name('orders.convert-to-invoice');
+
+    Route::post('/orders/{order}/convert-to-delivery', [DocumentConversionController::class, 'convertOrderToDelivery'])
+        ->middleware('can:deliveries.create')
+        ->name('orders.convert-to-delivery');
+
+    Route::get('/orders/{order}/invoice-status', [DocumentConversionController::class, 'checkOrderInvoiceStatus'])
+        ->middleware('can:orders.view')
+        ->name('orders.invoice-status');
 
     // Invoices
     Route::get('/invoices', function (Request $request) {
