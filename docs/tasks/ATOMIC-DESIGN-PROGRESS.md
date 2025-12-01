@@ -72,7 +72,11 @@ Verified feature-specific components remain in features/:
 - CompanyProvider → features/company/
 - LocationProvider → features/location/
 - AddCompanyModal, AddLocationModal, LocationSelector → Re-export from organisms for backwards compatibility
-## Phase 8: Imports - [ ]
+
+## Phase 8: Imports - [x]
+All existing imports work via backwards compatibility re-exports:
+- Old component paths re-export from new atomic locations
+- Build verified successfully
 ## Phase 9: Verify - [ ]
 
 Completed: [PENDING]
