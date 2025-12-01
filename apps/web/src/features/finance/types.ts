@@ -165,3 +165,13 @@ export interface AgedPayablesLine {
 export interface AgedPayablesFilters {
   as_of_date?: string | undefined
 }
+
+export interface FinanceSummary {
+  total_assets: string
+  total_liabilities: string
+  total_equity: string
+  net_income_mtd: string
+  net_income_ytd: string
+  accounts_receivable: string
+  accounts_payable: string
+}
