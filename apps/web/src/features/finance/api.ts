@@ -15,6 +15,8 @@ import type {
   BalanceSheetFilters,
   AgedReceivablesLine,
   AgedReceivablesFilters,
+  AgedPayablesLine,
+  AgedPayablesFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -156,4 +158,19 @@ export async function getAgedReceivables(
   const url = queryString ? `/reports/aged-receivables?${queryString}` : '/reports/aged-receivables'
 
   return apiGet<AgedReceivablesLine[]>(url)
+}
+
+export async function getAgedPayables(
+  filters?: AgedPayablesFilters
+): Promise<AgedPayablesLine[]> {
+  const params = new URLSearchParams()
+
+  if (filters?.as_of_date) {
+    params.append('as_of_date', filters.as_of_date)
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/reports/aged-payables?${queryString}` : '/reports/aged-payables'
+
+  return apiGet<AgedPayablesLine[]>(url)
 }

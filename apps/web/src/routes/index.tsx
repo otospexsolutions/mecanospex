@@ -54,6 +54,7 @@ const TrialBalancePage = lazy(() => import('../features/finance/pages/TrialBalan
 const ProfitLossPage = lazy(() => import('../features/finance/pages/ProfitLossPage').then((m) => ({ default: m.ProfitLossPage })))
 const BalanceSheetPage = lazy(() => import('../features/finance/pages/BalanceSheetPage').then((m) => ({ default: m.BalanceSheetPage })))
 const AgedReceivablesPage = lazy(() => import('../features/finance/pages/AgedReceivablesPage').then((m) => ({ default: m.AgedReceivablesPage })))
+const AgedPayablesPage = lazy(() => import('../features/finance/pages/AgedPayablesPage').then((m) => ({ default: m.AgedPayablesPage })))
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -630,6 +631,16 @@ export function AppRoutes() {
               <RequirePermission permission="accounts.view">
                 <SuspenseWrapper>
                   <AgedReceivablesPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="aged-payables"
+            element={
+              <RequirePermission permission="accounts.view">
+                <SuspenseWrapper>
+                  <AgedPayablesPage />
                 </SuspenseWrapper>
               </RequirePermission>
             }

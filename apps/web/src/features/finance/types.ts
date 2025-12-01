@@ -150,3 +150,18 @@ export interface AgedReceivablesLine {
 export interface AgedReceivablesFilters {
   as_of_date?: string | undefined
 }
+
+export interface AgedPayablesLine {
+  vendor_id: string
+  vendor_name: string
+  current: string
+  days_30: string
+  days_60: string
+  days_90: string
+  over_90: string
+  total: string
+}
+
+export interface AgedPayablesFilters {
+  as_of_date?: string | undefined
+}
