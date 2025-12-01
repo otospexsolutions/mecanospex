@@ -6,6 +6,7 @@ use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use App\Modules\Treasury\Presentation\Controllers\PaymentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentInstrumentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentMethodController;
+use App\Modules\Treasury\Presentation\Controllers\PaymentRefundController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentRepositoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -98,4 +99,25 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/payments', [PaymentController::class, 'store'])
         ->middleware('can:payments.create')
         ->name('payments.store');
+
+    // Payment Refunds
+    Route::post('/payments/{payment}/refund', [PaymentRefundController::class, 'refundPayment'])
+        ->middleware('can:payments.refund')
+        ->name('payments.refund');
+
+    Route::post('/payments/{payment}/partial-refund', [PaymentRefundController::class, 'partialRefund'])
+        ->middleware('can:payments.refund')
+        ->name('payments.partial-refund');
+
+    Route::post('/payments/{payment}/reverse', [PaymentRefundController::class, 'reversePayment'])
+        ->middleware('can:payments.reverse')
+        ->name('payments.reverse');
+
+    Route::get('/payments/{payment}/can-refund', [PaymentRefundController::class, 'checkRefundable'])
+        ->middleware('can:payments.view')
+        ->name('payments.check-refundable');
+
+    Route::get('/payments/{payment}/refund-history', [PaymentRefundController::class, 'getRefundHistory'])
+        ->middleware('can:payments.view')
+        ->name('payments.refund-history');
 });

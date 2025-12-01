@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Document\Presentation\Controllers\DocumentController;
 use App\Modules\Document\Presentation\Controllers\DocumentConversionController;
+use App\Modules\Document\Presentation\Controllers\RefundController;
 use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -148,13 +149,34 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
         return app(DocumentController::class)->post($request, DocumentType::Invoice, $invoice);
     })->middleware('can:invoices.post')->name('invoices.post');
 
-    Route::post('/invoices/{invoice}/cancel', function (Request $request, string $invoice) {
-        return app(DocumentController::class)->cancel($request, DocumentType::Invoice, $invoice);
-    })->middleware('can:invoices.cancel')->name('invoices.cancel');
-
     Route::post('/invoices/{invoice}/create-credit-note', function (Request $request, string $invoice) {
         return app(DocumentController::class)->createCreditNote($request, $invoice);
     })->middleware('can:credit-notes.create')->name('invoices.create-credit-note');
+
+    // Refund and cancellation routes
+    Route::post('/invoices/{invoice}/cancel', [RefundController::class, 'cancelInvoice'])
+        ->middleware('can:invoices.cancel')
+        ->name('invoices.cancel');
+
+    Route::post('/invoices/{invoice}/credit-full', [RefundController::class, 'createFullCreditNote'])
+        ->middleware('can:credit-notes.create')
+        ->name('invoices.credit-full');
+
+    Route::post('/invoices/{invoice}/credit-partial', [RefundController::class, 'createPartialCreditNote'])
+        ->middleware('can:credit-notes.create')
+        ->name('invoices.credit-partial');
+
+    Route::get('/invoices/{invoice}/can-cancel', [RefundController::class, 'checkCancellable'])
+        ->middleware('can:invoices.view')
+        ->name('invoices.check-cancellable');
+
+    Route::get('/invoices/{invoice}/can-credit', [RefundController::class, 'checkCreditable'])
+        ->middleware('can:invoices.view')
+        ->name('invoices.check-creditable');
+
+    Route::get('/invoices/{invoice}/credit-summary', [RefundController::class, 'getCreditNoteSummary'])
+        ->middleware('can:invoices.view')
+        ->name('invoices.credit-summary');
 
     // Credit Notes
     Route::get('/credit-notes', function (Request $request) {
@@ -179,6 +201,10 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/credit-notes/{creditNote}/post', function (Request $request, string $creditNote) {
         return app(DocumentController::class)->post($request, DocumentType::CreditNote, $creditNote);
     })->middleware('can:credit-notes.post')->name('credit-notes.post');
+
+    Route::post('/credit-notes/{creditNote}/cancel', [RefundController::class, 'cancelCreditNote'])
+        ->middleware('can:credit-notes.cancel')
+        ->name('credit-notes.cancel');
 
     // Purchase Orders
     Route::get('/purchase-orders', function (Request $request) {
