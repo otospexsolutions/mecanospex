@@ -1,16 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useFinanceSummary } from '../hooks/useFinanceSummary'
+import { formatCurrency } from '@/lib/format'
 
 export function FinanceWidget() {
   const { data, isLoading } = useFinanceSummary()
-
-  const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num)
-  }
 
   if (isLoading) {
     return (
@@ -38,7 +31,7 @@ export function FinanceWidget() {
         <div className="rounded border border-gray-100 p-4">
           <div className="text-sm text-gray-500">Total Assets</div>
           <div className="mt-1 text-2xl font-bold text-gray-900">
-            ${formatCurrency(data?.total_assets || '0')}
+            {formatCurrency(data?.total_assets || '0')}
           </div>
         </div>
 
@@ -46,7 +39,7 @@ export function FinanceWidget() {
         <div className="rounded border border-gray-100 p-4">
           <div className="text-sm text-gray-500">Total Liabilities</div>
           <div className="mt-1 text-2xl font-bold text-gray-900">
-            ${formatCurrency(data?.total_liabilities || '0')}
+            {formatCurrency(data?.total_liabilities || '0')}
           </div>
         </div>
 
@@ -60,7 +53,7 @@ export function FinanceWidget() {
                 : 'text-red-600'
             }`}
           >
-            ${formatCurrency(data?.net_income_mtd || '0')}
+            {formatCurrency(data?.net_income_mtd || '0')}
           </div>
         </div>
 
@@ -74,7 +67,7 @@ export function FinanceWidget() {
                 : 'text-red-600'
             }`}
           >
-            ${formatCurrency(data?.net_income_ytd || '0')}
+            {formatCurrency(data?.net_income_ytd || '0')}
           </div>
         </div>
 
@@ -82,7 +75,7 @@ export function FinanceWidget() {
         <div className="rounded border border-gray-100 p-4">
           <div className="text-sm text-gray-500">Accounts Receivable</div>
           <div className="mt-1 text-2xl font-bold text-blue-600">
-            ${formatCurrency(data?.accounts_receivable || '0')}
+            {formatCurrency(data?.accounts_receivable || '0')}
           </div>
         </div>
 
@@ -90,7 +83,7 @@ export function FinanceWidget() {
         <div className="rounded border border-gray-100 p-4">
           <div className="text-sm text-gray-500">Accounts Payable</div>
           <div className="mt-1 text-2xl font-bold text-orange-600">
-            ${formatCurrency(data?.accounts_payable || '0')}
+            {formatCurrency(data?.accounts_payable || '0')}
           </div>
         </div>
       </div>

@@ -26,6 +26,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->command->info('Seeding countries...');
+        $this->call(CountriesSeeder::class);
+
+        $this->command->info('Seeding country tax rates...');
+        $this->call(CountryTaxRatesSeeder::class);
+
         $this->command->info('Creating roles and permissions...');
         $this->call(RolesAndPermissionsSeeder::class);
 
