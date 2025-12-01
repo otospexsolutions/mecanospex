@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Company;
 
 use App\Modules\Company\Domain\Company;
-use App\Modules\Company\Domain\Enums\CompanyStatus;
 use App\Modules\Company\Domain\Enums\HashChainType;
 use App\Modules\Company\Domain\Location;
 use App\Modules\Company\Domain\UserCompanyMembership;

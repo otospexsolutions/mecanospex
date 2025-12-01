@@ -16,7 +16,6 @@ use App\Modules\Company\Domain\UserCompanyMembership;
 use App\Modules\Company\Presentation\Requests\CreateCompanyRequest;
 use App\Modules\Identity\Domain\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 
@@ -105,7 +104,7 @@ class CompanyController extends Controller
 
             // 4. Initialize hash chains for all fiscal document types
             foreach (HashChainType::cases() as $chainType) {
-                $genesisHash = hash('sha256', $company->id . '|' . $chainType->value . '|genesis');
+                $genesisHash = hash('sha256', $company->id.'|'.$chainType->value.'|genesis');
                 CompanyHashChain::create([
                     'company_id' => $company->id,
                     'chain_type' => $chainType,
