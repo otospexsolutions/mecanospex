@@ -1,0 +1,52 @@
+# Atomic Design Refactor Progress
+
+Started: 2025-12-01T11:40:00Z
+
+## Phase 1: Setup - [x]
+Created directory structure:
+- components/atoms/
+- components/molecules/
+- components/organisms/
+- components/templates/
+
+## Phase 2: Categorize - [x]
+
+### Component Inventory & Categorization
+
+#### Atoms (smallest building blocks)
+- [x] LoadingSpinner → atoms/Spinner/
+
+#### Molecules (combinations of atoms)
+- [x] SearchInput → molecules/SearchInput/
+- [x] FilterTabs → molecules/FilterTabs/
+- [x] Tabs → molecules/Tabs/
+- [x] Breadcrumb → molecules/Breadcrumb/
+
+#### Organisms (complex UI sections)
+- [x] TopBar → organisms/TopBar/
+- [x] Sidebar → organisms/Sidebar/
+- [x] CompanySelector → organisms/CompanySelector/
+- [x] LocationSelector → organisms/LocationSelector/
+- [x] AddLocationModal → organisms/AddLocationModal/
+- [x] AddCompanyModal → organisms/AddCompanyModal/
+
+#### Templates (page layouts)
+- [x] Layout → templates/DashboardLayout/
+
+#### Feature-Specific (keep in features/)
+- RequirePermission → features/auth/components/
+- DocumentLineEditor → features/documents/components/
+- AuthProvider → features/auth/
+- CompanyProvider → features/company/
+- LocationProvider → features/location/
+- All Page components → features/*/pages/
+
+## Phase 3: Atoms - [ ]
+## Phase 4: Molecules - [ ]
+## Phase 5: Organisms - [ ]
+## Phase 6: Templates - [ ]
+## Phase 7: Features - [ ]
+## Phase 8: Imports - [ ]
+## Phase 9: Verify - [ ]
+
+Completed: [PENDING]
