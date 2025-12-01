@@ -35,6 +35,9 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Seeding subscription plans...');
         $this->call(PlansSeeder::class);
 
+        $this->command->info('Creating super admin...');
+        $this->call(SuperAdminSeeder::class);
+
         $this->command->info('Creating roles and permissions...');
         $this->call(RolesAndPermissionsSeeder::class);
 

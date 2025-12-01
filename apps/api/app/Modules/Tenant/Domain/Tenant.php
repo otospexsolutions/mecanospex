@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenant\Domain;
 
+use App\Models\TenantSubscription;
 use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
 use App\Modules\Tenant\Domain\Enums\TenantStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -197,6 +199,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function companies(): HasMany
     {
         return $this->hasMany(Company::class);
+    }
+
+    /**
+     * Get the tenant's active subscription.
+     *
+     * @return HasOne<TenantSubscription, $this>
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(TenantSubscription::class);
     }
 
     /**

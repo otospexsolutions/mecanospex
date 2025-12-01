@@ -1,0 +1,80 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  getTenants,
+  getTenant,
+  extendTrial,
+  changePlan,
+  suspendTenant,
+  activateTenant,
+} from '../api'
+
+export function useTenants(params?: { search?: string; status?: string }) {
+  return useQuery({
+    queryKey: ['admin', 'tenants', params],
+    queryFn: () => getTenants(params),
+  })
+}
+
+export function useTenant(id: string) {
+  return useQuery({
+    queryKey: ['admin', 'tenant', id],
+    queryFn: () => getTenant(id),
+    enabled: !!id,
+  })
+}
+
+export function useExtendTrial() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ tenantId, days }: { tenantId: string; days: number }) =>
+      extendTrial(tenantId, days),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant'] })
+    },
+  })
+}
+
+export function useChangePlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ tenantId, planId }: { tenantId: string; planId: string }) =>
+      changePlan(tenantId, planId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant'] })
+    },
+  })
+}
+
+export function useSuspendTenant() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      reason,
+    }: {
+      tenantId: string
+      reason?: string
+    }) => suspendTenant(tenantId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant'] })
+    },
+  })
+}
+
+export function useActivateTenant() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (tenantId: string) => activateTenant(tenantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant'] })
+    },
+  })
+}
