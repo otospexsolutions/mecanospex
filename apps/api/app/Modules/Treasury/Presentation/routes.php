@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
+use App\Modules\Treasury\Presentation\Controllers\MultiPaymentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentInstrumentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentMethodController;
@@ -120,4 +121,33 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::get('/payments/{payment}/refund-history', [PaymentRefundController::class, 'getRefundHistory'])
         ->middleware('can:payments.view')
         ->name('payments.refund-history');
+
+    // Multi-Payment Operations
+    Route::post('/documents/{document}/split-payment', [MultiPaymentController::class, 'createSplitPayment'])
+        ->middleware('can:payments.create')
+        ->name('documents.split-payment');
+
+    Route::post('/payments/deposit', [MultiPaymentController::class, 'recordDeposit'])
+        ->middleware('can:payments.create')
+        ->name('payments.deposit');
+
+    Route::post('/payments/{payment}/apply-deposit', [MultiPaymentController::class, 'applyDeposit'])
+        ->middleware('can:payments.create')
+        ->name('payments.apply-deposit');
+
+    Route::get('/partners/{partner}/unallocated-balance/{currency}', [MultiPaymentController::class, 'getUnallocatedBalance'])
+        ->middleware('can:payments.view')
+        ->name('partners.unallocated-balance');
+
+    Route::post('/payments/on-account', [MultiPaymentController::class, 'recordPaymentOnAccount'])
+        ->middleware('can:payments.create')
+        ->name('payments.on-account');
+
+    Route::get('/partners/{partner}/account-balance/{currency}', [MultiPaymentController::class, 'getPartnerAccountBalance'])
+        ->middleware('can:payments.view')
+        ->name('partners.account-balance');
+
+    Route::post('/payments/validate-split', [MultiPaymentController::class, 'validateSplit'])
+        ->middleware('can:payments.view')
+        ->name('payments.validate-split');
 });
