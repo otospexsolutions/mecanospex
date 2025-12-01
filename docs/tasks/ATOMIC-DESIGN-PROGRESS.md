@@ -64,7 +64,14 @@ Completed:
 ## Phase 6: Templates - [x]
 Completed:
 - Layout → templates/DashboardLayout/
-## Phase 7: Features - [ ]
+
+## Phase 7: Features - [x]
+Verified feature-specific components remain in features/:
+- AuthProvider → features/auth/
+- LoginPage → features/auth/
+- CompanyProvider → features/company/
+- LocationProvider → features/location/
+- AddCompanyModal, AddLocationModal, LocationSelector → Re-export from organisms for backwards compatibility
 ## Phase 8: Imports - [ ]
 ## Phase 9: Verify - [ ]
 
