@@ -13,6 +13,8 @@ import type {
   ProfitLossFilters,
   BalanceSheetData,
   BalanceSheetFilters,
+  AgedReceivablesLine,
+  AgedReceivablesFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -139,4 +141,19 @@ export async function getBalanceSheet(
   const url = queryString ? `/reports/balance-sheet?${queryString}` : '/reports/balance-sheet'
 
   return apiGet<BalanceSheetData>(url)
+}
+
+export async function getAgedReceivables(
+  filters?: AgedReceivablesFilters
+): Promise<AgedReceivablesLine[]> {
+  const params = new URLSearchParams()
+
+  if (filters?.as_of_date) {
+    params.append('as_of_date', filters.as_of_date)
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/reports/aged-receivables?${queryString}` : '/reports/aged-receivables'
+
+  return apiGet<AgedReceivablesLine[]>(url)
 }

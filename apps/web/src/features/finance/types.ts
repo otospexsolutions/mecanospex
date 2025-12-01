@@ -135,3 +135,18 @@ export interface BalanceSheetData {
 export interface BalanceSheetFilters {
   as_of_date?: string | undefined
 }
+
+export interface AgedReceivablesLine {
+  customer_id: string
+  customer_name: string
+  current: string
+  days_30: string
+  days_60: string
+  days_90: string
+  over_90: string
+  total: string
+}
+
+export interface AgedReceivablesFilters {
+  as_of_date?: string | undefined
+}
