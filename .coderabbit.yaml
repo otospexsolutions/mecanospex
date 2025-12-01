@@ -1,0 +1,91 @@
+# CodeRabbit Configuration
+# https://docs.coderabbit.ai/configuration/coderabbit-yaml
+
+language: en
+
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - develop
+
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!**/composer.lock"
+    - "!**/dist/**"
+    - "!**/node_modules/**"
+    - "!**/vendor/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+  profile: assertive
+
+  request_changes_workflow: true
+
+  high_level_summary: true
+
+  poem: false
+
+  review_status: true
+
+  collapse_walkthrough: false
+
+  path_instructions:
+    - path: "apps/api/**/*.php"
+      instructions: |
+        Review PHP code following these AutoERP standards:
+        - Strict types must be declared (declare(strict_types=1))
+        - No 'mixed' type unless interfacing with external untyped libraries
+        - Use DTOs instead of arrays for data transfer
+        - Follow hexagonal architecture (Domain, Application, Infrastructure layers)
+        - Check for proper event sourcing patterns
+        - Verify transaction boundaries for financial operations
+        - Ensure pessimistic locking for stock/payment operations
+
+    - path: "apps/api/app/Modules/**/Domain/**"
+      instructions: |
+        Domain layer review - ensure:
+        - No infrastructure dependencies
+        - Business logic is in domain services, not controllers
+        - Entities use value objects where appropriate
+        - Events are immutable and follow versioning rules
+
+    - path: "apps/api/app/Modules/**/Application/**"
+      instructions: |
+        Application layer review - ensure:
+        - Commands and queries are properly separated
+        - DTOs are used for data transfer
+        - No direct database access (use repositories)
+
+    - path: "apps/web/**/*.{ts,tsx}"
+      instructions: |
+        Review TypeScript code following these AutoERP standards:
+        - No 'any' type - use 'unknown' + type guards if needed
+        - Strict null checks must be satisfied
+        - Use TanStack Query for server state
+        - Use Zustand for client state only
+        - Types should come from @autoerp/shared (generated from backend)
+
+    - path: "apps/web/src/lib/**"
+      instructions: |
+        Review utility code:
+        - API client must handle errors properly
+        - Auth state must be managed correctly
+        - No hardcoded URLs or secrets
+
+chat:
+  auto_reply: true
+
+early_access: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []

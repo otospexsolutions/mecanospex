@@ -1,0 +1,66 @@
+{
+  "payments": {
+    "title": "Paiements",
+    "new": "Enregistrer un paiement",
+    "number": "Numéro",
+    "partner": "Partenaire",
+    "method": "Mode",
+    "date": "Date",
+    "status": "Statut",
+    "amount": "Montant",
+    "reference": "Référence",
+    "notes": "Notes",
+    "statuses": {
+      "pending": "En attente",
+      "cleared": "Encaissé",
+      "voided": "Annulé"
+    },
+    "empty": {
+      "title": "Aucun paiement",
+      "description": "Les paiements apparaîtront ici une fois enregistrés."
+    }
+  },
+  "instruments": {
+    "title": "Effets de paiement",
+    "new": "Nouvel effet",
+    "number": "Numéro",
+    "type": "Type",
+    "partner": "Partenaire",
+    "maturity": "Échéance",
+    "location": "Emplacement",
+    "status": "Statut",
+    "amount": "Montant",
+    "types": {
+      "check": "Chèque",
+      "promissoryNote": "Billet à ordre",
+      "billOfExchange": "Lettre de change"
+    },
+    "statuses": {
+      "inHand": "En portefeuille",
+      "deposited": "Déposé",
+      "cleared": "Encaissé",
+      "returned": "Retourné",
+      "endorsed": "Endossé"
+    },
+    "empty": {
+      "title": "Aucun effet",
+      "description": "Les effets de paiement comme les chèques apparaîtront ici."
+    }
+  },
+  "repositories": {
+    "title": "Dépôts",
+    "cash": "Caisse",
+    "bank": "Compte bancaire",
+    "safe": "Coffre"
+  },
+  "dashboard": {
+    "recentDocuments": "Documents récents",
+    "recentPayments": "Paiements récents",
+    "stats": {
+      "revenue": "Chiffre d'affaires",
+      "orders": "Commandes",
+      "customers": "Clients",
+      "products": "Produits"
+    }
+  }
+}

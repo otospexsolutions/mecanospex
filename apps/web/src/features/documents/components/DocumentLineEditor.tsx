@@ -1,0 +1,466 @@
+import { useState, useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Plus, Trash2, GripVertical, Search, X } from 'lucide-react'
+import { api } from '../../../lib/api'
+
+interface Product {
+  id: string
+  name: string
+  sku: string
+  price: number
+  tax_rate: number
+}
+
+interface ProductsResponse {
+  data: Product[]
+}
+
+export interface DocumentLine {
+  id: string
+  product_id: string
+  product_name: string
+  description: string
+  quantity: number
+  unit_price: number
+  tax_rate: number
+  line_total: number
+}
+
+interface DocumentLineEditorProps {
+  lines: DocumentLine[]
+  onChange: (lines: DocumentLine[]) => void
+  readonly?: boolean
+}
+
+export function DocumentLineEditor({ lines, onChange, readonly = false }: DocumentLineEditorProps) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showProductSearch, setShowProductSearch] = useState(false)
+  const [editingLineId, setEditingLineId] = useState<string | null>(null)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
+  // Fetch products for search
+  const { data: productsData } = useQuery({
+    queryKey: ['products', searchQuery],
+    queryFn: async () => {
+      const params = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''
+      const response = await api.get<ProductsResponse>(`/products${params}`)
+      return response.data
+    },
+    enabled: showProductSearch && searchQuery.length >= 2,
+  })
+
+  const products = productsData?.data ?? []
+
+  // Calculate totals
+  const totals = useMemo(() => {
+    const subtotal = lines.reduce((sum, line) => sum + line.quantity * line.unit_price, 0)
+    const tax = lines.reduce(
+      (sum, line) => sum + line.quantity * line.unit_price * (line.tax_rate / 100),
+      0
+    )
+    return {
+      subtotal,
+      tax,
+      total: subtotal + tax,
+    }
+  }, [lines])
+
+  // Generate unique ID for new lines
+  const generateId = () => `line-${String(Date.now())}-${Math.random().toString(36).substring(2, 11)}`
+
+  // Calculate line total
+  const calculateLineTotal = (quantity: number, unitPrice: number, taxRate: number) => {
+    const subtotal = quantity * unitPrice
+    const tax = subtotal * (taxRate / 100)
+    return subtotal + tax
+  }
+
+  // Add product to lines
+  const handleAddProduct = useCallback(
+    (product: Product) => {
+      const newLine: DocumentLine = {
+        id: generateId(),
+        product_id: product.id,
+        product_name: product.name,
+        description: product.name,
+        quantity: 1,
+        unit_price: product.price,
+        tax_rate: product.tax_rate,
+        line_total: calculateLineTotal(1, product.price, product.tax_rate),
+      }
+      onChange([...lines, newLine])
+      setShowProductSearch(false)
+      setSearchQuery('')
+    },
+    [lines, onChange]
+  )
+
+  // Add blank line
+  const handleAddBlankLine = useCallback(() => {
+    const newLine: DocumentLine = {
+      id: generateId(),
+      product_id: '',
+      product_name: '',
+      description: '',
+      quantity: 1,
+      unit_price: 0,
+      tax_rate: 0,
+      line_total: 0,
+    }
+    onChange([...lines, newLine])
+    setEditingLineId(newLine.id)
+  }, [lines, onChange])
+
+  // Update line
+  const handleUpdateLine = useCallback(
+    (lineId: string, updates: Partial<DocumentLine>) => {
+      onChange(
+        lines.map((line) => {
+          if (line.id !== lineId) return line
+          const updatedLine = { ...line, ...updates }
+          // Recalculate line total if quantity, price, or tax changed
+          if ('quantity' in updates || 'unit_price' in updates || 'tax_rate' in updates) {
+            updatedLine.line_total = calculateLineTotal(
+              updatedLine.quantity,
+              updatedLine.unit_price,
+              updatedLine.tax_rate
+            )
+          }
+          return updatedLine
+        })
+      )
+    },
+    [lines, onChange]
+  )
+
+  // Remove line
+  const handleRemoveLine = useCallback(
+    (lineId: string) => {
+      onChange(lines.filter((line) => line.id !== lineId))
+    },
+    [lines, onChange]
+  )
+
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+
+    const newLines = [...lines]
+    const draggedLine = newLines[draggedIndex]
+    newLines.splice(draggedIndex, 1)
+    newLines.splice(index, 0, draggedLine)
+    onChange(newLines)
+    setDraggedIndex(index)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+  }
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount)
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Lines Table */}
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="text-lg font-semibold text-gray-900">Line Items</h3>
+        </div>
+
+        {lines.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <p>No items added yet.</p>
+            {!readonly && (
+              <p className="mt-2 text-sm">Click "Add Item" to add products or services.</p>
+            )}
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {!readonly && (
+                  <th className="w-10 px-3 py-3">
+                    <span className="sr-only">Drag</span>
+                  </th>
+                )}
+                <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Item
+                </th>
+                <th className="w-24 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Qty
+                </th>
+                <th className="w-32 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Unit Price
+                </th>
+                <th className="w-20 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Tax %
+                </th>
+                <th className="w-32 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Total
+                </th>
+                {!readonly && (
+                  <th className="w-12 px-3 py-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {lines.map((line, index) => (
+                <tr
+                  key={line.id}
+                  draggable={!readonly}
+                  onDragStart={() => {
+                    handleDragStart(index)
+                  }}
+                  onDragOver={(e) => {
+                    handleDragOver(e, index)
+                  }}
+                  onDragEnd={handleDragEnd}
+                  className={draggedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                >
+                  {!readonly && (
+                    <td className="px-3 py-3 text-center">
+                      <button
+                        type="button"
+                        className="cursor-grab text-gray-400 hover:text-gray-600"
+                        aria-label="Drag to reorder"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
+                  <td className="px-4 py-3">
+                    {editingLineId === line.id && !readonly ? (
+                      <input
+                        type="text"
+                        value={line.description}
+                        onChange={(e) => {
+                          handleUpdateLine(line.id, { description: e.target.value })
+                        }}
+                        onBlur={() => {
+                          setEditingLineId(null)
+                        }}
+                        className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!readonly) setEditingLineId(line.id)
+                        }}
+                        className="text-start text-sm font-medium text-gray-900 hover:text-blue-600"
+                        disabled={readonly}
+                      >
+                        {line.description || line.product_name || 'Click to edit'}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-end">
+                    {readonly ? (
+                      <span className="text-sm text-gray-900">{line.quantity}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={line.quantity}
+                        onChange={(e) => {
+                          handleUpdateLine(line.id, { quantity: parseFloat(e.target.value) || 0 })
+                        }}
+                        className="w-20 rounded border border-gray-300 px-2 py-1 text-end text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-end">
+                    {readonly ? (
+                      <span className="text-sm text-gray-900">{formatCurrency(line.unit_price)}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.unit_price}
+                        onChange={(e) => {
+                          handleUpdateLine(line.id, { unit_price: parseFloat(e.target.value) || 0 })
+                        }}
+                        className="w-28 rounded border border-gray-300 px-2 py-1 text-end text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-end">
+                    {readonly ? (
+                      <span className="text-sm text-gray-500">{line.tax_rate}%</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={line.tax_rate}
+                        onChange={(e) => {
+                          handleUpdateLine(line.id, { tax_rate: parseFloat(e.target.value) || 0 })
+                        }}
+                        className="w-16 rounded border border-gray-300 px-2 py-1 text-end text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-end text-sm font-medium text-gray-900">
+                    {formatCurrency(line.line_total)}
+                  </td>
+                  {!readonly && (
+                    <td className="px-3 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleRemoveLine(line.id)
+                        }}
+                        className="text-gray-400 hover:text-red-600"
+                        aria-label="Remove line"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Totals */}
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+          <div className="flex justify-end">
+            <dl className="w-64 space-y-2">
+              <div className="flex justify-between text-sm">
+                <dt className="text-gray-500">Subtotal</dt>
+                <dd className="font-medium text-gray-900">{formatCurrency(totals.subtotal)}</dd>
+              </div>
+              <div className="flex justify-between text-sm">
+                <dt className="text-gray-500">Tax</dt>
+                <dd className="font-medium text-gray-900">{formatCurrency(totals.tax)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-2 text-base">
+                <dt className="font-semibold text-gray-900">Total</dt>
+                <dd className="font-semibold text-gray-900">{formatCurrency(totals.total)}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Item Buttons */}
+      {!readonly && (
+        <div className="flex gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowProductSearch(!showProductSearch)
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Search className="h-4 w-4" />
+              Search Products
+            </button>
+
+            {/* Product Search Dropdown */}
+            {showProductSearch && (
+              <div className="absolute left-0 top-full z-10 mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
+                <div className="p-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                      }}
+                      placeholder="Search products..."
+                      className="w-full rounded-lg border border-gray-300 py-2 pe-10 ps-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('')
+                        }}
+                        className="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {searchQuery.length >= 2 && (
+                  <div className="max-h-60 overflow-y-auto border-t border-gray-200">
+                    {products.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        No products found
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-gray-100">
+                        {products.map((product) => (
+                          <li key={product.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleAddProduct(product)
+                              }}
+                              className="flex w-full items-center justify-between px-4 py-3 text-start hover:bg-gray-50"
+                            >
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {product.name}
+                                </div>
+                                <div className="text-xs text-gray-500">{product.sku}</div>
+                              </div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {formatCurrency(product.price)}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                <div className="border-t border-gray-200 p-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProductSearch(false)
+                    }}
+                    className="w-full rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddBlankLine}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Blank Line
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}

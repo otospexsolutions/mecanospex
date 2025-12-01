@@ -1,0 +1,17 @@
+{
+  "required": "Ce champ est obligatoire",
+  "email": "Veuillez saisir une adresse e-mail valide",
+  "minLength": "Minimum {{count}} caractères requis",
+  "maxLength": "Maximum {{count}} caractères autorisés",
+  "min": "La valeur doit être au moins {{min}}",
+  "max": "La valeur doit être au maximum {{max}}",
+  "positive": "La valeur doit être positive",
+  "integer": "La valeur doit être un nombre entier",
+  "numeric": "La valeur doit être un nombre",
+  "date": "Veuillez saisir une date valide",
+  "phone": "Veuillez saisir un numéro de téléphone valide",
+  "url": "Veuillez saisir une URL valide",
+  "pattern": "Format invalide",
+  "unique": "Cette valeur est déjà utilisée",
+  "exists": "La valeur sélectionnée est invalide"
+}

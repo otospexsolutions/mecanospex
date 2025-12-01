@@ -1,0 +1,445 @@
+import { useEffect } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft } from 'lucide-react'
+import { api, apiPost, apiPatch } from '../../lib/api'
+
+interface Partner {
+  id: string
+  name: string
+}
+
+interface PartnersResponse {
+  data: Partner[]
+}
+
+interface Vehicle {
+  id: string
+  partner_id: string | null
+  license_plate: string
+  brand: string
+  model: string
+  year: number | null
+  color: string | null
+  mileage: number | null
+  vin: string | null
+  engine_code: string | null
+  fuel_type: string | null
+  transmission: string | null
+  notes: string | null
+}
+
+interface VehicleResponse {
+  data: Vehicle
+}
+
+interface VehicleFormData {
+  partner_id: string
+  license_plate: string
+  brand: string
+  model: string
+  year: string
+  color: string
+  mileage: string
+  vin: string
+  engine_code: string
+  fuel_type: string
+  transmission: string
+  notes: string
+}
+
+const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'LPG', 'CNG']
+const transmissions = ['Manual', 'Automatic', 'CVT', 'Semi-Automatic']
+
+export function VehicleForm() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
+  const isEdit = Boolean(id)
+  const vehicleId = id ?? ''
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<VehicleFormData>({
+    defaultValues: {
+      partner_id: '',
+      license_plate: '',
+      brand: '',
+      model: '',
+      year: '',
+      color: '',
+      mileage: '',
+      vin: '',
+      engine_code: '',
+      fuel_type: '',
+      transmission: '',
+      notes: '',
+    },
+  })
+
+  // Fetch partners for dropdown
+  const { data: partnersData } = useQuery({
+    queryKey: ['partners'],
+    queryFn: async () => {
+      const response = await api.get<PartnersResponse>('/partners')
+      return response.data
+    },
+  })
+
+  // Fetch vehicle if editing
+  const { data: vehicleData, isLoading: loadingVehicle } = useQuery({
+    queryKey: ['vehicle', id],
+    queryFn: async () => {
+      if (!id) return null
+      const response = await api.get<VehicleResponse>(`/vehicles/${id}`)
+      return response.data
+    },
+    enabled: isEdit,
+  })
+
+  // Populate form when editing
+  useEffect(() => {
+    if (vehicleData?.data) {
+      const v = vehicleData.data
+      reset({
+        partner_id: v.partner_id ?? '',
+        license_plate: v.license_plate,
+        brand: v.brand,
+        model: v.model,
+        year: v.year?.toString() ?? '',
+        color: v.color ?? '',
+        mileage: v.mileage?.toString() ?? '',
+        vin: v.vin ?? '',
+        engine_code: v.engine_code ?? '',
+        fuel_type: v.fuel_type ?? '',
+        transmission: v.transmission ?? '',
+        notes: v.notes ?? '',
+      })
+    }
+  }, [vehicleData, reset])
+
+  const createMutation = useMutation({
+    mutationFn: (data: VehicleFormData) => apiPost<VehicleResponse>('/vehicles', {
+      partner_id: data.partner_id || null,
+      license_plate: data.license_plate,
+      brand: data.brand,
+      model: data.model,
+      year: data.year ? parseInt(data.year, 10) : null,
+      color: data.color || null,
+      mileage: data.mileage ? parseInt(data.mileage, 10) : null,
+      vin: data.vin || null,
+      engine_code: data.engine_code || null,
+      fuel_type: data.fuel_type || null,
+      transmission: data.transmission || null,
+      notes: data.notes || null,
+    }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      void navigate('/vehicles')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: VehicleFormData) => apiPatch<VehicleResponse>(`/vehicles/${vehicleId}`, {
+      partner_id: data.partner_id || null,
+      license_plate: data.license_plate,
+      brand: data.brand,
+      model: data.model,
+      year: data.year ? parseInt(data.year, 10) : null,
+      color: data.color || null,
+      mileage: data.mileage ? parseInt(data.mileage, 10) : null,
+      vin: data.vin || null,
+      engine_code: data.engine_code || null,
+      fuel_type: data.fuel_type || null,
+      transmission: data.transmission || null,
+      notes: data.notes || null,
+    }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      void queryClient.invalidateQueries({ queryKey: ['vehicle', vehicleId] })
+      void navigate(`/vehicles/${vehicleId}`)
+    },
+  })
+
+  const onSubmit = (data: VehicleFormData) => {
+    if (isEdit) {
+      updateMutation.mutate(data)
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const mutationError = createMutation.error ?? updateMutation.error
+  const partners = partnersData?.data ?? []
+
+  if (isEdit && loadingVehicle) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-500">{t('status.loading')}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link
+          to={isEdit ? `/vehicles/${vehicleId}` : '/vehicles'}
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('actions.back')}
+        </Link>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isEdit ? 'Edit Vehicle' : 'New Vehicle'}
+        </h1>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Information</h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Owner (Partner) */}
+            <div>
+              <label htmlFor="partner_id" className="block text-sm font-medium text-gray-700">
+                Owner (Optional)
+              </label>
+              <select
+                id="partner_id"
+                {...register('partner_id')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- No Owner --</option>
+                {partners.map((partner) => (
+                  <option key={partner.id} value={partner.id}>
+                    {partner.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* License Plate */}
+            <div>
+              <label htmlFor="license_plate" className="block text-sm font-medium text-gray-700">
+                License Plate *
+              </label>
+              <input
+                type="text"
+                id="license_plate"
+                {...register('license_plate', { required: 'License plate is required' })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="AB-123-CD"
+              />
+              {errors.license_plate && (
+                <p className="mt-1 text-sm text-red-600">{errors.license_plate.message}</p>
+              )}
+            </div>
+
+            {/* VIN */}
+            <div>
+              <label htmlFor="vin" className="block text-sm font-medium text-gray-700">
+                VIN
+              </label>
+              <input
+                type="text"
+                id="vin"
+                {...register('vin', {
+                  pattern: {
+                    value: /^[A-HJ-NPR-Z0-9]{17}$/i,
+                    message: 'VIN must be 17 characters (no I, O, Q)'
+                  }
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                placeholder="VF1RFB00X51234567"
+                maxLength={17}
+              />
+              {errors.vin && (
+                <p className="mt-1 text-sm text-red-600">{errors.vin.message}</p>
+              )}
+            </div>
+
+            {/* Brand */}
+            <div>
+              <label htmlFor="brand" className="block text-sm font-medium text-gray-700">
+                Brand *
+              </label>
+              <input
+                type="text"
+                id="brand"
+                {...register('brand', { required: 'Brand is required' })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Renault"
+              />
+              {errors.brand && (
+                <p className="mt-1 text-sm text-red-600">{errors.brand.message}</p>
+              )}
+            </div>
+
+            {/* Model */}
+            <div>
+              <label htmlFor="model" className="block text-sm font-medium text-gray-700">
+                Model *
+              </label>
+              <input
+                type="text"
+                id="model"
+                {...register('model', { required: 'Model is required' })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Clio"
+              />
+              {errors.model && (
+                <p className="mt-1 text-sm text-red-600">{errors.model.message}</p>
+              )}
+            </div>
+
+            {/* Year */}
+            <div>
+              <label htmlFor="year" className="block text-sm font-medium text-gray-700">
+                Year
+              </label>
+              <input
+                type="number"
+                id="year"
+                {...register('year', {
+                  min: { value: 1900, message: 'Year must be after 1900' },
+                  max: { value: new Date().getFullYear() + 1, message: 'Year is too far in the future' }
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="2020"
+              />
+              {errors.year && (
+                <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
+              )}
+            </div>
+
+            {/* Color */}
+            <div>
+              <label htmlFor="color" className="block text-sm font-medium text-gray-700">
+                Color
+              </label>
+              <input
+                type="text"
+                id="color"
+                {...register('color')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Blue"
+              />
+            </div>
+
+            {/* Mileage */}
+            <div>
+              <label htmlFor="mileage" className="block text-sm font-medium text-gray-700">
+                Mileage (km)
+              </label>
+              <input
+                type="number"
+                id="mileage"
+                {...register('mileage', { min: { value: 0, message: 'Mileage cannot be negative' } })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="45000"
+              />
+              {errors.mileage && (
+                <p className="mt-1 text-sm text-red-600">{errors.mileage.message}</p>
+              )}
+            </div>
+
+            {/* Fuel Type */}
+            <div>
+              <label htmlFor="fuel_type" className="block text-sm font-medium text-gray-700">
+                Fuel Type
+              </label>
+              <select
+                id="fuel_type"
+                {...register('fuel_type')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select --</option>
+                {fuelTypes.map((fuel) => (
+                  <option key={fuel} value={fuel}>
+                    {fuel}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Transmission */}
+            <div>
+              <label htmlFor="transmission" className="block text-sm font-medium text-gray-700">
+                Transmission
+              </label>
+              <select
+                id="transmission"
+                {...register('transmission')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select --</option>
+                {transmissions.map((trans) => (
+                  <option key={trans} value={trans}>
+                    {trans}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Engine Code */}
+            <div>
+              <label htmlFor="engine_code" className="block text-sm font-medium text-gray-700">
+                Engine Code
+              </label>
+              <input
+                type="text"
+                id="engine_code"
+                {...register('engine_code')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="K9K 608"
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="mt-6">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+              Notes
+            </label>
+            <textarea
+              id="notes"
+              {...register('notes')}
+              rows={3}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Additional notes about the vehicle..."
+            />
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {mutationError && (
+          <div className="rounded-lg bg-red-50 p-4 text-red-700">
+            {mutationError instanceof Error ? mutationError.message : 'An error occurred. Please try again.'}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            to={isEdit ? `/vehicles/${vehicleId}` : '/vehicles'}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t('actions.cancel')}
+          </Link>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t('status.saving', 'Saving...') : t('actions.save')}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

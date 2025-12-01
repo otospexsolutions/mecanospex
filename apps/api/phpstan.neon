@@ -1,0 +1,16 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+    level: 8
+
+    # Exclude paths (optional - may not exist in Laravel 11+)
+    excludePaths:
+        analyseAndScan:
+            - app/Console/Kernel.php (?)
+            - app/Http/Kernel.php (?)
+
+    # Laravel specific
+    checkModelProperties: true

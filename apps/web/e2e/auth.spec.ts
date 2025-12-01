@@ -1,0 +1,139 @@
+import { test, expect } from '@playwright/test'
+
+test.describe('Authentication', () => {
+  test.beforeEach(async ({ page }) => {
+    // Set up API mocks before each test - return 401 for unauthenticated
+    await page.route('**/api/v1/auth/me', (route) => {
+      route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Unauthenticated' }),
+      })
+    })
+  })
+
+  test('should display login page', async ({ page }) => {
+    await page.goto('/login')
+
+    // Should see the login form
+    await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible()
+    await expect(page.getByLabel(/email/i)).toBeVisible()
+    await expect(page.getByLabel(/password/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
+  })
+
+  test('should show validation errors for empty form', async ({ page }) => {
+    await page.goto('/login')
+
+    // Submit empty form
+    await page.getByRole('button', { name: /sign in/i }).click()
+
+    // Should show validation errors
+    await expect(page.getByText(/email is required/i)).toBeVisible()
+    await expect(page.getByText(/password is required/i)).toBeVisible()
+  })
+
+  test('should prevent submission with invalid email format', async ({ page }) => {
+    await page.goto('/login')
+
+    // Fill in an invalid email that browser validation will catch
+    await page.getByLabel(/email/i).fill('invalid-email')
+    await page.getByLabel(/password/i).fill('password123')
+    await page.getByRole('button', { name: /sign in/i }).click()
+
+    // Browser validation should prevent form submission, so we should still be on login page
+    await expect(page).toHaveURL(/\/login/)
+    // And the email input should still be focused/visible (form not submitted)
+    await expect(page.getByLabel(/email/i)).toBeVisible()
+  })
+
+  test('should redirect unauthenticated users to login', async ({ page }) => {
+    // Try to access protected route
+    await page.goto('/')
+
+    // Should be redirected to login
+    await expect(page).toHaveURL(/\/login/)
+  })
+
+  test('should redirect to dashboard after successful login', async ({ page }) => {
+    // Set up mocks for successful login flow
+    await page.unrouteAll()
+
+    await page.route('**/sanctum/csrf-cookie', (route) => {
+      route.fulfill({ status: 204 })
+    })
+
+    await page.route('**/api/v1/auth/login', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            id: '1',
+            name: 'Test User',
+            email: 'test@example.com',
+          },
+        }),
+      })
+    })
+
+    await page.route('**/api/v1/auth/me', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            id: '1',
+            name: 'Test User',
+            email: 'test@example.com',
+            tenant_id: 'tenant-1',
+            roles: ['admin'],
+          },
+        }),
+      })
+    })
+
+    // Mock dashboard data
+    await page.route('**/api/v1/dashboard/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            revenue: { current: 15000, previous: 12000, change: 25 },
+            invoices: { total: 45, pending: 12, overdue: 3 },
+            partners: { total: 28, newThisMonth: 5 },
+            payments: { received: 35000, pending: 8000 },
+          },
+        }),
+      })
+    })
+
+    await page.route('**/api/v1/documents**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { data: [] } }),
+      })
+    })
+
+    await page.route('**/api/v1/payments**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { data: [] } }),
+      })
+    })
+
+    await page.goto('/login')
+
+    // Fill in credentials
+    await page.getByLabel(/email/i).fill('test@example.com')
+    await page.getByLabel(/password/i).fill('password123')
+    await page.getByRole('button', { name: /sign in/i }).click()
+
+    // Should redirect to dashboard
+    await expect(page).toHaveURL('/')
+    await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
+  })
+})

@@ -1,0 +1,366 @@
+import { useEffect } from 'react'
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft } from 'lucide-react'
+import { api, apiPost, apiPatch } from '../../lib/api'
+import type { PartnerType } from './PartnerListPage'
+
+interface Partner {
+  id: string
+  name: string
+  type: 'customer' | 'supplier' | 'both'
+  email: string | null
+  phone: string | null
+  address: string | null
+  city: string | null
+  postal_code: string | null
+  country: string | null
+  tax_id: string | null
+  notes: string | null
+}
+
+interface PartnerFormData {
+  name: string
+  type: 'customer' | 'supplier' | 'both' | ''
+  email: string
+  phone: string
+  address: string
+  city: string
+  postal_code: string
+  country: string
+  tax_id: string
+  notes: string
+}
+
+interface PartnerFormProps {
+  partnerType?: PartnerType
+}
+
+export function PartnerForm({ partnerType }: PartnerFormProps) {
+  const { t } = useTranslation()
+  const { id = '' } = useParams<{ id: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const isEditing = id.length > 0
+
+  // Determine partner type from props or URL
+  const isCustomerContext = partnerType === 'customer' || location.pathname.includes('/sales/customers')
+  const isSupplierContext = partnerType === 'supplier' || location.pathname.includes('/purchases/suppliers')
+
+  const basePath = isCustomerContext
+    ? '/sales/customers'
+    : isSupplierContext
+      ? '/purchases/suppliers'
+      : '/partners'
+
+  const entityName = isCustomerContext
+    ? t('navigation.customers').slice(0, -1)
+    : isSupplierContext
+      ? t('navigation.suppliers').slice(0, -1)
+      : 'Partner'
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PartnerFormData>({
+    defaultValues: {
+      name: '',
+      type: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      postal_code: '',
+      country: '',
+      tax_id: '',
+      notes: '',
+    },
+  })
+
+  // Fetch partner data when editing
+  const { data: partner, isLoading } = useQuery({
+    queryKey: ['partner', id],
+    queryFn: async () => {
+      const response = await api.get<{ data: Partner }>(`/partners/${id}`)
+      return response.data.data
+    },
+    enabled: isEditing,
+  })
+
+  // Populate form when partner data loads
+  useEffect(() => {
+    if (partner) {
+      reset({
+        name: partner.name,
+        type: partner.type,
+        email: partner.email ?? '',
+        phone: partner.phone ?? '',
+        address: partner.address ?? '',
+        city: partner.city ?? '',
+        postal_code: partner.postal_code ?? '',
+        country: partner.country ?? '',
+        tax_id: partner.tax_id ?? '',
+        notes: partner.notes ?? '',
+      })
+    }
+  }, [partner, reset])
+
+  const createMutation = useMutation({
+    mutationFn: (data: PartnerFormData) => apiPost<Partner>('/partners', data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['partners'] })
+      void navigate(basePath)
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: PartnerFormData) =>
+      apiPatch<Partner>(`/partners/${id}`, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['partners'] })
+      void queryClient.invalidateQueries({ queryKey: ['partner', id] })
+      void navigate(`${basePath}/${id}`)
+    },
+  })
+
+  const onSubmit = (data: PartnerFormData) => {
+    if (isEditing) {
+      updateMutation.mutate(data)
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
+  if (isEditing && isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link
+          to={basePath}
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('actions.back')}
+        </Link>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isEditing ? `${t('actions.edit')} ${entityName}` : `${t('actions.add')} ${entityName}`}
+        </h1>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={(e) => { void handleSubmit(onSubmit)(e) }} className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Name */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Name *
+              </label>
+              <input
+                type="text"
+                id="name"
+                {...register('name', { required: 'Name is required' })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+              )}
+            </div>
+
+            {/* Type */}
+            <div>
+              <label
+                htmlFor="type"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Type *
+              </label>
+              <select
+                id="type"
+                {...register('type', { required: 'Type is required' })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Select type</option>
+                <option value="customer">Customer</option>
+                <option value="supplier">Supplier</option>
+                <option value="both">Both</option>
+              </select>
+              {errors.type && (
+                <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                {...register('email', {
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: 'Invalid email address',
+                  },
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Phone
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                {...register('phone')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Tax ID */}
+            <div>
+              <label
+                htmlFor="tax_id"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Tax ID
+              </label>
+              <input
+                type="text"
+                id="tax_id"
+                {...register('tax_id')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Address */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Address
+              </label>
+              <input
+                type="text"
+                id="address"
+                {...register('address')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* City */}
+            <div>
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium text-gray-700"
+              >
+                City
+              </label>
+              <input
+                type="text"
+                id="city"
+                {...register('city')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Postal Code */}
+            <div>
+              <label
+                htmlFor="postal_code"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Postal Code
+              </label>
+              <input
+                type="text"
+                id="postal_code"
+                {...register('postal_code')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Country */}
+            <div>
+              <label
+                htmlFor="country"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Country
+              </label>
+              <input
+                type="text"
+                id="country"
+                {...register('country')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="notes"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                rows={4}
+                {...register('notes')}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            to={basePath}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {t('actions.cancel')}
+          </Link>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {isSubmitting ? t('status.saving') : t('actions.save')}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

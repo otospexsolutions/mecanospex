@@ -565,6 +565,116 @@ pnpm dev                  # From root - starts all
 
 ---
 
-*Document Version: 2.0*
+## Internationalization (i18n) Conventions
+
+### Supported Languages
+- **English (en)** - Default fallback
+- **French (fr)** - Primary target market
+- **Arabic (ar)** - RTL support ready (future)
+
+### Frontend i18n (React)
+
+**Library:** `react-i18next` with `i18next-browser-languagedetector`
+
+**Translation Files Location:**
+```
+apps/web/src/locales/
+├── en/
+│   ├── common.json      # Shared UI strings
+│   ├── auth.json        # Authentication
+│   ├── sales.json       # Partners, documents, quotes
+│   ├── inventory.json   # Products, stock
+│   ├── treasury.json    # Payments, instruments
+│   └── validation.json  # Form validation
+├── fr/
+│   └── (same structure)
+└── ar/
+    └── (same structure)
+```
+
+**Usage Pattern:**
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function Component() {
+  const { t } = useTranslation(['common', 'sales'])
+
+  return (
+    <div>
+      <h1>{t('common:appName')}</h1>
+      <label>{t('sales:partners.name')}</label>
+      <span>{t('validation:required')}</span>
+    </div>
+  )
+}
+```
+
+**RTL-Ready CSS Rules:**
+- Use logical Tailwind properties:
+  - `ms-*` / `me-*` instead of `ml-*` / `mr-*`
+  - `ps-*` / `pe-*` instead of `pl-*` / `pr-*`
+  - `start-*` / `end-*` instead of `left-*` / `right-*`
+  - `text-start` / `text-end` instead of `text-left` / `text-right`
+  - `border-s-*` / `border-e-*` instead of `border-l-*` / `border-r-*`
+  - `rounded-s-*` / `rounded-e-*` instead of `rounded-l-*` / `rounded-r-*`
+
+**Language Switching:**
+```typescript
+import { languages } from '../lib/i18n'
+
+// Change language
+i18n.changeLanguage('fr')
+
+// Get current language info
+const currentLang = languages.find(l => l.code === i18n.language)
+```
+
+### Backend i18n (Laravel)
+
+**Translation Files Location:**
+```
+apps/api/lang/
+├── en/
+│   ├── validation.php   # Form validation messages
+│   ├── auth.php         # Authentication messages
+│   └── messages.php     # API responses
+└── fr/
+    └── (same structure)
+```
+
+**Locale Detection Middleware:**
+- `SetLocale` middleware reads `Accept-Language` or `X-Language` headers
+- Priority: `X-Language` header > `Accept-Language` header > default locale
+- Response includes `Content-Language` header
+
+**Usage in Controllers:**
+```php
+// Using translations
+return response()->json([
+    'message' => __('messages.created', ['resource' => 'Partner']),
+]);
+
+// Validation messages are automatically translated
+$request->validate([
+    'email' => 'required|email', // Error uses lang/fr/validation.php
+]);
+```
+
+### Adding New Translations
+
+1. **Add key to English first** (`en/*.json` or `en/*.php`)
+2. **Add French translation** (`fr/*.json` or `fr/*.php`)
+3. **Use descriptive keys:** `partners.form.emailLabel` not `email`
+4. **Group by feature:** Keep related strings in the same namespace
+
+### Testing i18n
+
+- Switch to Arabic to test RTL layout (even without translations)
+- Verify all user-facing strings use translation keys
+- Check that dynamic content (dates, numbers) is properly localized
+
+---
+
+*Document Version: 2.1*
 *Last Updated: November 2025*
 *Stack: Laravel 12 + React + PostgreSQL*

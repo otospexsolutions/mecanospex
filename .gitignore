@@ -46,3 +46,4 @@ phpstan.neon.local
 # Temporary files
 *.tmp
 *.temp
+apps/api/.deptrac.cache

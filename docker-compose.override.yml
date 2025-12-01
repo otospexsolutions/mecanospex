@@ -1,0 +1,26 @@
+# Local development overrides
+# This file is automatically loaded by docker compose
+# Do NOT commit sensitive values - use .env file instead
+
+services:
+  postgres:
+    # Expose additional debug port for pgAdmin connections
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      # Enable query logging for development
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+
+  redis:
+    # Enable verbose logging in development
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-autoerp_redis} --loglevel verbose
+
+  meilisearch:
+    environment:
+      MEILI_ENV: development
+      MEILI_LOG_LEVEL: DEBUG
+
+  minio:
+    environment:
+      # Enable browser console in development
+      MINIO_BROWSER: "on"
