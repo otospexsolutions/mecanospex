@@ -7,6 +7,8 @@ import type {
   JournalEntry,
   LedgerLine,
   LedgerFilters,
+  TrialBalanceLine,
+  TrialBalanceFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -84,4 +86,19 @@ export async function getLedger(filters?: LedgerFilters): Promise<LedgerLine[]> 
   const url = queryString ? `/ledger?${queryString}` : '/ledger'
 
   return apiGet<LedgerLine[]>(url)
+}
+
+export async function getTrialBalance(
+  filters?: TrialBalanceFilters
+): Promise<TrialBalanceLine[]> {
+  const params = new URLSearchParams()
+
+  if (filters?.as_of_date) {
+    params.append('as_of_date', filters.as_of_date)
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/reports/trial-balance?${queryString}` : '/reports/trial-balance'
+
+  return apiGet<TrialBalanceLine[]>(url)
 }

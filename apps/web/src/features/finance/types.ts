@@ -85,3 +85,15 @@ export interface LedgerFilters {
   min_amount?: number | undefined
   max_amount?: number | undefined
 }
+
+export interface TrialBalanceLine {
+  account_code: string
+  account_name: string
+  account_type: AccountType
+  debit: string
+  credit: string
+}
+
+export interface TrialBalanceFilters {
+  as_of_date?: string | undefined
+}
