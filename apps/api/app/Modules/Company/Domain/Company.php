@@ -229,6 +229,46 @@ class Company extends Model
     }
 
     /**
+     * Get all hash chain entries for this company.
+     *
+     * @return HasMany<CompanyHashChain, $this>
+     */
+    public function hashChains(): HasMany
+    {
+        return $this->hasMany(CompanyHashChain::class);
+    }
+
+    /**
+     * Get all sequences for this company.
+     *
+     * @return HasMany<CompanySequence, $this>
+     */
+    public function sequences(): HasMany
+    {
+        return $this->hasMany(CompanySequence::class);
+    }
+
+    /**
+     * Get all fiscal years for this company.
+     *
+     * @return HasMany<FiscalYear, $this>
+     */
+    public function fiscalYears(): HasMany
+    {
+        return $this->hasMany(FiscalYear::class);
+    }
+
+    /**
+     * Get all fiscal periods for this company.
+     *
+     * @return HasMany<FiscalPeriod, $this>
+     */
+    public function fiscalPeriods(): HasMany
+    {
+        return $this->hasMany(FiscalPeriod::class);
+    }
+
+    /**
      * Check if the company is active.
      */
     public function isActive(): bool
