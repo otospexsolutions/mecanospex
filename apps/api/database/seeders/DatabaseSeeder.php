@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Seeding country tax rates...');
         $this->call(CountryTaxRatesSeeder::class);
 
+        $this->command->info('Seeding subscription plans...');
+        $this->call(PlansSeeder::class);
+
         $this->command->info('Creating roles and permissions...');
         $this->call(RolesAndPermissionsSeeder::class);
 

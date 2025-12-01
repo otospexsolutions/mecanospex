@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\CountryController;
+use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,7 +18,7 @@ Route::prefix('api/v1')->group(function (): void {
     Route::get('/countries/{code}', [CountryController::class, 'show']);
 
     // Protected routes (require authentication)
-    // Route::middleware('auth:sanctum')->group(function (): void {
-    //     // Add protected routes here
-    // });
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/subscription', [SubscriptionController::class, 'show']);
+    });
 });
