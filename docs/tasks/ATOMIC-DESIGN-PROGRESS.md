@@ -41,8 +41,16 @@ Created directory structure:
 - LocationProvider → features/location/
 - All Page components → features/*/pages/
 
-## Phase 3: Atoms - [ ]
-## Phase 4: Molecules - [ ]
+## Phase 3: Atoms - [x]
+Completed:
+- LoadingSpinner → atoms/Spinner/
+
+## Phase 4: Molecules - [x]
+Completed:
+- SearchInput → molecules/SearchInput/
+- FilterTabs → molecules/FilterTabs/
+- Tabs → molecules/Tabs/
+- Breadcrumb → molecules/Breadcrumb/
 ## Phase 5: Organisms - [ ]
 ## Phase 6: Templates - [ ]
 ## Phase 7: Features - [ ]
