@@ -4,6 +4,9 @@ import type {
   CreateAccountData,
   UpdateAccountData,
   AccountFilters,
+  JournalEntry,
+  LedgerLine,
+  LedgerFilters,
 } from './types'
 
 export async function getAccounts(filters?: AccountFilters): Promise<Account[]> {
@@ -40,4 +43,45 @@ export async function updateAccount(
   data: UpdateAccountData
 ): Promise<Account> {
   return apiPatch<Account>(`/accounts/${id}`, data)
+}
+
+export async function getJournalEntries(page = 1): Promise<{
+  data: JournalEntry[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}> {
+  return apiGet(`/journal-entries?page=${page}`)
+}
+
+export async function getLedger(filters?: LedgerFilters): Promise<LedgerLine[]> {
+  const params = new URLSearchParams()
+
+  if (filters?.account_id) {
+    params.append('account_id', filters.account_id)
+  }
+
+  if (filters?.date_from) {
+    params.append('date_from', filters.date_from)
+  }
+
+  if (filters?.date_to) {
+    params.append('date_to', filters.date_to)
+  }
+
+  if (filters?.min_amount !== undefined) {
+    params.append('min_amount', filters.min_amount.toString())
+  }
+
+  if (filters?.max_amount !== undefined) {
+    params.append('max_amount', filters.max_amount.toString())
+  }
+
+  const queryString = params.toString()
+  const url = queryString ? `/ledger?${queryString}` : '/ledger'
+
+  return apiGet<LedgerLine[]>(url)
 }

@@ -29,8 +29,8 @@
 ## Progress Tracking
 
 ## 3.1 Finance Reports UI
-- [ ] 3.1.1 Chart of Accounts Page
-- [ ] 3.1.2 General Ledger Page
+- [x] 3.1.1 Chart of Accounts Page ✅ (Committed: 8da645b)
+- [x] 3.1.2 General Ledger Page ✅ (Ready to commit)
 - [ ] 3.1.3 Trial Balance Report
 - [ ] 3.1.4 Profit & Loss Statement
 - [ ] 3.1.5 Balance Sheet
@@ -106,8 +106,30 @@
 ## Notes
 
 ### 2025-12-01
+
+**Morning Session:**
 - Fixed auth test failures (validation messages, AuthProvider token check)
 - Documented pre-existing frontend test failures
 - Backend fully healthy - all tests passing
 - Ready to begin Section 3.1
+
+**Task 3.1.1: Chart of Accounts Page** ✅
+- Created AccountTreeView with hierarchical display and expand/collapse
+- Created AddAccountModal and EditAccountModal components
+- Implemented full CRUD operations with TDD
+- Added permissions (accounts.view, accounts.manage, journal.*)
+- Routes: /finance/chart-of-accounts and /settings/chart-of-accounts
+- Tests: 5/5 passing (Red-Green-Refactor cycle complete)
+- Committed: 8da645b
+
+**Task 3.1.2: General Ledger Page** ✅
+- Created GeneralLedgerPage with filtering and export button
+- Created LedgerFilters component (account, date range filters)
+- Created LedgerTable component with debit/credit/balance display
+- Added journal entry and ledger types
+- API functions: getLedger, getJournalEntries
+- Hooks: useLedger, useJournalEntries
+- Route: /finance/ledger with journal.view permission
+- Tests: 6/6 passing (TDD complete)
+- Ready to commit
 

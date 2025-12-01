@@ -35,3 +35,53 @@ export interface AccountFilters {
   active?: boolean
   search?: string
 }
+
+export type JournalEntryStatus = 'draft' | 'posted'
+
+export interface JournalLine {
+  id: string
+  journal_entry_id: string
+  account_id: string
+  account_code: string
+  account_name: string
+  debit: string
+  credit: string
+  description: string | null
+  line_number: number
+}
+
+export interface JournalEntry {
+  id: string
+  tenant_id: string
+  entry_number: string
+  entry_date: string
+  description: string | null
+  status: JournalEntryStatus
+  source_type: string | null
+  source_id: string | null
+  lines: JournalLine[]
+  created_at: string
+  updated_at: string
+}
+
+export interface LedgerLine {
+  id: string
+  date: string
+  entry_number: string
+  description: string
+  account_code: string
+  account_name: string
+  debit: string
+  credit: string
+  balance: string
+  source_type: string | null
+  source_id: string | null
+}
+
+export interface LedgerFilters {
+  account_id?: string | undefined
+  date_from?: string | undefined
+  date_to?: string | undefined
+  min_amount?: number | undefined
+  max_amount?: number | undefined
+}
