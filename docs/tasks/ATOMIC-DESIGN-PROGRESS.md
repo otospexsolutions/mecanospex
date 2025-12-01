@@ -121,8 +121,18 @@ Old import paths continue to work via re-exports:
 - `components/layout/Layout` → re-exports from `templates/DashboardLayout`
 - etc.
 
-### Feature-Specific Components (unchanged)
+### Feature-Specific Components (organized into features/*/components/)
+- `features/auth/components/` - RequirePermission, PermissionDenied
 - `features/auth/` - AuthProvider, LoginPage
 - `features/company/` - CompanyProvider
 - `features/location/` - LocationProvider
-- `features/documents/` - DocumentLineEditor, etc.
+- `features/documents/components/` - DocumentLineEditor
+
+## Phase 10: Additional Cleanup - [x]
+
+Additional components organized:
+- PlaceholderPage → molecules/EmptyState/
+- RequirePermission → features/auth/components/
+- DocumentLineEditor → features/documents/components/
+
+Completed: 2025-12-01T13:00:00Z
