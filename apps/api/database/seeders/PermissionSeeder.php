@@ -1,0 +1,204 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
+class PermissionSeeder extends Seeder
+{
+    /**
+     * Seed all application permissions and default roles
+     */
+    public function run(): void
+    {
+        // Reset cached roles and permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Define all permissions
+        $permissions = [
+            // Products & Catalog
+            'products.view',
+            'products.create',
+            'products.update',
+            'products.delete',
+
+            // Partners (Customers/Suppliers)
+            'partners.view',
+            'partners.create',
+            'partners.update',
+            'partners.delete',
+
+            // Vehicles
+            'vehicles.view',
+            'vehicles.create',
+            'vehicles.update',
+            'vehicles.delete',
+
+            // Documents - General
+            'documents.view',
+
+            // Documents - Quotes
+            'quotes.view',
+            'quotes.create',
+            'quotes.update',
+            'quotes.delete',
+            'quotes.confirm',
+            'quotes.convert',
+
+            // Documents - Sales Orders
+            'orders.view',
+            'orders.create',
+            'orders.update',
+            'orders.delete',
+            'orders.confirm',
+
+            // Documents - Invoices
+            'invoices.view',
+            'invoices.create',
+            'invoices.update',
+            'invoices.delete',
+            'invoices.post',
+            'invoices.cancel',
+
+            // Documents - Credit Notes
+            'credit-notes.view',
+            'credit-notes.create',
+            'credit-notes.post',
+            'credit-notes.cancel',
+
+            // Documents - Purchase Orders
+            'purchase-orders.view',
+            'purchase-orders.create',
+            'purchase-orders.update',
+            'purchase-orders.delete',
+            'purchase-orders.confirm',
+            'purchase-orders.receive',
+
+            // Documents - Delivery Notes
+            'deliveries.view',
+            'deliveries.create',
+            'deliveries.confirm',
+
+            // Treasury - Payment Methods
+            'treasury.view',
+            'treasury.manage',
+
+            // Treasury - Repositories
+            'repositories.view',
+            'repositories.manage',
+
+            // Treasury - Instruments
+            'instruments.view',
+            'instruments.create',
+            'instruments.transfer',
+            'instruments.clear',
+
+            // Treasury - Payments
+            'payments.view',
+            'payments.create',
+            'payments.refund',
+            'payments.reverse',
+
+            // Inventory
+            'inventory.view',
+            'inventory.adjust',
+            'inventory.receive',
+            'inventory.transfer',
+
+            // Accounting
+            'accounts.view',
+            'accounts.manage',
+            'journal.view',
+            'journal.create',
+            'journal.post',
+
+            // Pricing
+            'pricing.view',
+            'pricing.manage',
+        ];
+
+        // Create all permissions for 'web' guard (Spatie default)
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        // Create default roles
+
+        // 1. Administrator (Full Access)
+        $admin = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'web']);
+        $admin->syncPermissions(Permission::where('guard_name', 'web')->get());
+
+        // 2. Sales Manager
+        $salesManager = Role::firstOrCreate(['name' => 'Sales Manager', 'guard_name' => 'web']);
+        $salesManager->syncPermissions([
+            'products.view',
+            'partners.view', 'partners.create', 'partners.update',
+            'vehicles.view', 'vehicles.create', 'vehicles.update',
+            'documents.view',
+            'quotes.view', 'quotes.create', 'quotes.update', 'quotes.delete', 'quotes.confirm', 'quotes.convert',
+            'orders.view', 'orders.create', 'orders.update', 'orders.delete', 'orders.confirm',
+            'invoices.view', 'invoices.create', 'invoices.update', 'invoices.delete', 'invoices.post',
+            'credit-notes.view', 'credit-notes.create', 'credit-notes.post',
+            'deliveries.view', 'deliveries.create', 'deliveries.confirm',
+            'payments.view',
+            'inventory.view',
+            'pricing.view',
+        ]);
+
+        // 3. Accountant
+        $accountant = Role::firstOrCreate(['name' => 'Accountant', 'guard_name' => 'web']);
+        $accountant->syncPermissions([
+            'partners.view',
+            'documents.view',
+            'invoices.view', 'invoices.post', 'invoices.cancel',
+            'credit-notes.view', 'credit-notes.post', 'credit-notes.cancel',
+            'treasury.view', 'treasury.manage',
+            'repositories.view', 'repositories.manage',
+            'instruments.view', 'instruments.create', 'instruments.transfer', 'instruments.clear',
+            'payments.view', 'payments.create', 'payments.refund', 'payments.reverse',
+            'accounts.view', 'accounts.manage',
+            'journal.view', 'journal.create', 'journal.post',
+            'pricing.view',
+        ]);
+
+        // 4. Sales Rep
+        $salesRep = Role::firstOrCreate(['name' => 'Sales Rep', 'guard_name' => 'web']);
+        $salesRep->syncPermissions([
+            'products.view',
+            'partners.view', 'partners.create',
+            'vehicles.view', 'vehicles.create',
+            'quotes.view', 'quotes.create', 'quotes.update', 'quotes.delete',
+            'orders.view',
+            'invoices.view',
+            'inventory.view',
+            'pricing.view',
+        ]);
+
+        // 5. Warehouse Manager
+        $warehouseManager = Role::firstOrCreate(['name' => 'Warehouse Manager', 'guard_name' => 'web']);
+        $warehouseManager->syncPermissions([
+            'products.view',
+            'purchase-orders.view', 'purchase-orders.receive',
+            'deliveries.view', 'deliveries.create', 'deliveries.confirm',
+            'inventory.view', 'inventory.adjust', 'inventory.receive', 'inventory.transfer',
+        ]);
+
+        // 6. Receptionist
+        $receptionist = Role::firstOrCreate(['name' => 'Receptionist', 'guard_name' => 'web']);
+        $receptionist->syncPermissions([
+            'partners.view', 'partners.create',
+            'vehicles.view', 'vehicles.create',
+            'quotes.view',
+            'payments.view',
+        ]);
+
+        $this->command->info('Permissions and roles seeded successfully!');
+    }
+}
