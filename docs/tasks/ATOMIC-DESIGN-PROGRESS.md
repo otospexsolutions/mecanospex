@@ -60,7 +60,10 @@ Completed:
 - LocationSelector → organisms/LocationSelector/
 - AddLocationModal → organisms/AddLocationModal/
 - AddCompanyModal → organisms/AddCompanyModal/
-## Phase 6: Templates - [ ]
+
+## Phase 6: Templates - [x]
+Completed:
+- Layout → templates/DashboardLayout/
 ## Phase 7: Features - [ ]
 ## Phase 8: Imports - [ ]
 ## Phase 9: Verify - [ ]
