@@ -1,0 +1,310 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Pricing\Domain\Services;
+
+use App\Modules\Catalog\Domain\Product;
+use App\Modules\Partner\Domain\Partner;
+use App\Modules\Pricing\Domain\PriceList;
+use App\Modules\Pricing\Domain\PriceListItem;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+class PricingService
+{
+    /**
+     * Get price for a product based on partner, quantity, and date
+     *
+     * @param  string  $productId
+     * @param  string|null  $partnerId
+     * @param  string  $quantity
+     * @param  string  $currency
+     * @param  \DateTimeInterface|null  $date
+     * @return array ['price' => string, 'source' => string, 'price_list_id' => string|null]
+     */
+    public function getPrice(
+        string $productId,
+        ?string $partnerId = null,
+        string $quantity = '1.00',
+        string $currency = 'USD',
+        ?\DateTimeInterface $date = null
+    ): array {
+        $date = $date ?? now();
+
+        // 1. Try partner-specific price list
+        if ($partnerId !== null) {
+            $partnerPrice = $this->getPartnerPrice($partnerId, $productId, $quantity, $currency, $date);
+            if ($partnerPrice !== null) {
+                return [
+                    'price' => $partnerPrice['price'],
+                    'source' => 'partner_price_list',
+                    'price_list_id' => $partnerPrice['price_list_id'],
+                ];
+            }
+        }
+
+        // 2. Try default price list for currency
+        $defaultPrice = $this->getDefaultPriceListPrice($productId, $quantity, $currency, $date);
+        if ($defaultPrice !== null) {
+            return [
+                'price' => $defaultPrice['price'],
+                'source' => 'default_price_list',
+                'price_list_id' => $defaultPrice['price_list_id'],
+            ];
+        }
+
+        // 3. Fall back to product base price
+        $product = Product::findOrFail($productId);
+
+        return [
+            'price' => $product->price,
+            'source' => 'base_price',
+            'price_list_id' => null,
+        ];
+    }
+
+    /**
+     * Get partner-specific price
+     *
+     * @param  string  $partnerId
+     * @param  string  $productId
+     * @param  string  $quantity
+     * @param  string  $currency
+     * @param  \DateTimeInterface  $date
+     * @return array|null ['price' => string, 'price_list_id' => string]
+     */
+    private function getPartnerPrice(
+        string $partnerId,
+        string $productId,
+        string $quantity,
+        string $currency,
+        \DateTimeInterface $date
+    ): ?array {
+        // Get all active price lists for partner, ordered by priority
+        $partnerPriceLists = DB::table('partner_price_lists')
+            ->join('price_lists', 'partner_price_lists.price_list_id', '=', 'price_lists.id')
+            ->where('partner_price_lists.partner_id', $partnerId)
+            ->where('partner_price_lists.is_active', true)
+            ->where('price_lists.is_active', true)
+            ->where('price_lists.currency', $currency)
+            ->where(function ($query) use ($date) {
+                $query->whereNull('partner_price_lists.valid_from')
+                    ->orWhere('partner_price_lists.valid_from', '<=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('partner_price_lists.valid_until')
+                    ->orWhere('partner_price_lists.valid_until', '>=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('price_lists.valid_from')
+                    ->orWhere('price_lists.valid_from', '<=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('price_lists.valid_until')
+                    ->orWhere('price_lists.valid_until', '>=', $date);
+            })
+            ->orderBy('partner_price_lists.priority', 'desc')
+            ->select('price_lists.id')
+            ->pluck('id');
+
+        // Try each price list in priority order
+        foreach ($partnerPriceLists as $priceListId) {
+            $price = $this->getPriceFromList($priceListId, $productId, $quantity);
+            if ($price !== null) {
+                return [
+                    'price' => $price,
+                    'price_list_id' => $priceListId,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get price from default price list
+     *
+     * @param  string  $productId
+     * @param  string  $quantity
+     * @param  string  $currency
+     * @param  \DateTimeInterface  $date
+     * @return array|null ['price' => string, 'price_list_id' => string]
+     */
+    private function getDefaultPriceListPrice(
+        string $productId,
+        string $quantity,
+        string $currency,
+        \DateTimeInterface $date
+    ): ?array {
+        $priceList = PriceList::where('currency', $currency)
+            ->where('is_default', true)
+            ->where('is_active', true)
+            ->where(function ($query) use ($date) {
+                $query->whereNull('valid_from')
+                    ->orWhere('valid_from', '<=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('valid_until')
+                    ->orWhere('valid_until', '>=', $date);
+            })
+            ->first();
+
+        if ($priceList === null) {
+            return null;
+        }
+
+        $price = $this->getPriceFromList($priceList->id, $productId, $quantity);
+
+        if ($price === null) {
+            return null;
+        }
+
+        return [
+            'price' => $price,
+            'price_list_id' => $priceList->id,
+        ];
+    }
+
+    /**
+     * Get price from specific price list with quantity breaks
+     *
+     * @param  string  $priceListId
+     * @param  string  $productId
+     * @param  string  $quantity
+     * @return string|null
+     */
+    private function getPriceFromList(string $priceListId, string $productId, string $quantity): ?string
+    {
+        $items = PriceListItem::where('price_list_id', $priceListId)
+            ->where('product_id', $productId)
+            ->where('min_quantity', '<=', $quantity)
+            ->where(function ($query) use ($quantity) {
+                $query->whereNull('max_quantity')
+                    ->orWhere('max_quantity', '>=', $quantity);
+            })
+            ->orderBy('min_quantity', 'desc')
+            ->first();
+
+        return $items?->price;
+    }
+
+    /**
+     * Calculate line subtotal with discounts
+     *
+     * @param  string  $unitPrice
+     * @param  string  $quantity
+     * @param  string|null  $discountPercent
+     * @param  string|null  $discountAmount
+     * @return array ['subtotal' => string, 'discount_amount' => string, 'total' => string]
+     */
+    public function calculateLineTotal(
+        string $unitPrice,
+        string $quantity,
+        ?string $discountPercent = null,
+        ?string $discountAmount = null
+    ): array {
+        $subtotal = bcmul($unitPrice, $quantity, 2);
+
+        $totalDiscount = '0.00';
+
+        // Apply percentage discount
+        if ($discountPercent !== null && bccomp($discountPercent, '0', 2) > 0) {
+            $percentDiscount = bcmul($subtotal, bcdiv($discountPercent, '100', 4), 2);
+            $totalDiscount = bcadd($totalDiscount, $percentDiscount, 2);
+        }
+
+        // Apply fixed amount discount
+        if ($discountAmount !== null && bccomp($discountAmount, '0', 2) > 0) {
+            $totalDiscount = bcadd($totalDiscount, $discountAmount, 2);
+        }
+
+        // Discount cannot exceed subtotal
+        if (bccomp($totalDiscount, $subtotal, 2) > 0) {
+            $totalDiscount = $subtotal;
+        }
+
+        $total = bcsub($subtotal, $totalDiscount, 2);
+
+        return [
+            'subtotal' => $subtotal,
+            'discount_amount' => $totalDiscount,
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Apply document-level discount
+     *
+     * @param  string  $subtotal
+     * @param  string|null  $discountPercent
+     * @param  string|null  $discountAmount
+     * @return array ['discount_amount' => string, 'total' => string]
+     */
+    public function applyDocumentDiscount(
+        string $subtotal,
+        ?string $discountPercent = null,
+        ?string $discountAmount = null
+    ): array {
+        $totalDiscount = '0.00';
+
+        if ($discountPercent !== null && bccomp($discountPercent, '0', 2) > 0) {
+            $percentDiscount = bcmul($subtotal, bcdiv($discountPercent, '100', 4), 2);
+            $totalDiscount = bcadd($totalDiscount, $percentDiscount, 2);
+        }
+
+        if ($discountAmount !== null && bccomp($discountAmount, '0', 2) > 0) {
+            $totalDiscount = bcadd($totalDiscount, $discountAmount, 2);
+        }
+
+        if (bccomp($totalDiscount, $subtotal, 2) > 0) {
+            $totalDiscount = $subtotal;
+        }
+
+        $total = bcsub($subtotal, $totalDiscount, 2);
+
+        return [
+            'discount_amount' => $totalDiscount,
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Get all quantity breaks for a product in a price list
+     *
+     * @param  string  $priceListId
+     * @param  string  $productId
+     * @return Collection
+     */
+    public function getQuantityBreaks(string $priceListId, string $productId): Collection
+    {
+        return PriceListItem::where('price_list_id', $priceListId)
+            ->where('product_id', $productId)
+            ->orderBy('min_quantity')
+            ->get();
+    }
+
+    /**
+     * Bulk price lookup for multiple products
+     *
+     * @param  array  $productIds
+     * @param  string|null  $partnerId
+     * @param  string  $currency
+     * @param  \DateTimeInterface|null  $date
+     * @return array Keyed by product_id
+     */
+    public function getBulkPrices(
+        array $productIds,
+        ?string $partnerId = null,
+        string $currency = 'USD',
+        ?\DateTimeInterface $date = null
+    ): array {
+        $prices = [];
+
+        foreach ($productIds as $productId) {
+            $prices[$productId] = $this->getPrice($productId, $partnerId, '1.00', $currency, $date);
+        }
+
+        return $prices;
+    }
+}

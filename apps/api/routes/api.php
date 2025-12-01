@@ -45,3 +45,8 @@ Route::prefix('api/v1')->group(function (): void {
         Route::get('/audit-logs', [SuperAdminController::class, 'auditLogs']);
     });
 });
+
+// Load module routes
+require __DIR__ . '/../app/Modules/Treasury/Presentation/routes.php';
+require __DIR__ . '/../app/Modules/Document/Presentation/routes.php';
+require __DIR__ . '/../app/Modules/Pricing/Presentation/routes.php';
