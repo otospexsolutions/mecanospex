@@ -25,6 +25,13 @@ export const PERMISSIONS = {
   // Reports
   'reports.view': ['admin', 'manager', 'accountant'],
 
+  // Accounting/Finance
+  'accounts.view': ['admin', 'accountant', 'manager'],
+  'accounts.manage': ['admin', 'accountant'],
+  'journal.view': ['admin', 'accountant', 'manager'],
+  'journal.create': ['admin', 'accountant'],
+  'journal.post': ['admin', 'accountant'],
+
   // Settings
   'settings.view': ['admin', 'manager'],
   'settings.edit': ['admin'],
@@ -49,6 +56,7 @@ export const MODULE_PERMISSIONS: Partial<Record<string, Permission[]>> = {
   treasury: ['treasury.view'],
   vehicles: ['vehicles.view'],
   reports: ['reports.view'],
+  finance: ['accounts.view', 'journal.view'],
   settings: ['settings.view'],
 }
 

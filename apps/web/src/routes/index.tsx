@@ -47,6 +47,9 @@ const UsersPage = lazy(() => import('../features/settings/UsersPage').then((m) =
 const RolesPage = lazy(() => import('../features/settings/RolesPage').then((m) => ({ default: m.RolesPage })))
 const CompanyPage = lazy(() => import('../features/settings/CompanyPage').then((m) => ({ default: m.CompanyPage })))
 
+// Finance module
+const ChartOfAccountsPage = lazy(() => import('../features/finance/pages/ChartOfAccountsPage').then((m) => ({ default: m.ChartOfAccountsPage })))
+
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<LoadingSpinner fullScreen />}>
@@ -564,6 +567,20 @@ export function AppRoutes() {
           }
         />
 
+        {/* Finance Module */}
+        <Route path="finance">
+          <Route
+            path="chart-of-accounts"
+            element={
+              <RequirePermission permission="accounts.view">
+                <SuspenseWrapper>
+                  <ChartOfAccountsPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+        </Route>
+
         {/* Settings */}
         <Route path="settings">
           <Route
@@ -602,6 +619,16 @@ export function AppRoutes() {
               <RequirePermission moduleKey="settings">
                 <SuspenseWrapper>
                   <CompanyPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="chart-of-accounts"
+            element={
+              <RequirePermission permission="accounts.view">
+                <SuspenseWrapper>
+                  <ChartOfAccountsPage />
                 </SuspenseWrapper>
               </RequirePermission>
             }
