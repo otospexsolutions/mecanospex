@@ -70,6 +70,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $is_headquarters Whether this is headquarters
  * @property CompanyStatus $status Company status
  * @property Carbon|null $closed_at When company was closed
+ * @property string $inventory_costing_method Inventory costing method (weighted_average)
+ * @property string $default_target_margin Default target margin percentage
+ * @property string $default_minimum_margin Default minimum margin percentage
+ * @property bool $allow_below_cost_sales Whether below-cost sales are allowed
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property Carbon|null $deleted_at
@@ -140,6 +144,10 @@ class Company extends Model
         'is_headquarters',
         'status',
         'closed_at',
+        'inventory_costing_method',
+        'default_target_margin',
+        'default_minimum_margin',
+        'allow_below_cost_sales',
     ];
 
     /**
@@ -165,6 +173,7 @@ class Company extends Model
             'verified_at' => 'datetime',
             'closed_at' => 'datetime',
             'status' => CompanyStatus::class,
+            'allow_below_cost_sales' => 'boolean',
         ];
     }
 

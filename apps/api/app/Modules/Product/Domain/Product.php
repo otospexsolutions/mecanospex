@@ -28,6 +28,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $is_active
  * @property array<int, string>|null $oem_numbers
  * @property array<int, array{brand: string, reference: string}>|null $cross_references
+ * @property string $cost_price
+ * @property string|null $target_margin_override
+ * @property string|null $minimum_margin_override
+ * @property string|null $last_purchase_cost
+ * @property \Illuminate\Support\Carbon|null $cost_updated_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property string $company_id
@@ -55,6 +60,11 @@ class Product extends Model
         'is_active',
         'oem_numbers',
         'cross_references',
+        'cost_price',
+        'target_margin_override',
+        'minimum_margin_override',
+        'last_purchase_cost',
+        'cost_updated_at',
     ];
 
     /**
@@ -74,6 +84,7 @@ class Product extends Model
             'is_active' => 'boolean',
             'oem_numbers' => 'array',
             'cross_references' => 'array',
+            'cost_updated_at' => 'datetime',
         ];
     }
 
