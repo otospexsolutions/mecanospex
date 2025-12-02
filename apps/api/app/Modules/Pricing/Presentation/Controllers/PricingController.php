@@ -9,6 +9,8 @@ use App\Modules\Pricing\Domain\PriceList;
 use App\Modules\Pricing\Domain\PriceListItem;
 use App\Modules\Pricing\Domain\PartnerPriceList;
 use App\Modules\Pricing\Domain\Services\PricingService;
+use App\Modules\Product\Application\Services\MarginService;
+use App\Modules\Product\Domain\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -16,7 +18,8 @@ use Illuminate\Support\Str;
 class PricingController extends Controller
 {
     public function __construct(
-        private readonly PricingService $pricingService
+        private readonly PricingService $pricingService,
+        private readonly MarginService $marginService
     ) {}
 
     /**
@@ -348,5 +351,34 @@ class PricingController extends Controller
                 'error' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Check margin for a given product and sell price
+     */
+    public function checkMargin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|uuid|exists:products,id',
+            'sell_price' => 'required|numeric|min:0',
+        ]);
+
+        $product = Product::findOrFail($validated['product_id']);
+        $sellPrice = (float) $validated['sell_price'];
+
+        $marginLevel = $this->marginService->getMarginLevel($product, $sellPrice);
+        $canSell = $this->marginService->canSellAtPrice($product, $sellPrice, $request->user());
+        $suggestedPrice = $this->marginService->getSuggestedPrice($product);
+
+        return response()->json([
+            'data' => [
+                'cost_price' => $product->cost_price,
+                'sell_price' => $sellPrice,
+                'margin_level' => $marginLevel,
+                'can_sell' => $canSell,
+                'suggested_price' => $suggestedPrice,
+                'margins' => $this->marginService->getEffectiveMargins($product),
+            ],
+        ]);
     }
 }

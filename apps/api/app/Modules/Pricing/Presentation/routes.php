@@ -75,4 +75,9 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/pricing/bulk-prices', [PricingController::class, 'getBulkPrices'])
         ->middleware('can:pricing.view')
         ->name('pricing.bulk-prices');
+
+    // Margin Check
+    Route::post('/pricing/check-margin', [PricingController::class, 'checkMargin'])
+        ->middleware('can:pricing.view')
+        ->name('pricing.check-margin');
 });

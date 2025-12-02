@@ -119,6 +119,13 @@ class PermissionSeeder extends Seeder
             // Pricing
             'pricing.view',
             'pricing.manage',
+
+            // Pricing - Margin & Cost Controls
+            'pricing.sell_below_target_margin',
+            'pricing.sell_below_minimum_margin',
+            'pricing.sell_below_cost',
+            'pricing.view_cost_prices',
+            'pricing.manage_pricing_rules',
         ];
 
         // Create all permissions for 'web' guard (Spatie default)

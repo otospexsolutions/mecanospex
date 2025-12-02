@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\DocumentAdditionalCostController;
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Document\Presentation\Controllers\DocumentController;
 use App\Modules\Document\Presentation\Controllers\DocumentConversionController;
@@ -261,4 +262,21 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/delivery-notes/{deliveryNote}/confirm', function (Request $request, string $deliveryNote) {
         return app(DocumentController::class)->confirm($request, DocumentType::DeliveryNote, $deliveryNote);
     })->middleware('can:deliveries.confirm')->name('delivery-notes.confirm');
+
+    // Document Additional Costs
+    Route::get('/documents/{document}/additional-costs', [DocumentAdditionalCostController::class, 'index'])
+        ->middleware('can:documents.view')
+        ->name('documents.additional-costs.index');
+
+    Route::post('/documents/{document}/additional-costs', [DocumentAdditionalCostController::class, 'store'])
+        ->middleware('can:purchase-orders.update')
+        ->name('documents.additional-costs.store');
+
+    Route::patch('/documents/{document}/additional-costs/{cost}', [DocumentAdditionalCostController::class, 'update'])
+        ->middleware('can:purchase-orders.update')
+        ->name('documents.additional-costs.update');
+
+    Route::delete('/documents/{document}/additional-costs/{cost}', [DocumentAdditionalCostController::class, 'destroy'])
+        ->middleware('can:purchase-orders.update')
+        ->name('documents.additional-costs.destroy');
 });
