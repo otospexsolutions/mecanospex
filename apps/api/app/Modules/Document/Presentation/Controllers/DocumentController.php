@@ -15,6 +15,9 @@ use App\Modules\Document\Domain\Services\DocumentNumberingService;
 use App\Modules\Document\Presentation\Requests\CreateDocumentRequest;
 use App\Modules\Document\Presentation\Requests\UpdateDocumentRequest;
 use App\Modules\Identity\Domain\User;
+use App\Modules\Inventory\Application\Services\LandedCostService;
+use App\Modules\Inventory\Application\Services\WeightedAverageCostService;
+use App\Modules\Product\Domain\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,6 +28,8 @@ class DocumentController extends Controller
     public function __construct(
         private readonly DocumentNumberingService $numberingService,
         private readonly CompanyContext $companyContext,
+        private readonly LandedCostService $landedCostService,
+        private readonly WeightedAverageCostService $wacService,
     ) {}
 
     /**
@@ -460,7 +465,14 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        $documentModel->update(['status' => DocumentStatus::Confirmed]);
+        DB::transaction(function () use ($documentModel, $type): void {
+            $documentModel->update(['status' => DocumentStatus::Confirmed]);
+
+            // Integration Hook: For Purchase Orders, allocate landed costs after confirmation
+            if ($type === DocumentType::PurchaseOrder) {
+                $this->landedCostService->allocateCosts($documentModel);
+            }
+        });
 
         /** @var Document $freshDocument */
         $freshDocument = $documentModel->fresh(['lines']);
@@ -762,7 +774,30 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        $documentModel->update(['status' => DocumentStatus::Received]);
+        DB::transaction(function () use ($documentModel): void {
+            $documentModel->update(['status' => DocumentStatus::Received]);
+
+            // Integration Hook: Update product costs based on landed costs
+            // This updates the product's cost_price with the weighted average
+            $documentModel->load(['lines']);
+
+            foreach ($documentModel->lines as $line) {
+                if ($line->product_id !== null && $line->landed_unit_cost !== null) {
+                    /** @var Product|null $product */
+                    $product = Product::find($line->product_id);
+
+                    if ($product !== null) {
+                        // Simple cost update: use landed unit cost as the new cost
+                        // TODO: Implement proper WAC calculation once Location/Stock models exist
+                        $product->update([
+                            'cost_price' => $line->landed_unit_cost,
+                            'last_purchase_cost' => $line->unit_price,
+                            'cost_updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+        });
 
         /** @var Document $freshDocument */
         $freshDocument = $documentModel->fresh(['lines']);
