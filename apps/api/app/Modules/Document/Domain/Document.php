@@ -55,6 +55,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read Location|null $location
  * @property-read Document|null $sourceDocument
  * @property-read Collection<int, DocumentLine> $lines
+ * @property-read Collection<int, DocumentAdditionalCost> $additionalCosts
  *
  * @method static Builder<static> forTenant(string $tenantId)
  * @method static Builder<static> ofType(DocumentType $type)
@@ -175,6 +176,14 @@ class Document extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(DocumentLine::class)->orderBy('line_number');
+    }
+
+    /**
+     * @return HasMany<DocumentAdditionalCost, $this>
+     */
+    public function additionalCosts(): HasMany
+    {
+        return $this->hasMany(DocumentAdditionalCost::class);
     }
 
     /**
