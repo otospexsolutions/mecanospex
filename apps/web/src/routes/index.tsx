@@ -9,6 +9,14 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 const LoginPage = lazy(() => import('../features/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const Dashboard = lazy(() => import('../features/dashboard/Dashboard').then((m) => ({ default: m.Dashboard })))
 
+// Admin pages
+const AdminLoginPage = lazy(() => import('../features/admin/pages/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })))
+const AdminDashboardPage = lazy(() => import('../features/admin/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })))
+const TenantsPage = lazy(() => import('../features/admin/pages/TenantsPage').then((m) => ({ default: m.TenantsPage })))
+const AuditLogsPage = lazy(() => import('../features/admin/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })))
+const AdminLayout = lazy(() => import('../features/admin/components/AdminLayout').then((m) => ({ default: m.AdminLayout })))
+const RequireAdminAuth = lazy(() => import('../features/admin/components/RequireAdminAuth').then((m) => ({ default: m.RequireAdminAuth })))
+
 // Sales module
 const CustomerListPage = lazy(() => import('../features/partners/PartnerListPage').then((m) => ({ default: m.PartnerListPage })))
 const CustomerDetailPage = lazy(() => import('../features/partners/PartnerDetailPage').then((m) => ({ default: m.PartnerDetailPage })))
@@ -24,7 +32,9 @@ const PaymentListPage = lazy(() => import('../features/treasury/PaymentListPage'
 const PaymentDetailPage = lazy(() => import('../features/treasury/PaymentDetailPage').then((m) => ({ default: m.PaymentDetailPage })))
 const PaymentForm = lazy(() => import('../features/treasury/PaymentForm').then((m) => ({ default: m.PaymentForm })))
 const InstrumentListPage = lazy(() => import('../features/treasury/InstrumentListPage').then((m) => ({ default: m.InstrumentListPage })))
+const InstrumentDetailPage = lazy(() => import('../features/treasury/InstrumentDetailPage').then((m) => ({ default: m.InstrumentDetailPage })))
 const RepositoryListPage = lazy(() => import('../features/treasury/RepositoryListPage').then((m) => ({ default: m.RepositoryListPage })))
+const RepositoryDetailPage = lazy(() => import('../features/treasury/RepositoryDetailPage').then((m) => ({ default: m.RepositoryDetailPage })))
 
 // Reports module
 const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })))
@@ -36,16 +46,28 @@ const ProductForm = lazy(() => import('../features/inventory/ProductForm').then(
 const StockLevelsPage = lazy(() => import('../features/inventory/StockLevelsPage').then((m) => ({ default: m.StockLevelsPage })))
 const StockMovementsPage = lazy(() => import('../features/inventory/StockMovementsPage').then((m) => ({ default: m.StockMovementsPage })))
 
+// Inventory Counting
+const CountingDashboardPage = lazy(() => import('../features/inventory-counting/pages/CountingDashboardPage').then((m) => ({ default: m.CountingDashboardPage })))
+const CountingListPage = lazy(() => import('../features/inventory-counting/pages/CountingListPage').then((m) => ({ default: m.CountingListPage })))
+const CreateCountingPage = lazy(() => import('../features/inventory-counting/pages/CreateCountingPage').then((m) => ({ default: m.CreateCountingPage })))
+const CountingDetailPage = lazy(() => import('../features/inventory-counting/pages/CountingDetailPage').then((m) => ({ default: m.CountingDetailPage })))
+const CountingReviewPage = lazy(() => import('../features/inventory-counting/pages/CountingReviewPage').then((m) => ({ default: m.CountingReviewPage })))
+const DiscrepancyReportPage = lazy(() => import('../features/inventory-counting/pages/DiscrepancyReportPage').then((m) => ({ default: m.DiscrepancyReportPage })))
+
 // Vehicles module
 const VehicleListPage = lazy(() => import('../features/vehicles/VehicleListPage').then((m) => ({ default: m.VehicleListPage })))
 const VehicleDetailPage = lazy(() => import('../features/vehicles/VehicleDetailPage').then((m) => ({ default: m.VehicleDetailPage })))
 const VehicleForm = lazy(() => import('../features/vehicles/VehicleForm').then((m) => ({ default: m.VehicleForm })))
+
+// Company module
+const CompanyOnboardingPage = lazy(() => import('../features/company/CompanyOnboardingPage').then((m) => ({ default: m.CompanyOnboardingPage })))
 
 // Settings module
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('../features/settings/UsersPage').then((m) => ({ default: m.UsersPage })))
 const RolesPage = lazy(() => import('../features/settings/RolesPage').then((m) => ({ default: m.RolesPage })))
 const CompanyPage = lazy(() => import('../features/settings/CompanyPage').then((m) => ({ default: m.CompanyPage })))
+const LocationsPage = lazy(() => import('../features/settings/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 
 // Finance module
 const ChartOfAccountsPage = lazy(() => import('../features/finance/pages/ChartOfAccountsPage').then((m) => ({ default: m.ChartOfAccountsPage })))
@@ -55,6 +77,19 @@ const ProfitLossPage = lazy(() => import('../features/finance/pages/ProfitLossPa
 const BalanceSheetPage = lazy(() => import('../features/finance/pages/BalanceSheetPage').then((m) => ({ default: m.BalanceSheetPage })))
 const AgedReceivablesPage = lazy(() => import('../features/finance/pages/AgedReceivablesPage').then((m) => ({ default: m.AgedReceivablesPage })))
 const AgedPayablesPage = lazy(() => import('../features/finance/pages/AgedPayablesPage').then((m) => ({ default: m.AgedPayablesPage })))
+const JournalEntryListPage = lazy(() => import('../features/finance/pages/JournalEntryListPage').then((m) => ({ default: m.JournalEntryListPage })))
+const JournalEntryForm = lazy(() => import('../features/finance/pages/JournalEntryForm').then((m) => ({ default: m.JournalEntryForm })))
+const JournalEntryDetailPage = lazy(() => import('../features/finance/pages/JournalEntryDetailPage').then((m) => ({ default: m.JournalEntryDetailPage })))
+
+// Pricing module
+const PriceListListPage = lazy(() => import('../features/pricing/PriceListListPage').then((m) => ({ default: m.PriceListListPage })))
+const PriceListDetailPage = lazy(() => import('../features/pricing/PriceListDetailPage').then((m) => ({ default: m.PriceListDetailPage })))
+const PriceListForm = lazy(() => import('../features/pricing/PriceListForm').then((m) => ({ default: m.PriceListForm })))
+
+// Import module
+const ImportDashboardPage = lazy(() => import('../features/import/pages/ImportDashboardPage').then((m) => ({ default: m.ImportDashboardPage })))
+const ImportWizardPage = lazy(() => import('../features/import/pages/ImportWizardPage').then((m) => ({ default: m.ImportWizardPage })))
+const ImportHistoryPage = lazy(() => import('../features/import/pages/ImportHistoryPage').then((m) => ({ default: m.ImportHistoryPage })))
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -74,6 +109,64 @@ export function AppRoutes() {
           <SuspenseWrapper>
             <LoginPage />
           </SuspenseWrapper>
+        }
+      />
+
+      {/* Admin routes */}
+      <Route
+        path="/admin/login"
+        element={
+          <SuspenseWrapper>
+            <AdminLoginPage />
+          </SuspenseWrapper>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <SuspenseWrapper>
+            <RequireAdminAuth>
+              <AdminLayout />
+            </RequireAdminAuth>
+          </SuspenseWrapper>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route
+          path="dashboard"
+          element={
+            <SuspenseWrapper>
+              <AdminDashboardPage />
+            </SuspenseWrapper>
+          }
+        />
+        <Route
+          path="tenants"
+          element={
+            <SuspenseWrapper>
+              <TenantsPage />
+            </SuspenseWrapper>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <SuspenseWrapper>
+              <AuditLogsPage />
+            </SuspenseWrapper>
+          }
+        />
+      </Route>
+
+      {/* Company Onboarding (full-page without layout) */}
+      <Route
+        path="/company-onboarding"
+        element={
+          <RequireAuth>
+            <SuspenseWrapper>
+              <CompanyOnboardingPage />
+            </SuspenseWrapper>
+          </RequireAuth>
         }
       />
 
@@ -270,6 +363,38 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+
+          {/* Credit Notes */}
+          <Route
+            path="credit-notes"
+            element={
+              <RequirePermission moduleKey="sales">
+                <SuspenseWrapper>
+                  <DocumentListPage documentType="credit_note" />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="credit-notes/new"
+            element={
+              <RequirePermission permission="sales.create">
+                <SuspenseWrapper>
+                  <DocumentForm documentType="credit_note" />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="credit-notes/:id"
+            element={
+              <RequirePermission moduleKey="sales">
+                <SuspenseWrapper>
+                  <DocumentDetailPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
         </Route>
 
         {/* Purchases Module */}
@@ -459,6 +584,68 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+
+          {/* Inventory Counting */}
+          <Route
+            path="counting"
+            element={
+              <RequirePermission moduleKey="inventory">
+                <SuspenseWrapper>
+                  <CountingDashboardPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="counting/list"
+            element={
+              <RequirePermission moduleKey="inventory">
+                <SuspenseWrapper>
+                  <CountingListPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="counting/create"
+            element={
+              <RequirePermission permission="inventory.create">
+                <SuspenseWrapper>
+                  <CreateCountingPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="counting/:id"
+            element={
+              <RequirePermission moduleKey="inventory">
+                <SuspenseWrapper>
+                  <CountingDetailPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="counting/:id/review"
+            element={
+              <RequirePermission moduleKey="inventory">
+                <SuspenseWrapper>
+                  <CountingReviewPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="counting/:id/report"
+            element={
+              <RequirePermission moduleKey="inventory">
+                <SuspenseWrapper>
+                  <DiscrepancyReportPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
         </Route>
 
         {/* Vehicles */}
@@ -548,6 +735,16 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+          <Route
+            path="instruments/:id"
+            element={
+              <RequirePermission moduleKey="treasury">
+                <SuspenseWrapper>
+                  <InstrumentDetailPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="repositories"
@@ -555,6 +752,16 @@ export function AppRoutes() {
               <RequirePermission moduleKey="treasury">
                 <SuspenseWrapper>
                   <RepositoryListPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="repositories/:id"
+            element={
+              <RequirePermission moduleKey="treasury">
+                <SuspenseWrapper>
+                  <RepositoryDetailPage />
                 </SuspenseWrapper>
               </RequirePermission>
             }
@@ -645,6 +852,81 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+          <Route
+            path="journal-entries"
+            element={
+              <RequirePermission permission="journal.view">
+                <SuspenseWrapper>
+                  <JournalEntryListPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="journal-entries/create"
+            element={
+              <RequirePermission permission="journal.create">
+                <SuspenseWrapper>
+                  <JournalEntryForm />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="journal-entries/:id"
+            element={
+              <RequirePermission permission="journal.view">
+                <SuspenseWrapper>
+                  <JournalEntryDetailPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+        </Route>
+
+        {/* Pricing Module */}
+        <Route path="pricing">
+          <Route index element={<Navigate to="/pricing/price-lists" replace />} />
+          <Route
+            path="price-lists"
+            element={
+              <RequirePermission permission="pricing.view">
+                <SuspenseWrapper>
+                  <PriceListListPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="price-lists/new"
+            element={
+              <RequirePermission permission="pricing.manage">
+                <SuspenseWrapper>
+                  <PriceListForm />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="price-lists/:id"
+            element={
+              <RequirePermission permission="pricing.view">
+                <SuspenseWrapper>
+                  <PriceListDetailPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="price-lists/:id/edit"
+            element={
+              <RequirePermission permission="pricing.manage">
+                <SuspenseWrapper>
+                  <PriceListForm />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
         </Route>
 
         {/* Settings */}
@@ -695,6 +977,48 @@ export function AppRoutes() {
               <RequirePermission permission="accounts.view">
                 <SuspenseWrapper>
                   <ChartOfAccountsPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="locations"
+            element={
+              <RequirePermission permission="inventory.view">
+                <SuspenseWrapper>
+                  <LocationsPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+
+          {/* Import Wizard */}
+          <Route
+            path="import"
+            element={
+              <RequirePermission moduleKey="settings">
+                <SuspenseWrapper>
+                  <ImportDashboardPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="import/history"
+            element={
+              <RequirePermission moduleKey="settings">
+                <SuspenseWrapper>
+                  <ImportHistoryPage />
+                </SuspenseWrapper>
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="import/:type"
+            element={
+              <RequirePermission moduleKey="settings">
+                <SuspenseWrapper>
+                  <ImportWizardPage />
                 </SuspenseWrapper>
               </RequirePermission>
             }

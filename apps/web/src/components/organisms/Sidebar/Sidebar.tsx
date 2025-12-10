@@ -21,6 +21,17 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Calculator,
+  BookOpen,
+  FileSpreadsheet,
+  Scale,
+  TrendingUp,
+  PieChart,
+  Clock,
+  ArrowLeftRight,
+  Tag,
+  MinusCircle,
+  ClipboardCheck,
 } from 'lucide-react'
 import { usePermissions } from '../../../hooks/usePermissions'
 
@@ -55,6 +66,7 @@ const navigation: NavModule[] = [
       { key: 'quotes', href: '/sales/quotes', icon: FileText },
       { key: 'salesOrders', href: '/sales/orders', icon: ClipboardList },
       { key: 'invoices', href: '/sales/invoices', icon: Receipt },
+      { key: 'creditNotes', href: '/sales/credit-notes', icon: MinusCircle },
     ],
   },
   {
@@ -71,6 +83,8 @@ const navigation: NavModule[] = [
     children: [
       { key: 'products', href: '/inventory/products', icon: Package },
       { key: 'stockLevels', href: '/inventory/stock', icon: Layers },
+      { key: 'stockMovements', href: '/inventory/movements', icon: ArrowLeftRight },
+      { key: 'counting', href: '/inventory/counting', icon: ClipboardCheck },
       { key: 'deliveryNotes', href: '/inventory/delivery-notes', icon: FileBox },
     ],
   },
@@ -86,6 +100,28 @@ const navigation: NavModule[] = [
       { key: 'payments', href: '/treasury/payments', icon: Wallet },
       { key: 'instruments', href: '/treasury/instruments', icon: CreditCard },
       { key: 'repositories', href: '/treasury/repositories', icon: Building2 },
+    ],
+  },
+  {
+    key: 'finance',
+    icon: Calculator,
+    module: 'accounts',
+    children: [
+      { key: 'chartOfAccounts', href: '/finance/chart-of-accounts', icon: BookOpen },
+      { key: 'generalLedger', href: '/finance/ledger', icon: FileSpreadsheet },
+      { key: 'trialBalance', href: '/finance/trial-balance', icon: Scale },
+      { key: 'profitLoss', href: '/finance/profit-loss', icon: TrendingUp },
+      { key: 'balanceSheet', href: '/finance/balance-sheet', icon: PieChart },
+      { key: 'agedReceivables', href: '/finance/aged-receivables', icon: Clock },
+      { key: 'agedPayables', href: '/finance/aged-payables', icon: Clock },
+    ],
+  },
+  {
+    key: 'pricing',
+    icon: Tag,
+    module: 'pricing',
+    children: [
+      { key: 'priceLists', href: '/pricing/price-lists', icon: Tag },
     ],
   },
   {

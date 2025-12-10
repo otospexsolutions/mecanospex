@@ -9,6 +9,7 @@ use App\Modules\Treasury\Presentation\Controllers\PaymentInstrumentController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentMethodController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentRefundController;
 use App\Modules\Treasury\Presentation\Controllers\PaymentRepositoryController;
+use App\Modules\Treasury\Presentation\Controllers\SmartPaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,6 +51,10 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::get('/payment-repositories/{repository}/balance', [PaymentRepositoryController::class, 'balance'])
         ->middleware('can:repositories.view')
         ->name('payment-repositories.balance');
+
+    Route::get('/payment-repositories/{repository}/transactions', [PaymentRepositoryController::class, 'transactions'])
+        ->middleware('can:repositories.view')
+        ->name('payment-repositories.transactions');
 
     Route::post('/payment-repositories', [PaymentRepositoryController::class, 'store'])
         ->middleware('can:repositories.manage')
@@ -150,4 +155,22 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/payments/validate-split', [MultiPaymentController::class, 'validateSplit'])
         ->middleware('can:payments.view')
         ->name('payments.validate-split');
+
+    // Smart Payment Features
+    Route::get('/smart-payment/tolerance-settings', [SmartPaymentController::class, 'getToleranceSettings'])
+        ->middleware('can:payments.view')
+        ->name('smart-payment.tolerance-settings');
+
+    Route::post('/smart-payment/preview-allocation', [SmartPaymentController::class, 'previewAllocation'])
+        ->middleware('can:payments.view')
+        ->name('smart-payment.preview-allocation');
+
+    Route::post('/smart-payment/apply-allocation', [SmartPaymentController::class, 'applyAllocation'])
+        ->middleware('can:payments.create')
+        ->name('smart-payment.apply-allocation');
+
+    // Open invoices for a partner (used by payment form)
+    Route::get('/partners/{partner}/open-invoices', [SmartPaymentController::class, 'getOpenInvoices'])
+        ->middleware('can:payments.view')
+        ->name('partners.open-invoices');
 });

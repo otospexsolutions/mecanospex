@@ -13,11 +13,12 @@ interface Document {
   type: 'quote' | 'order' | 'invoice' | 'credit_note' | 'delivery_note' | 'sales_order' | 'purchase_order'
   status: 'draft' | 'confirmed' | 'posted' | 'cancelled' | 'received'
   partner_id: string
-  partner_name: string
-  total_amount: number
-  tax_amount: number
-  net_amount: number
-  issue_date: string
+  partner_name: string | null
+  subtotal: string | null
+  tax_amount: string | null
+  total: string | null
+  balance_due: string | null
+  document_date: string
   due_date: string | null
   created_at: string
 }
@@ -155,11 +156,49 @@ export function DocumentListPage({ documentType }: DocumentListPageProps) {
     return tabs
   }, [t, total, effectiveType])
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+    if (isNaN(num)) return '$0.00'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount)
+    }).format(num)
+  }
+
+  // Helper function to determine payment status for invoices
+  const getPaymentStatus = (doc: Document): { label: string; color: string; key: string } | null => {
+    // Only show payment status for posted invoices
+    if (doc.type !== 'invoice' || doc.status !== 'posted') {
+      return null
+    }
+
+    const balanceDue = parseFloat(doc.balance_due ?? doc.total ?? '0')
+    const total = parseFloat(doc.total ?? '0')
+
+    // Fully paid
+    if (balanceDue === 0) {
+      return { label: 'Paid', color: 'bg-green-100 text-green-800', key: 'paid' }
+    }
+
+    // Check if overdue
+    if (doc.due_date) {
+      const dueDate = new Date(doc.due_date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      dueDate.setHours(0, 0, 0, 0)
+
+      if (dueDate < today && balanceDue > 0) {
+        return { label: 'Overdue', color: 'bg-red-100 text-red-800', key: 'overdue' }
+      }
+    }
+
+    // Partially paid
+    if (balanceDue > 0 && balanceDue < total) {
+      return { label: 'Partial', color: 'bg-yellow-100 text-yellow-800', key: 'partial' }
+    }
+
+    // Unpaid
+    return { label: 'Unpaid', color: 'bg-orange-100 text-orange-800', key: 'unpaid' }
   }
 
   const entityName = pageTitle.endsWith('s') ? pageTitle.slice(0, -1) : pageTitle
@@ -243,58 +282,97 @@ export function DocumentListPage({ documentType }: DocumentListPageProps) {
                 <th className="px-6 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
                   Total
                 </th>
+                {/* Show Balance Due column only for invoices */}
+                {effectiveType === 'invoice' && (
+                  <th className="px-6 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Balance Due
+                  </th>
+                )}
                 <th className="relative px-6 py-3">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <Link
-                      to={`${basePath}/${doc.id}`}
-                      className="font-medium text-gray-900 hover:text-blue-600"
-                    >
-                      {doc.document_number}
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[doc.type]}`}
-                    >
-                      {typeLabels[doc.type]}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[doc.status]}`}
-                    >
-                      {statusLabels[doc.status]}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {doc.partner_name}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {new Date(doc.issue_date).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-gray-900">
-                    {formatCurrency(doc.total_amount)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-end text-sm">
-                    <Link
-                      to={`${basePath}/${doc.id}`}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      {t('actions.view')}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {documents.map((doc) => {
+                const paymentStatus = getPaymentStatus(doc)
+                return (
+                  <tr key={doc.id} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <Link
+                        to={`${basePath}/${doc.id}`}
+                        className="font-medium text-gray-900 hover:text-blue-600"
+                      >
+                        {doc.document_number}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[doc.type]}`}
+                      >
+                        {typeLabels[doc.type]}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[doc.status]}`}
+                        >
+                          {statusLabels[doc.status]}
+                        </span>
+                        {/* Payment status badge for posted invoices */}
+                        {paymentStatus && (
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${paymentStatus.color}`}
+                          >
+                            {t(`sales:documents.statuses.${paymentStatus.key}`, paymentStatus.label)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                      {doc.partner_id ? (
+                        <Link
+                          to={doc.type === 'purchase_order'
+                            ? `/purchases/suppliers/${doc.partner_id}`
+                            : `/sales/customers/${doc.partner_id}`
+                          }
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {doc.partner_name ?? 'Unknown Partner'}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">{doc.partner_name ?? 'Unknown Partner'}</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {new Date(doc.document_date).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-gray-900">
+                      {formatCurrency(doc.total ?? 0)}
+                    </td>
+                    {/* Balance Due column for invoices */}
+                    {effectiveType === 'invoice' && (
+                      <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium">
+                        <span className={paymentStatus?.key === 'overdue' ? 'text-red-600 font-semibold' : 'text-gray-900'}>
+                          {formatCurrency(doc.balance_due ?? doc.total ?? 0)}
+                        </span>
+                      </td>
+                    )}
+                    <td className="whitespace-nowrap px-6 py-4 text-end text-sm">
+                      <Link
+                        to={`${basePath}/${doc.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        {t('actions.view')}
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

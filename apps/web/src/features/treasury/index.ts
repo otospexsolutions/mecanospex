@@ -1,3 +1,8 @@
 export { PaymentListPage } from './PaymentListPage'
 export { PaymentForm } from './PaymentForm'
+export { PaymentDetailPage } from './PaymentDetailPage'
 export { InstrumentListPage } from './InstrumentListPage'
+export { InstrumentDetailPage } from './InstrumentDetailPage'
+export { RepositoryListPage } from './RepositoryListPage'
+export { RepositoryDetailPage } from './RepositoryDetailPage'
+export { SplitPaymentForm } from './SplitPaymentForm'

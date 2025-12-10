@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Presentation\Controllers;
 
+use App\Modules\Accounting\Domain\Services\GeneralLedgerService;
 use App\Modules\Company\Services\CompanyContext;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Identity\Domain\User;
 use App\Modules\Treasury\Domain\Enums\PaymentStatus;
+use App\Modules\Treasury\Domain\Enums\PaymentType;
 use App\Modules\Treasury\Domain\Payment;
 use App\Modules\Treasury\Domain\PaymentAllocation;
+use App\Modules\Treasury\Domain\PaymentRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -20,6 +23,7 @@ class PaymentController extends Controller
 {
     public function __construct(
         private readonly CompanyContext $companyContext,
+        private readonly GeneralLedgerService $glService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -110,35 +114,40 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        // Validate each allocation doesn't exceed document balance
+        // Validate each allocation - cap it at document balance (no overpayment per invoice)
+        // Excess will be handled as customer advance
+        $adjustedAllocations = [];
         foreach ($allocations as $allocation) {
             /** @var Document $document */
             $document = Document::findOrFail($allocation['document_id']);
 
-            /** @var numeric-string $allocationAmount */
-            $allocationAmount = (string) $allocation['amount'];
+            /** @var numeric-string $requestedAmount */
+            $requestedAmount = (string) $allocation['amount'];
 
             /** @var numeric-string $balanceDue */
-            $balanceDue = $document->balance_due ?? '0.00';
+            $balanceDue = $document->balance_due ?? $document->total;
 
-            if (bccomp($allocationAmount, $balanceDue, 2) > 0) {
-                return response()->json([
-                    'error' => [
-                        'code' => 'OVERPAYMENT',
-                        'message' => "Allocation amount exceeds document balance for {$document->document_number}",
-                        'details' => [
-                            'document_id' => $document->id,
-                            'document_number' => $document->document_number,
-                            'balance_due' => $document->balance_due,
-                            'allocation_amount' => $allocationAmount,
-                        ],
-                    ],
-                ], 422);
+            // Cap allocation at document balance (can't overpay a single invoice)
+            /** @var numeric-string $allocationAmount */
+            $allocationAmount = bccomp($requestedAmount, $balanceDue, 2) > 0
+                ? $balanceDue
+                : $requestedAmount;
+
+            if (bccomp($allocationAmount, '0', 2) > 0) {
+                $adjustedAllocations[] = [
+                    'document_id' => $document->id,
+                    'amount' => $allocationAmount,
+                ];
             }
         }
 
         // Create payment and allocations in a transaction
-        $payment = DB::transaction(function () use ($validated, $user, $paymentAmount, $allocations, $tenantId, $companyId) {
+        $payment = DB::transaction(function () use ($validated, $user, $paymentAmount, $adjustedAllocations, $tenantId, $companyId) {
+            // Determine payment type: advance if no allocations, otherwise document payment
+            $paymentType = empty($adjustedAllocations)
+                ? PaymentType::Advance
+                : PaymentType::DocumentPayment;
+
             $payment = Payment::create([
                 'tenant_id' => $tenantId,
                 'company_id' => $companyId,
@@ -150,13 +159,18 @@ class PaymentController extends Controller
                 'currency' => $validated['currency'] ?? 'TND',
                 'payment_date' => $validated['payment_date'],
                 'status' => PaymentStatus::Completed,
+                'payment_type' => $paymentType,
                 'reference' => $validated['reference'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => $user->id,
             ]);
 
+            // Calculate total allocated for GL entry
+            /** @var numeric-string $totalAllocatedForGL */
+            $totalAllocatedForGL = '0.00';
+
             // Create allocations and update document balances
-            foreach ($allocations as $allocationData) {
+            foreach ($adjustedAllocations as $allocationData) {
                 /** @var Document $document */
                 $document = Document::lockForUpdate()->findOrFail($allocationData['document_id']);
 
@@ -169,9 +183,11 @@ class PaymentController extends Controller
                     'amount' => $allocationAmount,
                 ]);
 
+                $totalAllocatedForGL = bcadd($totalAllocatedForGL, $allocationAmount, 2);
+
                 // Update document balance
                 /** @var numeric-string $currentBalance */
-                $currentBalance = $document->balance_due ?? '0.00';
+                $currentBalance = $document->balance_due ?? $document->total;
                 $newBalance = bcsub($currentBalance, $allocationAmount, 2);
                 $document->balance_due = $newBalance;
 
@@ -181,6 +197,79 @@ class PaymentController extends Controller
                 }
 
                 $document->save();
+            }
+
+            // Update repository balance and create GL journal entry
+            $repositoryId = $validated['repository_id'] ?? null;
+            /** @var PaymentRepository|null $repository */
+            $repository = null;
+
+            if ($repositoryId) {
+                /** @var PaymentRepository|null $repository */
+                $repository = PaymentRepository::lockForUpdate()->find($repositoryId);
+
+                if ($repository) {
+                    // Increment repository balance by payment amount
+                    /** @var numeric-string $currentBalance */
+                    $currentBalance = $repository->balance ?? '0.00';
+                    $repository->balance = bcadd($currentBalance, $paymentAmount, 2);
+                    $repository->save();
+                }
+            }
+
+            if ($repositoryId && bccomp($totalAllocatedForGL, '0', 2) > 0) {
+                // Ensure repository is loaded if not already
+                $repository = $repository ?? PaymentRepository::find($repositoryId);
+
+                if ($repository && $repository->account_id) {
+                    $journalEntry = $this->glService->createPaymentReceivedJournalEntry(
+                        companyId: $companyId,
+                        partnerId: $validated['partner_id'],
+                        paymentId: $payment->id,
+                        amount: $totalAllocatedForGL,
+                        paymentMethodAccountId: $repository->account_id,
+                        date: new \DateTimeImmutable($validated['payment_date']),
+                        description: "Customer payment - {$payment->reference}"
+                    );
+
+                    // Link journal entry to payment
+                    $payment->journal_entry_id = $journalEntry->id;
+                    $payment->save();
+                }
+            }
+
+            // Handle excess amount as customer advance
+            /** @var numeric-string $excessAmount */
+            $excessAmount = bcsub($paymentAmount, $totalAllocatedForGL, 2);
+
+            if (bccomp($excessAmount, '0', 2) > 0 && $repositoryId) {
+                /** @var PaymentRepository|null $foundRepository */
+                $foundRepository = PaymentRepository::find($repositoryId);
+                $repository = $repository ?? $foundRepository;
+
+                if ($repository && $repository->account_id) {
+                    // Create customer advance GL entry for excess (Dr. Bank, Cr. Customer Advance)
+                    $this->glService->createCustomerAdvanceJournalEntry(
+                        companyId: $companyId,
+                        partnerId: $validated['partner_id'],
+                        advanceId: $payment->id,
+                        amount: $excessAmount,
+                        paymentMethodAccountId: $repository->account_id,
+                        date: new \DateTimeImmutable($validated['payment_date']),
+                        user: $user,
+                        description: "Customer advance from payment {$payment->reference}"
+                    );
+
+                    // Update payment type to indicate partial advance
+                    if (bccomp($totalAllocatedForGL, '0', 2) > 0) {
+                        // Has both allocated and excess - keep as DocumentPayment
+                        // The advance portion is tracked via GL
+                    } else {
+                        // Pure advance payment (no allocations)
+                        $payment->payment_type = PaymentType::Advance;
+                        $payment->save();
+                    }
+                }
             }
 
             return $payment;
@@ -200,12 +289,17 @@ class PaymentController extends Controller
     {
         return [
             'id' => $payment->id,
+            'payment_number' => $payment->reference ?? 'PMT-' . substr($payment->id, 0, 8),
             'partner_id' => $payment->partner_id,
+            'partner_name' => $payment->partner?->name,
+            'partner_type' => $payment->partner?->type,
             'partner' => $payment->partner ? [
                 'id' => $payment->partner->id,
                 'name' => $payment->partner->name,
+                'type' => $payment->partner->type,
             ] : null,
             'payment_method_id' => $payment->payment_method_id,
+            'payment_method_name' => $payment->paymentMethod?->name,
             'payment_method' => $payment->paymentMethod ? [
                 'id' => $payment->paymentMethod->id,
                 'code' => $payment->paymentMethod->code,
@@ -217,6 +311,9 @@ class PaymentController extends Controller
             'currency' => $payment->currency,
             'payment_date' => $payment->payment_date->toDateString(),
             'status' => $payment->status->value,
+            'payment_type' => $payment->payment_type?->value,
+            'allocated_amount' => $payment->getAllocatedAmount(),
+            'unallocated_amount' => $payment->getUnallocatedAmount(),
             'reference' => $payment->reference,
             'notes' => $payment->notes,
             'allocations' => $payment->allocations->map(fn (PaymentAllocation $allocation) => [

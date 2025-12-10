@@ -12,6 +12,7 @@ use App\Modules\Document\Domain\DocumentLine;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Document\Domain\Services\DocumentNumberingService;
+use App\Modules\Document\Domain\Services\DocumentPostingService;
 use App\Modules\Document\Presentation\Requests\CreateDocumentRequest;
 use App\Modules\Document\Presentation\Requests\UpdateDocumentRequest;
 use App\Modules\Identity\Domain\User;
@@ -30,6 +31,7 @@ class DocumentController extends Controller
         private readonly CompanyContext $companyContext,
         private readonly LandedCostService $landedCostService,
         private readonly WeightedAverageCostService $wacService,
+        private readonly DocumentPostingService $postingService,
     ) {}
 
     /**
@@ -486,13 +488,13 @@ class DocumentController extends Controller
     }
 
     /**
-     * Post a document (Confirmed → Posted) - Makes it final/immutable
+     * Post a document (Confirmed → Posted) - Makes it final/immutable.
+     *
+     * For fiscal documents (Invoice, CreditNote), this creates an entry in the
+     * hash chain for NF525 compliance. The document becomes immutable once posted.
      */
     public function post(Request $request, DocumentType $type, string $document): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
@@ -521,27 +523,35 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        $documentModel->update(['status' => DocumentStatus::Posted]);
+        try {
+            $freshDocument = $this->postingService->post($documentModel);
 
-        /** @var Document $freshDocument */
-        $freshDocument = $documentModel->fresh(['lines']);
-
-        return response()->json([
-            'data' => DocumentData::fromModel($freshDocument),
-            'meta' => [
-                'timestamp' => now()->toIso8601String(),
-            ],
-        ]);
+            return response()->json([
+                'data' => DocumentData::fromModel($freshDocument),
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                    'fiscal_hash' => $freshDocument->fiscal_hash,
+                    'chain_sequence' => $freshDocument->chain_sequence,
+                ],
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'POSTING_FAILED',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
+        }
     }
 
     /**
-     * Cancel a posted document
+     * Cancel a posted document.
+     *
+     * For fiscal documents, the cancellation is recorded in the audit trail
+     * while preserving the original hash chain entry.
      */
     public function cancel(Request $request, DocumentType $type, string $document): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         $documentModel = Document::forCompany($this->companyContext->requireCompanyId())
             ->ofType($type)
             ->find($document);
@@ -564,17 +574,23 @@ class DocumentController extends Controller
             ], 422);
         }
 
-        $documentModel->update(['status' => DocumentStatus::Cancelled]);
+        try {
+            $freshDocument = $this->postingService->cancel($documentModel);
 
-        /** @var Document $freshDocument */
-        $freshDocument = $documentModel->fresh(['lines']);
-
-        return response()->json([
-            'data' => DocumentData::fromModel($freshDocument),
-            'meta' => [
-                'timestamp' => now()->toIso8601String(),
-            ],
-        ]);
+            return response()->json([
+                'data' => DocumentData::fromModel($freshDocument),
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'CANCELLATION_FAILED',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
+        }
     }
 
     /**
@@ -604,6 +620,20 @@ class DocumentController extends Controller
                 'error' => [
                     'code' => 'QUOTE_NOT_CONFIRMED',
                     'message' => 'Only confirmed quotes can be converted to orders',
+                ],
+            ], 422);
+        }
+
+        // Check if quote has already been converted
+        $payload = $quoteModel->payload ?? [];
+        if (isset($payload['converted_to_order_id'])) {
+            return response()->json([
+                'error' => [
+                    'code' => 'QUOTE_ALREADY_CONVERTED',
+                    'message' => 'This quote has already been converted to an order',
+                    'details' => [
+                        'order_id' => $payload['converted_to_order_id'],
+                    ],
                 ],
             ], 422);
         }
@@ -647,6 +677,14 @@ class DocumentController extends Controller
                     'notes' => $line->notes,
                 ]);
             }
+
+            // Mark quote as converted
+            $quoteModel->update([
+                'payload' => array_merge($quoteModel->payload ?? [], [
+                    'converted_to_order_id' => $order->id,
+                    'converted_at' => now()->toIso8601String(),
+                ]),
+            ]);
 
             /** @var Document $freshOrder */
             $freshOrder = $order->fresh(['lines']);

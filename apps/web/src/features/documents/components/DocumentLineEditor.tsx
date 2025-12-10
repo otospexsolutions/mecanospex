@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, GripVertical, Search, X } from 'lucide-react'
 import { api } from '../../../lib/api'
+import { AddQuickProductModal } from '../../../components/organisms'
 
 interface Product {
   id: string
@@ -33,29 +35,42 @@ interface DocumentLineEditorProps {
 }
 
 export function DocumentLineEditor({ lines, onChange, readonly = false }: DocumentLineEditorProps) {
+  const { t } = useTranslation(['sales', 'common'])
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [showProductSearch, setShowProductSearch] = useState(false)
+  const [showProductModal, setShowProductModal] = useState(false)
   const [editingLineId, setEditingLineId] = useState<string | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
 
   // Fetch products for search
-  const { data: productsData } = useQuery({
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products', searchQuery],
     queryFn: async () => {
       const params = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''
       const response = await api.get<ProductsResponse>(`/products${params}`)
       return response.data
     },
-    enabled: showProductSearch && searchQuery.length >= 2,
+    enabled: showProductSearch, // Always fetch when dropdown is open
+    staleTime: 30000, // Cache for 30 seconds
   })
 
   const products = productsData?.data ?? []
 
   // Calculate totals
   const totals = useMemo(() => {
-    const subtotal = lines.reduce((sum, line) => sum + line.quantity * line.unit_price, 0)
+    const subtotal = lines.reduce((sum, line) => {
+      const qty = Number(line.quantity) || 0
+      const price = Number(line.unit_price) || 0
+      return sum + qty * price
+    }, 0)
     const tax = lines.reduce(
-      (sum, line) => sum + line.quantity * line.unit_price * (line.tax_rate / 100),
+      (sum, line) => {
+        const qty = Number(line.quantity) || 0
+        const price = Number(line.unit_price) || 0
+        const rate = Number(line.tax_rate) || 0
+        return sum + qty * price * (rate / 100)
+      },
       0
     )
     return {
@@ -70,8 +85,11 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
 
   // Calculate line total
   const calculateLineTotal = (quantity: number, unitPrice: number, taxRate: number) => {
-    const subtotal = quantity * unitPrice
-    const tax = subtotal * (taxRate / 100)
+    const qty = Number(quantity) || 0
+    const price = Number(unitPrice) || 0
+    const rate = Number(taxRate) || 0
+    const subtotal = qty * price
+    const tax = subtotal * (rate / 100)
     return subtotal + tax
   }
 
@@ -163,11 +181,13 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
   }
 
   // Format currency
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+    if (isNaN(num)) return '$0.00'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount)
+    }).format(num)
   }
 
   return (
@@ -175,14 +195,14 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
       {/* Lines Table */}
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">Line Items</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('sales:lineItems.title')}</h3>
         </div>
 
         {lines.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            <p>No items added yet.</p>
+            <p>{t('sales:lineItems.empty.title')}</p>
             {!readonly && (
-              <p className="mt-2 text-sm">Click "Add Item" to add products or services.</p>
+              <p className="mt-2 text-sm">{t('sales:lineItems.empty.description')}</p>
             )}
           </div>
         ) : (
@@ -191,27 +211,27 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
               <tr>
                 {!readonly && (
                   <th className="w-10 px-3 py-3">
-                    <span className="sr-only">Drag</span>
+                    <span className="sr-only">{t('sales:lineItems.actions.dragToReorder')}</span>
                   </th>
                 )}
                 <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Item
+                  {t('sales:lineItems.item')}
                 </th>
                 <th className="w-24 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Qty
+                  {t('sales:lineItems.quantity')}
                 </th>
                 <th className="w-32 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Unit Price
+                  {t('sales:lineItems.unitPrice')}
                 </th>
                 <th className="w-20 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Tax %
+                  {t('sales:lineItems.taxPercent')}
                 </th>
                 <th className="w-32 px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Total
+                  {t('sales:lineItems.total')}
                 </th>
                 {!readonly && (
                   <th className="w-12 px-3 py-3">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('common:table.actionsColumn')}</span>
                   </th>
                 )}
               </tr>
@@ -235,7 +255,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                       <button
                         type="button"
                         className="cursor-grab text-gray-400 hover:text-gray-600"
-                        aria-label="Drag to reorder"
+                        aria-label={t('sales:lineItems.actions.dragToReorder')}
                       >
                         <GripVertical className="h-4 w-4" />
                       </button>
@@ -264,7 +284,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                         className="text-start text-sm font-medium text-gray-900 hover:text-blue-600"
                         disabled={readonly}
                       >
-                        {line.description || line.product_name || 'Click to edit'}
+                        {line.description || line.product_name || t('sales:lineItems.actions.clickToEdit')}
                       </button>
                     )}
                   </td>
@@ -327,7 +347,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                           handleRemoveLine(line.id)
                         }}
                         className="text-gray-400 hover:text-red-600"
-                        aria-label="Remove line"
+                        aria-label={t('sales:lineItems.actions.removeLine')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -344,15 +364,15 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
           <div className="flex justify-end">
             <dl className="w-64 space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-gray-500">Subtotal</dt>
+                <dt className="text-gray-500">{t('sales:lineItems.subtotal')}</dt>
                 <dd className="font-medium text-gray-900">{formatCurrency(totals.subtotal)}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-gray-500">Tax</dt>
+                <dt className="text-gray-500">{t('sales:lineItems.tax')}</dt>
                 <dd className="font-medium text-gray-900">{formatCurrency(totals.tax)}</dd>
               </div>
               <div className="flex justify-between border-t border-gray-200 pt-2 text-base">
-                <dt className="font-semibold text-gray-900">Total</dt>
+                <dt className="font-semibold text-gray-900">{t('sales:lineItems.total')}</dt>
                 <dd className="font-semibold text-gray-900">{formatCurrency(totals.total)}</dd>
               </div>
             </dl>
@@ -372,7 +392,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Search className="h-4 w-4" />
-              Search Products
+              {t('sales:lineItems.actions.searchProducts')}
             </button>
 
             {/* Product Search Dropdown */}
@@ -386,7 +406,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                       onChange={(e) => {
                         setSearchQuery(e.target.value)
                       }}
-                      placeholder="Search products..."
+                      placeholder={t('sales:lineItems.actions.searchProductsPlaceholder')}
                       className="w-full rounded-lg border border-gray-300 py-2 pe-10 ps-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       autoFocus
                     />
@@ -403,40 +423,55 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                     )}
                   </div>
                 </div>
-                {searchQuery.length >= 2 && (
-                  <div className="max-h-60 overflow-y-auto border-t border-gray-200">
-                    {products.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-gray-500">
-                        No products found
-                      </div>
-                    ) : (
-                      <ul className="divide-y divide-gray-100">
-                        {products.map((product) => (
-                          <li key={product.id}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleAddProduct(product)
-                              }}
-                              className="flex w-full items-center justify-between px-4 py-3 text-start hover:bg-gray-50"
-                            >
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {product.name}
-                                </div>
-                                <div className="text-xs text-gray-500">{product.sku}</div>
-                              </div>
+                <div className="max-h-60 overflow-y-auto border-t border-gray-200">
+                  {isLoadingProducts ? (
+                    <div className="p-4 text-center text-sm text-gray-500">
+                      {t('sales:lineItems.loading')}
+                    </div>
+                  ) : products.length === 0 ? (
+                    <div className="p-4 text-center text-sm">
+                      <p className="text-gray-500">
+                        {searchQuery ? t('sales:lineItems.noProductsFound') : t('sales:lineItems.noProductsAvailable')}
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-gray-100">
+                      {products.map((product) => (
+                        <li key={product.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddProduct(product)
+                            }}
+                            className="flex w-full items-center justify-between px-4 py-3 text-start hover:bg-gray-50"
+                          >
+                            <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {formatCurrency(product.price)}
+                                {product.name}
                               </div>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-                <div className="border-t border-gray-200 p-2">
+                              <div className="text-xs text-gray-500">{product.sku}</div>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {formatCurrency(product.price)}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="border-t border-gray-200 p-2 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProductSearch(false)
+                      setShowProductModal(true)
+                    }}
+                    className="w-full flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t('sales:lineItems.actions.createNewProduct')}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -444,7 +479,7 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
                     }}
                     className="w-full rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
                   >
-                    Close
+                    {t('sales:lineItems.actions.close')}
                   </button>
                 </div>
               </div>
@@ -457,10 +492,31 @@ export function DocumentLineEditor({ lines, onChange, readonly = false }: Docume
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Blank Line
+            {t('sales:lineItems.actions.addBlankLine')}
           </button>
         </div>
       )}
+
+      {/* Add Product Modal */}
+      <AddQuickProductModal
+        isOpen={showProductModal}
+        onClose={() => {
+          setShowProductModal(false)
+        }}
+        onSuccess={(product) => {
+          // Transform product to match DocumentLineEditor's Product type
+          const lineProduct: Product = {
+            id: product.id,
+            name: product.name,
+            sku: product.sku ?? '',
+            price: product.sale_price,
+            tax_rate: product.tax_rate,
+          }
+          // Add the new product to the lines
+          handleAddProduct(lineProduct)
+          void queryClient.invalidateQueries({ queryKey: ['products'] })
+        }}
+      />
     </div>
   )
 }

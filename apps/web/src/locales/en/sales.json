@@ -1,4 +1,26 @@
 {
+  "confirmation": {
+    "confirmDocument": {
+      "title": "Confirm {{type}}",
+      "message": "Are you sure you want to confirm this {{type}}? Once confirmed, it cannot be edited.",
+      "button": "Confirm"
+    },
+    "cancelDocument": {
+      "title": "Cancel {{type}}",
+      "message": "Are you sure you want to cancel this {{type}}? This action cannot be undone.",
+      "button": "Cancel Document"
+    },
+    "postDocument": {
+      "title": "Post {{type}}",
+      "message": "Are you sure you want to post this {{type}}? This will create accounting entries and the document will be finalized.",
+      "button": "Post"
+    },
+    "convertDocument": {
+      "title": "Convert to {{target}}",
+      "message": "Are you sure you want to convert this {{source}} to a {{target}}?",
+      "button": "Convert"
+    }
+  },
   "partners": {
     "title": "Partners",
     "new": "Add Partner",
@@ -32,17 +54,40 @@
     "type": "Type",
     "status": "Status",
     "partner": "Partner",
+    "partnerInfo": "Partner Information",
+    "documentInfo": "Document Information",
     "date": "Date",
+    "issueDate": "Issue Date",
     "dueDate": "Due Date",
     "total": "Total",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "totals": "Totals",
+    "balanceDue": "Balance Due",
+    "paymentStatus": "Payment Status",
     "notes": "Notes",
     "lineItems": "Line Items",
+    "email": "Email",
+    "convertedToOrder": "Converted to Order",
+    "print": "Print",
+    "send": "Send",
+    "cancel": "Cancel",
+    "post": "Post",
+    "recordPayment": "Record Payment",
+    "createCreditNote": "Create Credit Note",
+    "conversionError": "Failed to convert document. Please try again.",
     "types": {
       "quote": "Quote",
       "salesOrder": "Sales Order",
+      "sales_order": "Sales Order",
+      "order": "Order",
       "invoice": "Invoice",
       "creditNote": "Credit Note",
-      "deliveryNote": "Delivery Note"
+      "credit_note": "Credit Note",
+      "deliveryNote": "Delivery Note",
+      "delivery_note": "Delivery Note",
+      "purchaseOrder": "Purchase Order",
+      "purchase_order": "Purchase Order"
     },
     "statuses": {
       "draft": "Draft",
@@ -50,7 +95,10 @@
       "posted": "Posted",
       "paid": "Paid",
       "cancelled": "Cancelled",
-      "partiallyPaid": "Partially Paid"
+      "partiallyPaid": "Partially Paid",
+      "partial": "Partial",
+      "unpaid": "Unpaid",
+      "overdue": "Overdue"
     },
     "empty": {
       "title": "No documents yet",
@@ -58,22 +106,60 @@
     }
   },
   "lineItems": {
+    "title": "Line Items",
     "item": "Item",
     "description": "Description",
     "quantity": "Qty",
     "unitPrice": "Unit Price",
     "tax": "Tax",
-    "total": "Total"
-  },
-  "quotes": {
-    "title": "Quotes",
-    "new": "New Quote",
-    "convertToOrder": "Convert to Order"
+    "taxPercent": "Tax %",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "empty": {
+      "title": "No items added yet.",
+      "description": "Click 'Add Item' to add products or services."
+    },
+    "actions": {
+      "dragToReorder": "Drag to reorder",
+      "clickToEdit": "Click to edit",
+      "removeLine": "Remove line",
+      "searchProducts": "Search Products",
+      "searchProductsPlaceholder": "Search products...",
+      "createNewProduct": "Create New Product",
+      "addBlankLine": "Add Blank Line",
+      "close": "Close"
+    },
+    "loading": "Loading products...",
+    "noProductsFound": "No products found matching your search",
+    "noProductsAvailable": "No products available"
   },
   "orders": {
     "title": "Orders",
     "new": "New Order",
-    "convertToInvoice": "Convert to Invoice"
+    "convertToInvoice": "Convert to Invoice",
+    "convertToDelivery": "Convert to Delivery Note"
+  },
+  "purchaseOrders": {
+    "title": "Purchase Orders",
+    "new": "New Purchase Order",
+    "receiveGoods": "Receive Goods",
+    "goodsReceived": "Goods Received",
+    "receiveGoodsConfirm": {
+      "title": "Receive Goods",
+      "message": "This will create stock movements to receive the goods from this purchase order. Continue?",
+      "button": "Receive"
+    }
+  },
+  "quotes": {
+    "title": "Quotes",
+    "new": "New Quote",
+    "convertToOrder": "Convert to Order",
+    "expiry": {
+      "expired": "This quote has expired",
+      "expiresIn": "Expires in {{days}} days",
+      "expiresToday": "Expires today",
+      "expiresTomorrow": "Expires tomorrow"
+    }
   },
   "invoices": {
     "title": "Invoices",
@@ -83,6 +169,69 @@
   },
   "creditNotes": {
     "title": "Credit Notes",
-    "new": "New Credit Note"
+    "new": "New Credit Note",
+    "createFromInvoice": "Create Credit Note",
+    "viewCreditNotes": "View Credit Notes",
+    "sourceInvoice": "Source Invoice",
+    "amount": "Amount",
+    "reason": {
+      "title": "Reason",
+      "return": "Product Return",
+      "priceAdjustment": "Price Adjustment",
+      "billingError": "Billing Error",
+      "damagedGoods": "Damaged Goods",
+      "serviceIssue": "Service Issue",
+      "other": "Other"
+    },
+    "notes": "Notes",
+    "notesPlaceholder": "Reason for credit note...",
+    "form": {
+      "selectInvoice": "Select Invoice",
+      "invoiceRequired": "Invoice is required",
+      "amountRequired": "Amount is required",
+      "amountPositive": "Amount must be positive",
+      "reasonRequired": "Reason is required",
+      "maxAmount": "Maximum: {{amount}}",
+      "remainingCreditable": "Remaining creditable: {{amount}}"
+    },
+    "summary": {
+      "title": "Credit Note Summary",
+      "totalCreditNotes": "Total Credit Notes",
+      "totalCredited": "Total Credited Amount",
+      "remainingCreditable": "Remaining Creditable",
+      "noCreditNotes": "No credit notes yet"
+    },
+    "status": {
+      "draft": "Draft",
+      "confirmed": "Confirmed",
+      "posted": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "messages": {
+      "created": "Credit note created successfully",
+      "createFailed": "Failed to create credit note",
+      "fullRefund": "Full refund",
+      "partialRefund": "Partial refund ({{percentage}}%)"
+    },
+    "errors": {
+      "invoiceNotPosted": "Credit notes can only be created for posted invoices",
+      "invoiceFullyCredited": "Invoice has already been fully credited",
+      "invalidAmount": "Invalid amount",
+      "amountMustBePositive": "Amount must be positive",
+      "exceedsInvoiceTotal": "Amount exceeds invoice total",
+      "exceedsRemainingBalance": "Amount exceeds remaining creditable balance"
+    },
+    "confirmations": {
+      "largeAmount": {
+        "title": "Large Credit Note",
+        "message": "This credit note is {{percentage}}% of the invoice total. Are you sure?",
+        "button": "Create Credit Note"
+      },
+      "fullRefund": {
+        "title": "Full Refund",
+        "message": "This will create a credit note for the full invoice amount. Are you sure?",
+        "button": "Create Full Refund"
+      }
+    }
   }
 }

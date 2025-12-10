@@ -1,0 +1,210 @@
+import { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ArrowRight, Check, AlertCircle, HelpCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface ColumnMapperProps {
+  sourceColumns: string[]
+  targetColumns: { name: string; required: boolean; description?: string }[]
+  suggestions: Record<string, string | null>
+  mapping: Record<string, string>
+  onMappingChange: (mapping: Record<string, string>) => void
+}
+
+export function ColumnMapper({
+  sourceColumns,
+  targetColumns,
+  suggestions,
+  mapping,
+  onMappingChange,
+}: ColumnMapperProps) {
+  const { t } = useTranslation('import')
+
+  // Apply suggestions on mount if mapping is empty
+  useEffect(() => {
+    if (Object.keys(mapping).length === 0 && Object.keys(suggestions).length > 0) {
+      const initialMapping: Record<string, string> = {}
+      for (const [target, source] of Object.entries(suggestions)) {
+        if (source) {
+          initialMapping[source] = target
+        }
+      }
+      onMappingChange(initialMapping)
+    }
+  }, [suggestions, mapping, onMappingChange])
+
+  // Get which target columns are already mapped
+  const mappedTargets = useMemo(() => {
+    return new Set(Object.values(mapping))
+  }, [mapping])
+
+  // Check which required columns are missing
+  const missingRequired = useMemo(() => {
+    return targetColumns
+      .filter((col) => col.required && !mappedTargets.has(col.name))
+      .map((col) => col.name)
+  }, [targetColumns, mappedTargets])
+
+  const handleMappingChange = (sourceColumn: string, targetColumn: string) => {
+    const newMapping = { ...mapping }
+    if (targetColumn === '') {
+      delete newMapping[sourceColumn]
+    } else {
+      // Remove any existing mapping to this target
+      for (const [key, value] of Object.entries(newMapping)) {
+        if (value === targetColumn && key !== sourceColumn) {
+          delete newMapping[key]
+        }
+      }
+      newMapping[sourceColumn] = targetColumn
+    }
+    onMappingChange(newMapping)
+  }
+
+  // Check if a source column has a suggestion
+  const hasSuggestion = (sourceCol: string): boolean => {
+    return Object.values(suggestions).includes(sourceCol)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Missing Required Warning */}
+      {missingRequired.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-4 text-amber-800">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">{t('mapping.missingRequired')}</p>
+            <p className="mt-1 text-sm">
+              {missingRequired.join(', ')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Mapping Table */}
+      <div className="overflow-hidden rounded-lg border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                {t('mapping.sourceColumn')}
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 w-12">
+                &nbsp;
+              </th>
+              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                {t('mapping.targetColumn')}
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 w-20">
+                {t('mapping.status')}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {sourceColumns.map((sourceCol) => {
+              const currentTarget = mapping[sourceCol]
+              const isMapped = Boolean(currentTarget)
+              const suggested = hasSuggestion(sourceCol)
+
+              return (
+                <tr key={sourceCol} className="hover:bg-gray-50">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{sourceCol}</span>
+                      {suggested && (
+                        <span className="text-xs text-green-600">
+                          (suggested)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <ArrowRight className="h-4 w-4 text-gray-400 mx-auto" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={currentTarget || ''}
+                      onChange={(e) => { handleMappingChange(sourceCol, e.target.value) }}
+                      className={cn(
+                        'block w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500',
+                        isMapped
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-300'
+                      )}
+                    >
+                      <option value="">{t('mapping.skipColumn')}</option>
+                      <optgroup label={t('mapping.requiredFields')}>
+                        {targetColumns
+                          .filter((col) => col.required)
+                          .map((col) => (
+                            <option
+                              key={col.name}
+                              value={col.name}
+                              disabled={
+                                mappedTargets.has(col.name) &&
+                                mapping[sourceCol] !== col.name
+                              }
+                            >
+                              {col.name}
+                              {col.required ? ' *' : ''}
+                              {mappedTargets.has(col.name) &&
+                                mapping[sourceCol] !== col.name
+                                ? ` (${t('mapping.alreadyMapped')})`
+                                : ''}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label={t('mapping.optionalFields')}>
+                        {targetColumns
+                          .filter((col) => !col.required)
+                          .map((col) => (
+                            <option
+                              key={col.name}
+                              value={col.name}
+                              disabled={
+                                mappedTargets.has(col.name) &&
+                                mapping[sourceCol] !== col.name
+                              }
+                            >
+                              {col.name}
+                              {mappedTargets.has(col.name) &&
+                                mapping[sourceCol] !== col.name
+                                ? ` (${t('mapping.alreadyMapped')})`
+                                : ''}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {isMapped ? (
+                      <Check className="h-5 w-5 text-green-600 mx-auto" />
+                    ) : (
+                      <HelpCircle className="h-5 w-5 text-gray-300 mx-auto" />
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-green-500" />
+          {t('mapping.legendMapped')}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-gray-300" />
+          {t('mapping.legendSkipped')}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-red-600">*</span>
+          {t('mapping.legendRequired')}
+        </div>
+      </div>
+    </div>
+  )
+}

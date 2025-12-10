@@ -1,0 +1,31 @@
+{
+  "title": "Vehicules",
+  "new": "Ajouter un vehicule",
+  "edit": "Modifier le vehicule",
+  "licensePlate": "Plaque d'immatriculation",
+  "brand": "Marque",
+  "model": "Modele",
+  "year": "Annee",
+  "color": "Couleur",
+  "vin": "VIN",
+  "mileage": "Kilometrage",
+  "fuelType": "Type de carburant",
+  "transmission": "Transmission",
+  "engineCode": "Code moteur",
+  "notes": "Notes",
+  "sections": {
+    "vehicleInfo": "Informations vehicule",
+    "technicalDetails": "Details techniques"
+  },
+  "messages": {
+    "deleteVehicle": "Supprimer le vehicule",
+    "confirmDeleteVehicle": "Etes-vous sur de vouloir supprimer \"{{brand}} {{model}}\" ({{licensePlate}}) ? Cette action est irreversible.",
+    "notFound": "Vehicule non trouve ou erreur de chargement."
+  },
+  "created": "Cree",
+  "updated": "Mis a jour",
+  "empty": {
+    "title": "Aucun vehicule",
+    "description": "Commencez par ajouter votre premier vehicule."
+  }
+}

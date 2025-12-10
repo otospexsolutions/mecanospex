@@ -1,8 +1,25 @@
 import { test as base, Page } from '@playwright/test'
 
+// Auth state for localStorage
+const mockAuthState = {
+  state: {
+    user: {
+      id: '1',
+      name: 'Test User',
+      email: 'test@example.com',
+      tenant_id: 'tenant-1',
+      roles: ['admin'],
+    },
+    token: 'fake-jwt-token',
+    isAuthenticated: true,
+  },
+  version: 0,
+}
+
 // Extend the base test with authenticated session helper
 export const test = base.extend<{ authenticatedPage: Page }>({
   authenticatedPage: async ({ page }, use) => {
+    // Set up API mocks first
     // Mock authenticated user - app uses /auth/me endpoint
     await page.route('**/api/v1/auth/me', (route) => {
       route.fulfill({
@@ -13,15 +30,46 @@ export const test = base.extend<{ authenticatedPage: Page }>({
             id: '1',
             name: 'Test User',
             email: 'test@example.com',
-            tenant_id: 'tenant-1',
+            tenantId: 'tenant-1',
             roles: ['admin'],
           },
         }),
       })
     })
 
-    // Mock dashboard data
-    await page.route('**/api/v1/dashboard/**', (route) => {
+    // Mock user companies (required by CompanyProvider)
+    await page.route('**/api/v1/user/companies', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [
+            {
+              id: 'company-1',
+              name: 'Test Company',
+              legal_name: 'Test Company LLC',
+              tax_id: null,
+              country_code: 'TN',
+              currency: 'TND',
+              locale: 'fr',
+              timezone: 'Africa/Tunis',
+            },
+          ],
+        }),
+      })
+    })
+
+    // Mock locations (required by LocationProvider)
+    await page.route('**/api/v1/locations', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockLocations),
+      })
+    })
+
+    // Mock dashboard stats
+    await page.route('**/api/v1/dashboard/stats', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -35,6 +83,12 @@ export const test = base.extend<{ authenticatedPage: Page }>({
         }),
       })
     })
+
+    // Navigate to set localStorage, then set auth state
+    await page.goto('/')
+    await page.evaluate((authState) => {
+      localStorage.setItem('autoerp-auth', JSON.stringify(authState))
+    }, mockAuthState)
 
     await use(page)
   },
@@ -116,8 +170,17 @@ export const mockLocations = [
     name: 'Main Shop',
     code: 'LOC-001',
     type: 'shop',
+    phone: null,
+    email: null,
+    address_street: null,
+    address_city: null,
+    address_postal_code: null,
+    address_country: null,
     is_default: true,
     is_active: true,
+    pos_enabled: false,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
   },
   {
     id: 'location-2',
@@ -125,10 +188,97 @@ export const mockLocations = [
     name: 'Warehouse',
     code: 'LOC-002',
     type: 'warehouse',
+    phone: null,
+    email: null,
+    address_street: null,
+    address_city: null,
+    address_postal_code: null,
+    address_country: null,
     is_default: false,
     is_active: true,
+    pos_enabled: false,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
   },
 ]
+
+// Product mock data with cost/margin information
+export const mockProducts = [
+  {
+    id: 'prod-1',
+    sku: 'BP-001',
+    name: 'Brake Pads - Premium',
+    description: 'High-quality ceramic brake pads',
+    cost_price: '45.00',
+    sell_price: '65.00',
+    last_purchase_cost: '48.00',
+    cost_updated_at: '2025-01-10T10:00:00Z',
+    target_margin_override: null,
+    minimum_margin_override: null,
+    stock_quantity: 25,
+  },
+  {
+    id: 'prod-2',
+    sku: 'OF-001',
+    name: 'Oil Filter',
+    description: 'Standard oil filter',
+    cost_price: '15.00',
+    sell_price: '25.00',
+    last_purchase_cost: '16.00',
+    cost_updated_at: '2025-01-08T14:00:00Z',
+    target_margin_override: null,
+    minimum_margin_override: null,
+    stock_quantity: 50,
+  },
+]
+
+// Margin check mock response helper
+export function createMarginCheckResponse(
+  costPrice: number,
+  sellPrice: number,
+  targetMargin = 30,
+  minimumMargin = 10
+) {
+  const actualMargin = sellPrice > 0 ? ((sellPrice - costPrice) / sellPrice) * 100 : 0
+
+  let level: 'green' | 'yellow' | 'orange' | 'red'
+  let message: string
+
+  if (sellPrice < costPrice) {
+    level = 'red'
+    message = 'Below cost - LOSS'
+  } else if (actualMargin < minimumMargin) {
+    level = 'orange'
+    message = 'Below minimum margin'
+  } else if (actualMargin < targetMargin) {
+    level = 'yellow'
+    message = 'Below target margin'
+  } else {
+    level = 'green'
+    message = 'Above target margin'
+  }
+
+  return {
+    cost_price: costPrice,
+    sell_price: sellPrice,
+    margin_level: {
+      level,
+      message,
+      actual_margin: actualMargin,
+      ...(level === 'red' && { loss_amount: costPrice - sellPrice }),
+    },
+    can_sell: {
+      allowed: level !== 'red',
+      reason: level === 'red' ? 'Sales below cost are not allowed' : null,
+    },
+    suggested_price: costPrice * (1 + targetMargin / 100),
+    margins: {
+      target_margin: targetMargin,
+      minimum_margin: minimumMargin,
+      source: 'company',
+    },
+  }
+}
 
 // Extended test with multi-company authenticated page
 export const multiCompanyTest = base.extend<{ multiCompanyPage: Page }>({
@@ -143,12 +293,41 @@ export const multiCompanyTest = base.extend<{ multiCompanyPage: Page }>({
             id: '1',
             name: 'Test User',
             email: 'test@example.com',
-            tenant_id: 'tenant-1',
+            tenantId: 'tenant-1',
             roles: ['admin'],
             companies: mockCompanies,
             current_company_id: 'company-1',
           },
         }),
+      })
+    })
+
+    // Mock user companies (required by CompanyProvider)
+    await page.route('**/api/v1/user/companies', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: mockCompanies.map((c) => ({
+            id: c.id,
+            name: c.name,
+            legal_name: c.legalName,
+            tax_id: c.taxId,
+            country_code: c.countryCode,
+            currency: c.currency,
+            locale: c.locale,
+            timezone: c.timezone,
+          })),
+        }),
+      })
+    })
+
+    // Mock locations (required by LocationProvider)
+    await page.route('**/api/v1/locations', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockLocations),
       })
     })
 
@@ -185,8 +364,8 @@ export const multiCompanyTest = base.extend<{ multiCompanyPage: Page }>({
       })
     })
 
-    // Mock dashboard data
-    await page.route('**/api/v1/dashboard/**', (route) => {
+    // Mock dashboard stats
+    await page.route('**/api/v1/dashboard/stats', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',

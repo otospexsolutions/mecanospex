@@ -1,4 +1,5 @@
-import { apiGet, apiPost } from '@/lib/api'
+import { apiPost } from '@/lib/api'
+import { adminApiGet, adminApiPost } from '../lib/adminApi'
 import type {
   AdminAuthResponse,
   AdminDashboardStats,
@@ -7,34 +8,43 @@ import type {
   AdminAuditLog,
 } from '../types'
 
-// Authentication
+// Authentication (uses regular API since not authenticated yet)
 export async function loginSuperAdmin(
   email: string,
   password: string
 ): Promise<AdminAuthResponse> {
-  const response = await apiPost<{ data: AdminAuthResponse }>(
+  const response = await apiPost<{ admin: AdminAuthResponse; token: string }>(
     '/admin/auth/login',
     { email, password }
   )
-  return response.data
+  return {
+    ...response.admin,
+    token: response.token,
+  }
 }
 
 export async function logoutSuperAdmin(): Promise<void> {
-  await apiPost('/admin/auth/logout', {})
+  await adminApiPost('/admin/auth/logout', {})
 }
 
 export async function getSuperAdminProfile(): Promise<AdminAuthResponse> {
-  const response = await apiGet<{ data: AdminAuthResponse }>('/admin/auth/me')
-  return response.data
+  return adminApiGet<AdminAuthResponse>('/admin/auth/me')
 }
 
 // Dashboard
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
-  const response = await apiGet<{ data: AdminDashboardStats }>('/admin/dashboard')
-  return response.data
+  return adminApiGet<AdminDashboardStats>('/admin/dashboard')
 }
 
-// Tenants
+// Tenants - API returns paginated data
+interface PaginatedResponse<T> {
+  data: T[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
 export async function getTenants(params?: {
   search?: string
   status?: string
@@ -44,40 +54,40 @@ export async function getTenants(params?: {
   if (params?.status) queryParams.append('status', params.status)
 
   const query = queryParams.toString()
-  const response = await apiGet<{ data: { data: TenantListItem[] } }>(
+  const response = await adminApiGet<PaginatedResponse<TenantListItem>>(
     `/admin/tenants${query ? `?${query}` : ''}`
   )
-  return response.data
+  // Extract data array from paginated response
+  return { data: response.data }
 }
 
 export async function getTenant(id: string): Promise<TenantDetail> {
-  const response = await apiGet<{ data: TenantDetail }>(`/admin/tenants/${id}`)
-  return response.data
+  return adminApiGet<TenantDetail>(`/admin/tenants/${id}`)
 }
 
 export async function extendTrial(
   tenantId: string,
   days: number
 ): Promise<void> {
-  await apiPost(`/admin/tenants/${tenantId}/extend-trial`, { days })
+  await adminApiPost(`/admin/tenants/${tenantId}/extend-trial`, { days })
 }
 
 export async function changePlan(
   tenantId: string,
   planId: string
 ): Promise<void> {
-  await apiPost(`/admin/tenants/${tenantId}/change-plan`, { plan_id: planId })
+  await adminApiPost(`/admin/tenants/${tenantId}/change-plan`, { plan_id: planId })
 }
 
 export async function suspendTenant(
   tenantId: string,
   reason?: string
 ): Promise<void> {
-  await apiPost(`/admin/tenants/${tenantId}/suspend`, { reason })
+  await adminApiPost(`/admin/tenants/${tenantId}/suspend`, { reason })
 }
 
 export async function activateTenant(tenantId: string): Promise<void> {
-  await apiPost(`/admin/tenants/${tenantId}/activate`, {})
+  await adminApiPost(`/admin/tenants/${tenantId}/activate`, {})
 }
 
 // Audit Logs
@@ -90,8 +100,8 @@ export async function getAdminAuditLogs(params?: {
   if (params?.action) queryParams.append('action', params.action)
 
   const query = queryParams.toString()
-  const response = await apiGet<{ data: { data: AdminAuditLog[] } }>(
+  const response = await adminApiGet<PaginatedResponse<AdminAuditLog>>(
     `/admin/audit-logs${query ? `?${query}` : ''}`
   )
-  return response.data
+  return { data: response.data }
 }

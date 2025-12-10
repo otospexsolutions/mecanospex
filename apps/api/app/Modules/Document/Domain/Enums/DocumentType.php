@@ -42,4 +42,28 @@ enum DocumentType: string
             self::DeliveryNote => 'Delivery Note',
         };
     }
+
+    /**
+     * Check if this document type affects accounts receivable
+     */
+    public function affectsReceivable(): bool
+    {
+        return match ($this) {
+            self::Invoice => true,
+            self::CreditNote => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Get the direction of receivable impact (+1 for increase, -1 for decrease, 0 for no impact)
+     */
+    public function receivableDirection(): int
+    {
+        return match ($this) {
+            self::Invoice => 1,       // Increases AR
+            self::CreditNote => -1,   // Decreases AR
+            default => 0,
+        };
+    }
 }

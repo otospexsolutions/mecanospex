@@ -88,7 +88,7 @@ class TenantSubscription extends Model
      */
     public function trialDaysRemaining(): int
     {
-        if (!$this->isOnTrial() || $this->trial_ends_at === null) {
+        if (! $this->isOnTrial() || $this->trial_ends_at === null) {
             return 0;
         }
 

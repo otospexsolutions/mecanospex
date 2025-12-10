@@ -30,18 +30,31 @@ class PartnerController extends Controller
         $query = Partner::query()
             ->where('company_id', $companyId);
 
-        // Filter by type
+        // Filter by type - use scope methods to include 'both' type partners
         if ($request->has('type')) {
-            $query->where('type', $request->input('type'));
+            $type = $request->input('type');
+            if ($type === 'customer') {
+                $query->customers();
+            } elseif ($type === 'supplier') {
+                $query->suppliers();
+            } else {
+                // For 'both' or any other value, filter by exact match
+                $query->where('type', $type);
+            }
         }
 
-        // Search by name, email, or VAT number
+        // Filter by active status
+        if ($request->has('is_active')) {
+            $query->where('is_active', (bool) $request->input('is_active'));
+        }
+
+        // Search by name, email, or VAT number (case-insensitive)
         if ($request->has('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('vat_number', 'like', "%{$search}%");
+                $q->where('name', 'ILIKE', "%{$search}%")
+                    ->orWhere('email', 'ILIKE', "%{$search}%")
+                    ->orWhere('vat_number', 'ILIKE', "%{$search}%");
             });
         }
 

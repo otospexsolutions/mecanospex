@@ -41,6 +41,15 @@ export default tseslint.config(
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
+      // Warn against hardcoded Tailwind color classes
+      // Encourage use of design tokens from lib/designTokens.ts
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'Literal[value=/\\b(bg|text|border|ring)-(red|blue|green|yellow|gray|purple|pink|indigo)-(\\d{2,3})\\b/]',
+          message: 'Avoid hardcoded Tailwind color classes. Use design tokens from lib/designTokens.ts instead. Example: tokens.input.base, tokens.button.primary',
+        },
+      ],
     },
   },
 )

@@ -1,5 +1,7 @@
 {
   "appName": "AutoERP",
+  "by": "by",
+  "select": "Select...",
   "actions": {
     "save": "Save",
     "cancel": "Cancel",
@@ -11,6 +13,8 @@
     "filter": "Filter",
     "view": "View",
     "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
     "close": "Close",
     "open": "Open",
     "confirm": "Confirm",
@@ -22,16 +26,43 @@
     "collapse": "Collapse",
     "newQuote": "New Quote",
     "newInvoice": "New Invoice",
-    "addVehicle": "Add Vehicle"
+    "addVehicle": "Add Vehicle",
+    "select": "Select..."
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email address",
+    "invalidPhone": "Invalid phone number",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be at most {{max}} characters"
+  },
+  "error": {
+    "generic": "An error occurred. Please try again."
   },
   "status": {
     "loading": "Loading...",
     "saving": "Saving...",
+    "creating": "Creating...",
+    "processing": "Processing...",
     "noResults": "No results found",
     "error": "An error occurred",
     "success": "Success",
     "active": "Active",
+    "overdue": "Overdue",
+    "current": "Current",
+    "unknown": "Unknown",
     "inactive": "Inactive",
+    "unknown": "Unknown",
+    "draft": "Draft",
+    "confirmed": "Confirmed",
+    "posted": "Posted",
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed",
+    "refunded": "Refunded",
+    "current": "Current",
+    "overdue": "Overdue",
     "tryDifferentSearch": "Try a different search term.",
     "noDocuments": "No documents",
     "noDocumentsDescription": "No documents have been created for this customer yet.",
@@ -65,7 +96,14 @@
     "vehicle": "Vehicle",
     "year": "Year",
     "vin": "VIN",
-    "totalReceivable": "Total Receivable"
+    "totalReceivable": "Total Receivable",
+    "totalPayable": "Total Payable"
+  },
+  "partner": {
+    "unallocatedBalance": "Unallocated Balance",
+    "unallocatedBalanceHint": "From {{count}} unallocated payment(s)",
+    "creditAvailable": "Credit available to apply to invoices",
+    "noBalance": "No balance"
   },
   "tabs": {
     "overview": "Overview",
@@ -80,8 +118,27 @@
   },
   "errors": {
     "loadingFailed": "Error loading data. Please try again.",
+    "documentNotFound": "Document not found or an error occurred.",
     "permissionDenied": "Permission Denied",
     "permissionDeniedDescription": "You don't have permission to access this page. Please contact your administrator if you believe this is an error."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back! Here's what's happening.",
+    "newQuote": "New Quote",
+    "newInvoice": "New Invoice",
+    "revenue": "Revenue",
+    "overdueCount": "{{count}} overdue",
+    "invoices": "Invoices",
+    "pendingCount": "{{count}} pending",
+    "newCount": "+{{count}} new",
+    "partners": "Partners",
+    "paymentsReceived": "Payments Received",
+    "pendingAmount": "{{amount}} pending",
+    "recentDocuments": "Recent Documents",
+    "noRecentDocuments": "No recent documents",
+    "recentPayments": "Recent Payments",
+    "noRecentPayments": "No recent payments"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -90,23 +147,85 @@
     "quotes": "Quotes",
     "salesOrders": "Sales Orders",
     "invoices": "Invoices",
+    "creditNotes": "Credit Notes",
     "purchases": "Purchases",
     "suppliers": "Suppliers",
     "purchaseOrders": "Purchase Orders",
     "inventory": "Inventory",
     "products": "Products",
     "stockLevels": "Stock Levels",
+    "stockMovements": "Stock Movements",
+    "counting": "Inventory Counting",
     "deliveryNotes": "Delivery Notes",
+    "inventoryCounting": "Inventory Counting",
     "vehicles": "Vehicles",
     "treasury": "Treasury",
     "payments": "Payments",
     "instruments": "Instruments",
     "repositories": "Repositories",
+    "finance": "Finance",
+    "chartOfAccounts": "Chart of Accounts",
+    "generalLedger": "General Ledger",
+    "journalEntries": "Journal Entries",
+    "trialBalance": "Trial Balance",
+    "profitLoss": "Profit & Loss",
+    "balanceSheet": "Balance Sheet",
+    "agedReceivables": "Aged Receivables",
+    "agedPayables": "Aged Payables",
+    "pricing": "Pricing",
+    "priceLists": "Price Lists",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "locations": "Locations"
+  },
+  "locations": {
+    "title": "Location Management",
+    "subtitle": "Manage your business locations, warehouses, and stores",
+    "addLocation": "Add Location",
+    "editLocation": "Edit Location",
+    "deleteLocation": "Delete Location",
+    "setDefault": "Set as Default",
+    "default": "Default",
+    "posEnabled": "POS Enabled",
+    "code": "Code",
+    "types": {
+      "shop": "Shop",
+      "warehouse": "Warehouse",
+      "office": "Office",
+      "mobile": "Mobile Unit"
+    },
+    "form": {
+      "name": "Location Name",
+      "namePlaceholder": "Enter location name",
+      "type": "Location Type",
+      "code": "Location Code",
+      "codePlaceholder": "Auto-generated if empty",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Street Address",
+      "city": "City",
+      "postalCode": "Postal Code",
+      "country": "Country",
+      "posEnabled": "Enable Point of Sale"
+    },
+    "empty": {
+      "title": "No locations yet",
+      "description": "Get started by creating your first location."
+    },
+    "deleteConfirm": {
+      "title": "Delete Location",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "cannotDeleteDefault": "Cannot delete the default location. Please set another location as default first."
+    },
+    "messages": {
+      "created": "Location created successfully",
+      "updated": "Location updated successfully",
+      "deleted": "Location deleted successfully",
+      "defaultSet": "Default location updated"
+    }
   },
   "table": {
-    "actions": "Actions",
+    "actionsColumn": "Actions",
     "noData": "No data available"
   },
   "pagination": {
@@ -117,5 +236,24 @@
   "confirmation": {
     "delete": "Are you sure you want to delete this item?",
     "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
-  }
+  },
+  "loading": "Loading...",
+  "noData": "No data available",
+  "error": "Error",
+  "cancel": "Cancel",
+  "save": "Save",
+  "saving": "Saving...",
+  "creating": "Creating...",
+  "processing": "Processing...",
+  "back": "Back",
+  "previous": "Previous",
+  "next": "Next",
+  "view": "View",
+  "viewAll": "View all",
+  "viewDetails": "View Details",
+  "clear": "Clear",
+  "yes": "Yes",
+  "no": "No",
+  "actionsLabel": "Actions",
+  "allStatuses": "All Statuses"
 }

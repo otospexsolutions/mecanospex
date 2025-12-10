@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Company\Domain;
 
+use App\Models\Country;
 use App\Modules\Company\Domain\Enums\CompanyStatus;
 use App\Modules\Company\Domain\Enums\VerificationStatus;
 use App\Modules\Company\Domain\Enums\VerificationTier;
 use App\Modules\Tenant\Domain\Tenant;
 use Carbon\Carbon;
+use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -83,8 +86,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Company extends Model
 {
+    /** @use HasFactory<CompanyFactory> */
+    use HasFactory;
     use HasUuids;
     use SoftDeletes;
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return CompanyFactory
+     */
+    protected static function newFactory(): CompanyFactory
+    {
+        return CompanyFactory::new();
+    }
 
     /**
      * The table associated with the model.
@@ -148,6 +163,9 @@ class Company extends Model
         'default_target_margin',
         'default_minimum_margin',
         'allow_below_cost_sales',
+        'payment_tolerance_enabled',
+        'payment_tolerance_percentage',
+        'max_payment_tolerance_amount',
     ];
 
     /**
@@ -174,6 +192,9 @@ class Company extends Model
             'closed_at' => 'datetime',
             'status' => CompanyStatus::class,
             'allow_below_cost_sales' => 'boolean',
+            'payment_tolerance_enabled' => 'boolean',
+            'payment_tolerance_percentage' => 'string',
+            'max_payment_tolerance_amount' => 'string',
         ];
     }
 
@@ -185,6 +206,16 @@ class Company extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the country for this company.
+     *
+     * @return BelongsTo<Country, $this>
+     */
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_code', 'code');
     }
 
     /**

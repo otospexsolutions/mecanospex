@@ -2,6 +2,7 @@
   "payments": {
     "title": "Paiements",
     "new": "Enregistrer un paiement",
+    "newForInvoice": "Enregistrer un paiement pour {{invoiceNumber}}",
     "number": "Numéro",
     "partner": "Partenaire",
     "method": "Mode",
@@ -10,14 +11,80 @@
     "amount": "Montant",
     "reference": "Référence",
     "notes": "Notes",
+    "created": "Créé",
+    "sections": {
+      "paymentInfo": "Informations de paiement",
+      "partner": "Partenaire",
+      "allocations": "Allocations de factures"
+    },
+    "fields": {
+      "totalAllocated": "Total alloué",
+      "document": "Document"
+    },
+    "form": {
+      "amount": "Montant",
+      "amountRequired": "Le montant est requis",
+      "amountPositive": "Le montant doit être positif",
+      "paymentMethod": "Mode de paiement",
+      "paymentMethodRequired": "Le mode de paiement est requis",
+      "selectMethod": "Sélectionner un mode",
+      "repository": "Dépôt",
+      "repositoryRequired": "Le dépôt est requis",
+      "selectRepository": "Sélectionner un dépôt",
+      "addRepository": "Ajouter un dépôt",
+      "partnerRequired": "Le partenaire est requis",
+      "selectPartner": "Sélectionner un partenaire",
+      "addPartner": "Ajouter un partenaire",
+      "paymentDate": "Date de paiement",
+      "paymentDateRequired": "La date de paiement est requise",
+      "referencePlaceholder": "Numéro de chèque, ID de transaction, etc.",
+      "notesPlaceholder": "Notes supplémentaires...",
+      "paymentForInvoice": "Paiement de la facture {{invoiceNumber}}"
+    },
     "statuses": {
       "pending": "En attente",
+      "completed": "Terminé",
+      "failed": "Échoué",
+      "reversed": "Annulé",
       "cleared": "Encaissé",
-      "voided": "Annulé"
+      "voided": "Annulé",
+      "cancelled": "Annulé"
+    },
+    "types": {
+      "document_payment": "Paiement facture",
+      "advance": "Avance/Surpaiement",
+      "refund": "Remboursement",
+      "credit_application": "Application de crédit",
+      "supplier_payment": "Paiement fournisseur"
+    },
+    "creditBalance": "Solde créditeur",
+    "creditBalanceExplanation": "Montant excédentaire gardé comme crédit pour les factures futures",
+    "allocatedToInvoices": "Alloué aux factures",
+    "messages": {
+      "cancelPayment": "Annuler le paiement",
+      "confirmCancelPayment": "Êtes-vous sûr de vouloir annuler ce paiement de {{amount}} ? Cette action est irréversible.",
+      "notFound": "Paiement non trouvé ou erreur de chargement.",
+      "noPartnerLinked": "Aucun partenaire lié"
     },
     "empty": {
       "title": "Aucun paiement",
       "description": "Les paiements apparaîtront ici une fois enregistrés."
+    },
+    "refund": {
+      "refund": "Rembourser",
+      "partialRefund": "Remboursement partiel",
+      "fullRefund": "Remboursement total",
+      "reverse": "Annuler",
+      "history": "Historique des remboursements",
+      "remaining": "Restant",
+      "reason": "Motif",
+      "reasonPlaceholder": "Entrez le motif de ce remboursement...",
+      "refundTitle": "Rembourser le paiement",
+      "refundMessage": "Cela remboursera {{amount}} au client.",
+      "partialRefundTitle": "Remboursement partiel",
+      "maxRefundable": "Montant maximum remboursable",
+      "reverseTitle": "Annuler le paiement",
+      "reverseMessage": "Cela annulera entièrement le paiement et le marquera comme annulé. Cette action est irréversible."
     }
   },
   "instruments": {
@@ -27,31 +94,158 @@
     "type": "Type",
     "partner": "Partenaire",
     "maturity": "Échéance",
-    "location": "Emplacement",
+    "location": "Emplacement actuel",
     "status": "Statut",
     "amount": "Montant",
+    "details": "Détails de l'effet",
+    "receivedDate": "Date de réception",
+    "maturityDate": "Date d'échéance",
+    "repository": "Dépôt",
+    "depositedTo": "Déposé à",
+    "bankInfo": "Informations bancaires",
+    "bankName": "Nom de la banque",
+    "bankBranch": "Agence",
+    "bankAccount": "Numéro de compte",
+    "history": "Historique",
+    "received": "Reçu",
+    "cleared": "Encaissé",
+    "bounced": "Rejeté",
+    "deposit": "Déposer",
+    "depositToBank": "Déposer à la banque",
+    "selectBankAccount": "Sélectionner un compte bancaire",
+    "transfer": "Transférer",
+    "transferTo": "Transférer vers un dépôt",
+    "selectRepository": "Sélectionner un dépôt",
+    "clear": "Encaisser",
+    "bounce": "Rejeter",
+    "markAsBounced": "Marquer comme rejeté",
+    "bounceReason": "Raison (optionnel)",
+    "bounceReasonPlaceholder": "ex: Provision insuffisante",
     "types": {
       "check": "Chèque",
       "promissoryNote": "Billet à ordre",
       "billOfExchange": "Lettre de change"
     },
     "statuses": {
+      "received": "Reçu",
       "inHand": "En portefeuille",
       "deposited": "Déposé",
       "cleared": "Encaissé",
+      "bounced": "Rejeté",
       "returned": "Retourné",
-      "endorsed": "Endossé"
+      "endorsed": "Endossé",
+      "cancelled": "Annulé"
     },
     "empty": {
       "title": "Aucun effet",
       "description": "Les effets de paiement comme les chèques apparaîtront ici."
     }
   },
+  "splitPayment": {
+    "title": "Paiement fractionné",
+    "totalRequired": "Total requis",
+    "remaining": "Restant",
+    "paymentLine": "Paiement #{{number}}",
+    "addPayment": "Ajouter un paiement",
+    "amountDoesNotMatch": "Le montant total ne correspond pas au montant requis",
+    "incompleteLines": "Veuillez compléter toutes les lignes de paiement",
+    "success": "Paiement fractionné enregistré avec succès"
+  },
   "repositories": {
     "title": "Dépôts",
     "cash": "Caisse",
     "bank": "Compte bancaire",
     "safe": "Coffre"
+  },
+  "smartPayment": {
+    "title": "Allocation intelligente de paiement",
+    "allocationMethod": {
+      "title": "Méthode d'allocation",
+      "fifo": "Premier entré, premier sorti (FIFO)",
+      "fifoDescription": "Allouer aux factures les plus anciennes en premier",
+      "dueDate": "Priorité date d'échéance",
+      "dueDateDescription": "Allouer aux factures les plus en retard en premier",
+      "manual": "Sélection manuelle",
+      "manualDescription": "Sélectionner manuellement les factures et les montants"
+    },
+    "tolerance": {
+      "title": "Tolérance de paiement",
+      "enabled": "Tolérance activée",
+      "disabled": "Tolérance désactivée",
+      "threshold": "Seuil : {{percentage}}% / {{maxAmount}} max",
+      "writeoffApplied": "Annulation de tolérance appliquée",
+      "writeoffAmount": "Annulation : {{amount}}",
+      "explanation": "Les petites différences de paiement dans la tolérance seront automatiquement annulées",
+      "source": {
+        "company": "Paramètres de l'entreprise",
+        "country": "Par défaut du pays",
+        "system": "Par défaut du système"
+      }
+    },
+    "preview": {
+      "title": "Aperçu de l'allocation",
+      "previewAllocation": "Prévisualiser l'allocation",
+      "invoiceNumber": "Facture",
+      "originalBalance": "Solde",
+      "allocated": "Alloué",
+      "daysOverdue": "{{days}} jours de retard",
+      "noInvoices": "Aucune facture ouverte trouvée pour ce partenaire",
+      "noAllocations": "Aucune facture allouée",
+      "totalToInvoices": "Total aux factures",
+      "toleranceWriteoff": "Annulation de tolérance",
+      "excessAmount": "Montant excédentaire",
+      "excessHandling": {
+        "creditBalance": "Sera conservé comme solde créditeur",
+        "toleranceWriteoff": "Sera annulé (dans la tolérance)",
+        "none": "Correspondance exacte - pas d'excédent"
+      }
+    },
+    "allocation": {
+      "title": "Allocation de paiement",
+      "description": "Allouez facultativement ce paiement aux factures ouvertes en utilisant des méthodes d'allocation intelligentes",
+      "method": "Méthode d'allocation",
+      "fifo": "FIFO (Premier entré, premier sorti)",
+      "dueDate": "Priorité date d'échéance",
+      "manual": "Sélection manuelle",
+      "fifoDescription": "Allouer aux factures les plus anciennes en premier",
+      "dueDateDescription": "Allouer aux factures par date d'échéance",
+      "manualDescription": "Sélectionner manuellement les factures et les montants",
+      "paymentAmount": "Montant du paiement",
+      "previewButton": "Prévisualiser l'allocation",
+      "applyButton": "Appliquer l'allocation",
+      "allocatePayment": "Allouer le paiement",
+      "applyAllocation": "Appliquer l'allocation",
+      "selectedInvoices": "Factures sélectionnées",
+      "invoice": "Facture",
+      "originalBalance": "Solde initial",
+      "amountToAllocate": "Montant à allouer",
+      "daysOverdue": "{{days}} jours en retard",
+      "notDue": "Pas encore due",
+      "totalSelected": "Total sélectionné : {{amount}}",
+      "totalAllocated": "Total alloué : {{amount}}",
+      "exceedsPayment": "Le total de l'allocation dépasse le montant du paiement",
+      "noInvoicesSelected": "Veuillez sélectionner au moins une facture",
+      "success": "Paiement alloué avec succès"
+    },
+    "openInvoices": {
+      "title": "Factures ouvertes",
+      "noInvoices": "Aucune facture ouverte",
+      "sortBy": "Trier par",
+      "sortByDate": "Date de facture",
+      "sortByDueDate": "Date d'échéance",
+      "sortByAmount": "Montant",
+      "selectAll": "Tout sélectionner",
+      "deselectAll": "Tout désélectionner",
+      "totalBalance": "Solde total : {{amount}}"
+    },
+    "errors": {
+      "invalidAmount": "Montant invalide",
+      "amountMustBePositive": "Le montant doit être positif",
+      "amountExceedsBalance": "Le montant dépasse le solde de la facture",
+      "noInvoicesSelected": "Veuillez sélectionner au moins une facture",
+      "allocationFailed": "Échec de l'allocation du paiement",
+      "previewFailed": "Échec de l'aperçu de l'allocation"
+    }
   },
   "dashboard": {
     "recentDocuments": "Documents récents",

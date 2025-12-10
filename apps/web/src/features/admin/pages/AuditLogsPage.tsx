@@ -1,0 +1,114 @@
+import { useQuery } from '@tanstack/react-query'
+import { FileText, Calendar, User } from 'lucide-react'
+import { getAdminAuditLogs } from '../api'
+
+export function AuditLogsPage() {
+  const { data: logsData, isLoading } = useQuery({
+    queryKey: ['admin', 'audit-logs'],
+    queryFn: () => getAdminAuditLogs(),
+  })
+
+  const logs = logsData?.data ?? []
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString()
+  }
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'suspend_tenant':
+        return 'bg-red-100 text-red-800'
+      case 'activate_tenant':
+        return 'bg-green-100 text-green-800'
+      case 'extend_trial':
+        return 'bg-blue-100 text-blue-800'
+      case 'change_plan':
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-gray-400">Loading audit logs...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white">Audit Logs</h1>
+        <p className="text-gray-400">Track all administrative actions</p>
+      </div>
+
+      <div className="overflow-hidden rounded-lg bg-gray-800 shadow">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-900">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-400">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-400">
+                Admin
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-400">
+                Action
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-400">
+                Tenant
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-400">
+                Notes
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700 bg-gray-800">
+            {logs.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center">
+                  <FileText className="mx-auto h-12 w-12 text-gray-600" />
+                  <p className="mt-4 text-gray-400">No audit logs yet</p>
+                </td>
+              </tr>
+            ) : (
+              logs.map((log) => (
+                <tr key={log.id}>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      {formatDate(log.created_at)}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      {log.admin_name}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <span
+                      className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getActionColor(log.action)}`}
+                    >
+                      {log.action.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
+                    {log.tenant_name ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-400">
+                    {typeof log.details === 'object' && log.details !== null
+                      ? JSON.stringify(log.details)
+                      : '-'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

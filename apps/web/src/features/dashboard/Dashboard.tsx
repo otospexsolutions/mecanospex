@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   DollarSign,
   FileText,
@@ -38,7 +39,7 @@ interface RecentDocument {
   document_number: string
   type: string
   partner_name: string
-  total_amount: number
+  total_amount: number | string | null
   status: string
   created_at: string
 }
@@ -47,7 +48,7 @@ interface RecentPayment {
   id: string
   payment_number: string
   partner_name: string
-  amount: number
+  amount: number | string | null
   payment_method_name: string
   created_at: string
 }
@@ -61,6 +62,8 @@ interface PaymentsResponse {
 }
 
 export function Dashboard() {
+  const { t } = useTranslation()
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: async () => {
@@ -89,17 +92,18 @@ export function Dashboard() {
   const recentDocuments = documentsData?.data ?? []
   const recentPayments = paymentsData?.data ?? []
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string | null | undefined) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0)
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount)
+    }).format(isNaN(num) ? 0 : num)
   }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">{t('status.loading')}</div>
       </div>
     )
   }
@@ -109,8 +113,8 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500">Welcome back! Here&apos;s what&apos;s happening.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+          <p className="text-gray-500">{t('dashboard.welcome')}</p>
         </div>
         <div className="flex gap-3">
           <Link
@@ -118,14 +122,14 @@ export function Dashboard() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Quote
+            {t('dashboard.newQuote')}
           </Link>
           <Link
             to="/documents/new?type=invoice"
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Invoice
+            {t('dashboard.newInvoice')}
           </Link>
         </div>
       </div>
@@ -154,7 +158,7 @@ export function Dashboard() {
             )}
           </div>
           <div className="mt-4">
-            <p className="text-sm text-gray-500">Revenue</p>
+            <p className="text-sm text-gray-500">{t('dashboard.revenue')}</p>
             <p className="text-2xl font-semibold text-gray-900">
               {formatCurrency(stats?.revenue.current ?? 0)}
             </p>
@@ -169,17 +173,17 @@ export function Dashboard() {
             </div>
             {stats?.invoices.overdue !== undefined && stats.invoices.overdue > 0 && (
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                {stats.invoices.overdue} overdue
+                {t('dashboard.overdueCount', { count: stats.invoices.overdue })}
               </span>
             )}
           </div>
           <div className="mt-4">
-            <p className="text-sm text-gray-500">Invoices</p>
+            <p className="text-sm text-gray-500">{t('dashboard.invoices')}</p>
             <p className="text-2xl font-semibold text-gray-900">
               {stats?.invoices.total ?? 0}
             </p>
             <p className="text-sm text-gray-500">
-              {stats?.invoices.pending ?? 0} pending
+              {t('dashboard.pendingCount', { count: stats?.invoices.pending ?? 0 })}
             </p>
           </div>
         </div>
@@ -192,12 +196,12 @@ export function Dashboard() {
             </div>
             {stats?.partners.newThisMonth !== undefined && stats.partners.newThisMonth > 0 && (
               <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                +{stats.partners.newThisMonth} new
+                {t('dashboard.newCount', { count: stats.partners.newThisMonth })}
               </span>
             )}
           </div>
           <div className="mt-4">
-            <p className="text-sm text-gray-500">Partners</p>
+            <p className="text-sm text-gray-500">{t('dashboard.partners')}</p>
             <p className="text-2xl font-semibold text-gray-900">
               {stats?.partners.total ?? 0}
             </p>
@@ -212,12 +216,12 @@ export function Dashboard() {
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-sm text-gray-500">Payments Received</p>
+            <p className="text-sm text-gray-500">{t('dashboard.paymentsReceived')}</p>
             <p className="text-2xl font-semibold text-gray-900">
               {formatCurrency(stats?.payments.received ?? 0)}
             </p>
             <p className="text-sm text-gray-500">
-              {formatCurrency(stats?.payments.pending ?? 0)} pending
+              {t('dashboard.pendingAmount', { amount: formatCurrency(stats?.payments.pending ?? 0) })}
             </p>
           </div>
         </div>
@@ -228,19 +232,19 @@ export function Dashboard() {
         {/* Recent Documents */}
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Documents</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.recentDocuments')}</h2>
             <Link
               to="/documents"
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
             >
-              View all
+              {t('common.viewAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="divide-y divide-gray-200">
             {recentDocuments.length === 0 ? (
               <div className="px-6 py-8 text-center text-sm text-gray-500">
-                No recent documents
+                {t('dashboard.noRecentDocuments')}
               </div>
             ) : (
               recentDocuments.map((doc) => (
@@ -268,19 +272,19 @@ export function Dashboard() {
         {/* Recent Payments */}
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Payments</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.recentPayments')}</h2>
             <Link
               to="/treasury/payments"
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
             >
-              View all
+              {t('common.viewAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="divide-y divide-gray-200">
             {recentPayments.length === 0 ? (
               <div className="px-6 py-8 text-center text-sm text-gray-500">
-                No recent payments
+                {t('dashboard.noRecentPayments')}
               </div>
             ) : (
               recentPayments.map((payment) => (

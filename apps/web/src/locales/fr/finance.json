@@ -1,0 +1,63 @@
+{
+  "journalEntry": {
+    "list": {
+      "title": "Ecritures comptables",
+      "description": "Afficher et gerer les ecritures comptables manuelles",
+      "empty": "Aucune ecriture trouvee",
+      "createFirst": "Creer votre premiere ecriture"
+    },
+    "form": {
+      "title": "Nouvelle ecriture comptable",
+      "descriptionPlaceholder": "Saisir la description de l'ecriture..."
+    },
+    "new": "Nouvelle ecriture",
+    "entryNumber": "Numero d'ecriture",
+    "entryDate": "Date d'ecriture",
+    "description": "Description",
+    "lines": "Lignes",
+    "linesCount": "Nombre de lignes",
+    "account": "Compte",
+    "debit": "Debit",
+    "credit": "Credit",
+    "lineDescription": "Description de la ligne",
+    "totals": "Totaux",
+    "totalDebits": "Total debits",
+    "totalCredits": "Total credits",
+    "balanced": "Equilibre",
+    "unbalanced": "Desequilibre",
+    "addLine": "Ajouter une ligne",
+    "saveDraft": "Enregistrer comme brouillon",
+    "post": "Valider l'ecriture",
+    "noDescription": "Aucune description",
+    "notFound": "Ecriture comptable introuvable",
+    "backToList": "Retour aux ecritures",
+    "createError": "Erreur lors de la creation de l'ecriture",
+    "postError": "Erreur lors de la validation de l'ecriture",
+    "postSuccess": "Ecriture comptable validee avec succes",
+    "status": {
+      "draft": "Brouillon",
+      "posted": "Validee"
+    },
+    "validation": {
+      "dateRequired": "La date d'ecriture est requise",
+      "unbalanced": "L'ecriture est desequilibree. Le total des debits doit etre egal au total des credits.",
+      "accountRequired": "Toutes les lignes doivent avoir un compte selectionne",
+      "debitOrCredit": "Chaque ligne doit avoir soit un montant au debit, soit au credit, pas les deux",
+      "amountRequired": "Chaque ligne doit avoir un montant au debit ou au credit"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "Plan comptable",
+    "addAccount": "Ajouter un compte"
+  },
+  "ledger": {
+    "title": "Grand livre"
+  },
+  "reports": {
+    "trialBalance": "Balance generale",
+    "profitLoss": "Compte de resultat",
+    "balanceSheet": "Bilan",
+    "agedReceivables": "Balance agee clients",
+    "agedPayables": "Balance agee fournisseurs"
+  }
+}

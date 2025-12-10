@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Treasury\Presentation\Controllers;
 
 use App\Modules\Company\Services\CompanyContext;
+use App\Modules\Treasury\Domain\Payment;
+use App\Modules\Treasury\Domain\PaymentAllocation;
 use App\Modules\Treasury\Domain\PaymentRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,6 +155,57 @@ class PaymentRepositoryController extends Controller
                 'balance' => $repository->balance,
                 'last_reconciled_at' => $repository->last_reconciled_at?->toIso8601String(),
                 'last_reconciled_balance' => $repository->last_reconciled_balance,
+            ],
+        ]);
+    }
+
+    /**
+     * Get all transactions (payments) for a repository
+     */
+    public function transactions(Request $request, string $id): JsonResponse
+    {
+        $company = $this->companyContext->requireCompany();
+        $tenantId = $company->tenant_id;
+
+        // Verify repository exists and belongs to tenant
+        $repository = PaymentRepository::query()
+            ->where('tenant_id', $tenantId)
+            ->findOrFail($id);
+
+        // Get all payments that went to this repository
+        $payments = Payment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('repository_id', $id)
+            ->with(['partner', 'paymentMethod', 'allocations.document'])
+            ->orderByDesc('payment_date')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'data' => $payments->map(fn (Payment $payment) => [
+                'id' => $payment->id,
+                'payment_number' => $payment->reference ?? 'PMT-' . substr($payment->id, 0, 8),
+                'partner_id' => $payment->partner_id,
+                'partner_name' => $payment->partner?->name,
+                'payment_method_name' => $payment->paymentMethod?->name,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+                'payment_date' => $payment->payment_date->toDateString(),
+                'status' => $payment->status->value,
+                'payment_type' => $payment->payment_type?->value,
+                'reference' => $payment->reference,
+                'notes' => $payment->notes,
+                'allocations' => $payment->allocations->map(fn (PaymentAllocation $allocation) => [
+                    'document_id' => $allocation->document_id,
+                    'document_number' => $allocation->document->document_number,
+                    'amount' => $allocation->amount,
+                ])->toArray(),
+                'created_at' => $payment->created_at?->toIso8601String(),
+            ])->toArray(),
+            'meta' => [
+                'total' => $payments->count(),
+                'repository_id' => $repository->id,
+                'repository_name' => $repository->name,
             ],
         ]);
     }

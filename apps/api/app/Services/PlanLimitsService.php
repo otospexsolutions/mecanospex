@@ -24,9 +24,9 @@ class PlanLimitsService
         $limits = $subscription->plan->limits;
         $usage = $this->getUsage($tenant);
 
-        $limitKey = 'max_' . $resource;
+        $limitKey = 'max_'.$resource;
 
-        if (!isset($limits[$limitKey])) {
+        if (! isset($limits[$limitKey])) {
             return true; // No limit defined = unlimited
         }
 
@@ -43,10 +43,10 @@ class PlanLimitsService
      */
     public function enforceLimit(Tenant $tenant, string $resource): void
     {
-        if (!$this->checkLimit($tenant, $resource)) {
+        if (! $this->checkLimit($tenant, $resource)) {
             $subscription = $this->getActiveSubscription($tenant);
             $limits = $subscription?->plan->limits ?? [];
-            $limitKey = 'max_' . $resource;
+            $limitKey = 'max_'.$resource;
             $maxAllowed = $limits[$limitKey] ?? 0;
 
             throw new \RuntimeException(

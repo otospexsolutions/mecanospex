@@ -1,0 +1,63 @@
+{
+  "journalEntry": {
+    "list": {
+      "title": "Journal Entries",
+      "description": "View and manage manual journal entries",
+      "empty": "No journal entries found",
+      "createFirst": "Create your first entry"
+    },
+    "form": {
+      "title": "New Journal Entry",
+      "descriptionPlaceholder": "Enter entry description..."
+    },
+    "new": "New Entry",
+    "entryNumber": "Entry Number",
+    "entryDate": "Entry Date",
+    "description": "Description",
+    "lines": "Lines",
+    "linesCount": "Lines Count",
+    "account": "Account",
+    "debit": "Debit",
+    "credit": "Credit",
+    "lineDescription": "Line Description",
+    "totals": "Totals",
+    "totalDebits": "Total Debits",
+    "totalCredits": "Total Credits",
+    "balanced": "Balanced",
+    "unbalanced": "Unbalanced",
+    "addLine": "Add Line",
+    "saveDraft": "Save as Draft",
+    "post": "Post Entry",
+    "noDescription": "No description",
+    "notFound": "Journal entry not found",
+    "backToList": "Back to journal entries",
+    "createError": "Failed to create journal entry",
+    "postError": "Failed to post journal entry",
+    "postSuccess": "Journal entry posted successfully",
+    "status": {
+      "draft": "Draft",
+      "posted": "Posted"
+    },
+    "validation": {
+      "dateRequired": "Entry date is required",
+      "unbalanced": "Entry is unbalanced. Total debits must equal total credits.",
+      "accountRequired": "All lines must have an account selected",
+      "debitOrCredit": "Each line must have either a debit or credit amount, not both",
+      "amountRequired": "Each line must have either a debit or credit amount"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "Chart of Accounts",
+    "addAccount": "Add Account"
+  },
+  "ledger": {
+    "title": "General Ledger"
+  },
+  "reports": {
+    "trialBalance": "Trial Balance",
+    "profitLoss": "Profit & Loss",
+    "balanceSheet": "Balance Sheet",
+    "agedReceivables": "Aged Receivables",
+    "agedPayables": "Aged Payables"
+  }
+}

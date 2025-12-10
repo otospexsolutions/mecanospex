@@ -1,0 +1,31 @@
+{
+  "title": "Vehicles",
+  "new": "Add Vehicle",
+  "edit": "Edit Vehicle",
+  "licensePlate": "License Plate",
+  "brand": "Brand",
+  "model": "Model",
+  "year": "Year",
+  "color": "Color",
+  "vin": "VIN",
+  "mileage": "Mileage",
+  "fuelType": "Fuel Type",
+  "transmission": "Transmission",
+  "engineCode": "Engine Code",
+  "notes": "Notes",
+  "sections": {
+    "vehicleInfo": "Vehicle Information",
+    "technicalDetails": "Technical Details"
+  },
+  "messages": {
+    "deleteVehicle": "Delete Vehicle",
+    "confirmDeleteVehicle": "Are you sure you want to delete \"{{brand}} {{model}}\" ({{licensePlate}})? This action cannot be undone.",
+    "notFound": "Vehicle not found or error loading data."
+  },
+  "created": "Created",
+  "updated": "Updated",
+  "empty": {
+    "title": "No vehicles yet",
+    "description": "Get started by adding your first vehicle."
+  }
+}

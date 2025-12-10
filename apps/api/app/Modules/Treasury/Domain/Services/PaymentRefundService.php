@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Treasury\Domain\Services;
 
+use App\Modules\Treasury\Domain\Enums\PaymentStatus;
 use App\Modules\Treasury\Domain\Payment;
 use App\Modules\Treasury\Domain\PaymentAllocation;
-use App\Modules\Treasury\Domain\Enums\PaymentStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -64,7 +64,7 @@ class PaymentRefundService
             // Mark original payment as reversed
             $payment->update([
                 'status' => PaymentStatus::Reversed,
-                'notes' => ($payment->notes ?? '') . "\n\nRefunded: {$reason}",
+                'notes' => ($payment->notes ?? '')."\n\nRefunded: {$reason}",
             ]);
 
             return $refund;
@@ -114,7 +114,7 @@ class PaymentRefundService
 
             // Update original payment notes
             $payment->update([
-                'notes' => ($payment->notes ?? '') . "\n\nPartial refund of {$amount}: {$reason}",
+                'notes' => ($payment->notes ?? '')."\n\nPartial refund of {$amount}: {$reason}",
             ]);
 
             return $refund;
@@ -138,7 +138,7 @@ class PaymentRefundService
         $refunds = Payment::where('tenant_id', $payment->tenant_id)
             ->where('partner_id', $payment->partner_id)
             ->where('amount', '<', '0')
-            ->where('reference', 'like', '%' . $payment->reference . '%')
+            ->where('reference', 'like', '%'.$payment->reference.'%')
             ->get();
 
         $totalRefunded = '0.00';
@@ -172,14 +172,14 @@ class PaymentRefundService
             throw new \RuntimeException('Only completed or failed payments can be reversed');
         }
 
-        DB::transaction(function () use ($payment, $reason, $userId): void {
+        DB::transaction(function () use ($payment, $reason): void {
             // Delete allocations
             PaymentAllocation::where('payment_id', $payment->id)->delete();
 
             // Update payment status
             $payment->update([
                 'status' => PaymentStatus::Reversed,
-                'notes' => ($payment->notes ?? '') . "\n\nReversed: {$reason}",
+                'notes' => ($payment->notes ?? '')."\n\nReversed: {$reason}",
             ]);
         });
     }

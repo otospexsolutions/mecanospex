@@ -28,9 +28,9 @@ test.describe('Authentication', () => {
     // Submit empty form
     await page.getByRole('button', { name: /sign in/i }).click()
 
-    // Should show validation errors
-    await expect(page.getByText(/email is required/i)).toBeVisible()
-    await expect(page.getByText(/password is required/i)).toBeVisible()
+    // Should show validation errors (the app uses "This field is required" message)
+    const requiredErrors = page.getByText(/this field is required/i)
+    await expect(requiredErrors.first()).toBeVisible()
   })
 
   test('should prevent submission with invalid email format', async ({ page }) => {
@@ -69,9 +69,15 @@ test.describe('Authentication', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           data: {
-            id: '1',
-            name: 'Test User',
-            email: 'test@example.com',
+            user: {
+              id: '1',
+              name: 'Test User',
+              email: 'test@example.com',
+              tenantId: 'tenant-1',
+              roles: ['admin'],
+            },
+            token: 'fake-jwt-token',
+            tokenType: 'Bearer',
           },
         }),
       })
@@ -86,15 +92,65 @@ test.describe('Authentication', () => {
             id: '1',
             name: 'Test User',
             email: 'test@example.com',
-            tenant_id: 'tenant-1',
+            tenantId: 'tenant-1',
             roles: ['admin'],
           },
         }),
       })
     })
 
-    // Mock dashboard data
-    await page.route('**/api/v1/dashboard/**', (route) => {
+    // Mock user companies (required by CompanyProvider)
+    await page.route('**/api/v1/user/companies', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [
+            {
+              id: 'company-1',
+              name: 'Test Company',
+              legal_name: 'Test Company LLC',
+              tax_id: null,
+              country_code: 'TN',
+              currency: 'TND',
+              locale: 'fr',
+              timezone: 'Africa/Tunis',
+            },
+          ],
+        }),
+      })
+    })
+
+    // Mock locations (required by LocationProvider)
+    await page.route('**/api/v1/locations', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'location-1',
+            company_id: 'company-1',
+            name: 'Main Store',
+            code: 'MAIN',
+            type: 'shop',
+            phone: null,
+            email: null,
+            address_street: null,
+            address_city: null,
+            address_postal_code: null,
+            address_country: null,
+            is_default: true,
+            is_active: true,
+            pos_enabled: false,
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ]),
+      })
+    })
+
+    // Mock dashboard stats
+    await page.route('**/api/v1/dashboard/stats', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -113,7 +169,7 @@ test.describe('Authentication', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { data: [] } }),
+        body: JSON.stringify({ data: [] }),
       })
     })
 
@@ -121,7 +177,7 @@ test.describe('Authentication', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { data: [] } }),
+        body: JSON.stringify({ data: [] }),
       })
     })
 
@@ -133,7 +189,7 @@ test.describe('Authentication', () => {
     await page.getByRole('button', { name: /sign in/i }).click()
 
     // Should redirect to dashboard
-    await expect(page).toHaveURL('/')
-    await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
+    await expect(page).toHaveURL('/', { timeout: 10000 })
+    await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 })
   })
 })

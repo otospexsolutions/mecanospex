@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   useTenants,
   useExtendTrial,
-  useChangePlan,
   useSuspendTenant,
   useActivateTenant,
 } from '../hooks/useTenants'
@@ -11,12 +10,12 @@ export function TenantsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
 
-  const { data: tenantsData, isLoading } = useTenants({
-    search: search || undefined,
-    status: statusFilter || undefined,
-  })
+  const params: { search?: string; status?: string } = {}
+  if (search) params.search = search
+  if (statusFilter) params.status = statusFilter
+
+  const { data: tenantsData, isLoading } = useTenants(params)
   const extendTrialMutation = useExtendTrial()
-  const changePlanMutation = useChangePlan()
   const suspendMutation = useSuspendTenant()
   const activateMutation = useActivateTenant()
 
@@ -32,7 +31,9 @@ export function TenantsPage() {
   const handleSuspend = (tenantId: string) => {
     const reason = prompt('Enter suspension reason (optional):')
     if (confirm('Are you sure you want to suspend this tenant?')) {
-      suspendMutation.mutate({ tenantId, reason: reason || undefined })
+      const mutateData: { tenantId: string; reason?: string } = { tenantId }
+      if (reason) mutateData.reason = reason
+      suspendMutation.mutate(mutateData)
     }
   }
 

@@ -40,12 +40,12 @@ class ProductController extends Controller
             $query->where('is_active', $request->boolean('active'));
         }
 
-        // Search by name or SKU
+        // Search by name or SKU (case-insensitive)
         if ($request->has('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                $q->where('name', 'ILIKE', "%{$search}%")
+                    ->orWhere('sku', 'ILIKE', "%{$search}%");
             });
         }
 

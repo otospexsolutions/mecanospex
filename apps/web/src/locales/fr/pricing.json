@@ -1,0 +1,42 @@
+{
+  "priceLists": {
+    "title": "Listes de prix",
+    "create": "Créer une liste de prix",
+    "createNew": "Créer une liste de prix",
+    "edit": "Modifier la liste de prix",
+    "empty": "Aucune liste de prix",
+    "emptyDescription": "Créez votre première liste de prix pour commencer.",
+    "details": "Détails",
+    "items": "Articles de la liste de prix",
+    "addItem": "Ajouter un article",
+    "noItems": "Aucun article",
+    "noItemsDescription": "Ajoutez des produits à cette liste de prix.",
+    "noExpiry": "Sans expiration",
+    "assignedPartners": "Partenaires assignés",
+    "assignPartner": "Assigner un partenaire",
+    "noPartners": "Aucun partenaire assigné",
+    "noPartnersDescription": "Assignez des clients ou fournisseurs pour utiliser cette liste de prix.",
+    "confirmRemoveItem": "Êtes-vous sûr de vouloir supprimer cet article ?",
+    "confirmRemovePartner": "Êtes-vous sûr de vouloir supprimer ce partenaire ?",
+    "fields": {
+      "code": "Code",
+      "name": "Nom",
+      "description": "Description",
+      "currency": "Devise",
+      "validity": "Validité",
+      "validFrom": "Valide à partir du",
+      "validUntil": "Valide jusqu'au",
+      "items": "Articles",
+      "active": "Actif",
+      "default": "Par défaut",
+      "product": "Produit",
+      "price": "Prix",
+      "quantityRange": "Plage de quantité"
+    },
+    "descriptionPlaceholder": "Description optionnelle pour cette liste de prix"
+  },
+  "validation": {
+    "codeRequired": "Le code est requis",
+    "nameRequired": "Le nom est requis"
+  }
+}

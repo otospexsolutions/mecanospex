@@ -1,0 +1,42 @@
+{
+  "priceLists": {
+    "title": "Price Lists",
+    "create": "Create Price List",
+    "createNew": "Create Price List",
+    "edit": "Edit Price List",
+    "empty": "No price lists",
+    "emptyDescription": "Create your first price list to get started.",
+    "details": "Details",
+    "items": "Price List Items",
+    "addItem": "Add Item",
+    "noItems": "No items",
+    "noItemsDescription": "Add products to this price list.",
+    "noExpiry": "No expiry",
+    "assignedPartners": "Assigned Partners",
+    "assignPartner": "Assign Partner",
+    "noPartners": "No partners assigned",
+    "noPartnersDescription": "Assign customers or suppliers to use this price list.",
+    "confirmRemoveItem": "Are you sure you want to remove this item?",
+    "confirmRemovePartner": "Are you sure you want to remove this partner?",
+    "fields": {
+      "code": "Code",
+      "name": "Name",
+      "description": "Description",
+      "currency": "Currency",
+      "validity": "Validity",
+      "validFrom": "Valid From",
+      "validUntil": "Valid Until",
+      "items": "Items",
+      "active": "Active",
+      "default": "Default",
+      "product": "Product",
+      "price": "Price",
+      "quantityRange": "Quantity Range"
+    },
+    "descriptionPlaceholder": "Optional description for this price list"
+  },
+  "validation": {
+    "codeRequired": "Code is required",
+    "nameRequired": "Name is required"
+  }
+}

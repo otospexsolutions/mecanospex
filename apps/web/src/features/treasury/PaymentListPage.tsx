@@ -12,6 +12,8 @@ interface Payment {
   payment_method_name: string
   partner_id: string
   partner_name: string
+  partner_type: 'customer' | 'supplier' | 'both' | null
+  payment_type: string | null
   status: 'pending' | 'completed' | 'cancelled'
   created_at: string
 }
@@ -137,7 +139,20 @@ export function PaymentListPage() {
                     </Link>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {payment.partner_name}
+                    {payment.partner_id ? (
+                      <Link
+                        to={
+                          payment.partner_type === 'supplier' || payment.payment_type === 'supplier_payment'
+                            ? `/purchases/suppliers/${payment.partner_id}`
+                            : `/sales/customers/${payment.partner_id}`
+                        }
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {payment.partner_name ?? 'No partner'}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">{payment.partner_name ?? 'No partner'}</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {payment.payment_method_name}

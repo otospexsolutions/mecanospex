@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Package, AlertTriangle, MapPin, Plus, Minus, RefreshCw, X } from 'lucide-react'
+import { Package, AlertTriangle, MapPin, Plus, Minus, RefreshCw, X, ArrowRightLeft } from 'lucide-react'
 import { api, apiPost } from '../../lib/api'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterTabs } from '../../components/ui/FilterTabs'
@@ -49,7 +49,7 @@ interface StockMovement {
 }
 
 type StockFilter = 'all' | 'low' | 'out'
-type AdjustmentType = 'adjust' | 'receive' | 'issue'
+type AdjustmentType = 'adjust' | 'receive' | 'issue' | 'transfer'
 
 const adjustmentReasons = [
   { value: 'inventory_count', label: 'Inventory Count' },
@@ -69,6 +69,16 @@ export function StockLevelsPage() {
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('')
   const [adjustmentReason, setAdjustmentReason] = useState('inventory_count')
   const [adjustmentNotes, setAdjustmentNotes] = useState('')
+  const [transferLocationId, setTransferLocationId] = useState('')
+
+  // Fetch all locations for transfer
+  const { data: locationsData } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
+      const response = await api.get<{ data: Array<{ id: string; name: string; code: string }> }>('/locations')
+      return response.data
+    },
+  })
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['stock-levels', searchQuery, currentLocationId],
@@ -105,6 +115,16 @@ export function StockLevelsPage() {
   const issueMutation = useMutation({
     mutationFn: async (data: { product_id: string; location_id: string; quantity: string; reference: string; notes?: string }) => {
       return apiPost<StockMovement>('/stock-movements/issue', data)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['stock-levels'] })
+      closeModal()
+    },
+  })
+
+  const transferMutation = useMutation({
+    mutationFn: async (data: { product_id: string; from_location_id: string; to_location_id: string; quantity: string; reference: string }) => {
+      return apiPost<{ message: string }>('/stock-movements/transfer', data)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['stock-levels'] })
@@ -163,6 +183,7 @@ export function StockLevelsPage() {
     setAdjustmentQuantity('')
     setAdjustmentReason('inventory_count')
     setAdjustmentNotes('')
+    setTransferLocationId('')
   }
 
   const handleSubmit = () => {
@@ -189,6 +210,15 @@ export function StockLevelsPage() {
         receiveData.notes = adjustmentNotes
       }
       receiveMutation.mutate(receiveData)
+    } else if (adjustmentType === 'transfer') {
+      if (!transferLocationId) return
+      transferMutation.mutate({
+        product_id: selectedStock.product_id,
+        from_location_id: selectedStock.location_id,
+        to_location_id: transferLocationId,
+        quantity: adjustmentQuantity,
+        reference: adjustmentNotes || 'Stock Transfer',
+      })
     } else {
       const issueData: { product_id: string; location_id: string; quantity: string; reference: string; notes?: string } = {
         product_id: selectedStock.product_id,
@@ -203,8 +233,14 @@ export function StockLevelsPage() {
     }
   }
 
-  const isSubmitting = adjustMutation.isPending || receiveMutation.isPending || issueMutation.isPending
-  const mutationError = adjustMutation.error ?? receiveMutation.error ?? issueMutation.error
+  const isSubmitting = adjustMutation.isPending || receiveMutation.isPending || issueMutation.isPending || transferMutation.isPending
+  const mutationError = adjustMutation.error ?? receiveMutation.error ?? issueMutation.error ?? transferMutation.error
+
+  // Filter out the current location from transfer destinations
+  const transferLocations = useMemo(() => {
+    if (!selectedStock || !locationsData?.data) return []
+    return locationsData.data.filter(loc => loc.id !== selectedStock.location_id)
+  }, [selectedStock, locationsData?.data])
 
   return (
     <div className="space-y-6">
@@ -361,6 +397,14 @@ export function StockLevelsPage() {
                           <RefreshCw className="h-3.5 w-3.5" />
                           Adjust
                         </button>
+                        <button
+                          onClick={() => { openAdjustModal(stock, 'transfer') }}
+                          className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-50"
+                          title="Transfer stock"
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                          Transfer
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -402,6 +446,7 @@ export function StockLevelsPage() {
                 {adjustmentType === 'adjust' && 'Adjust Stock'}
                 {adjustmentType === 'receive' && 'Receive Stock'}
                 {adjustmentType === 'issue' && 'Issue Stock'}
+                {adjustmentType === 'transfer' && 'Transfer Stock'}
               </h2>
               <button
                 onClick={closeModal}
@@ -418,9 +463,32 @@ export function StockLevelsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Location</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  {adjustmentType === 'transfer' ? 'From Location' : 'Location'}
+                </label>
                 <p className="mt-1 text-sm text-gray-900">{selectedStock.location_name}</p>
               </div>
+
+              {adjustmentType === 'transfer' && (
+                <div>
+                  <label htmlFor="transfer-location" className="block text-sm font-medium text-gray-700">
+                    To Location
+                  </label>
+                  <select
+                    id="transfer-location"
+                    value={transferLocationId}
+                    onChange={(e) => { setTransferLocationId(e.target.value) }}
+                    className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Select destination...</option>
+                    {transferLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name} ({loc.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Current Quantity</label>
@@ -449,27 +517,29 @@ export function StockLevelsPage() {
                 )}
               </div>
 
-              <div>
-                <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
-                  Reason
-                </label>
-                <select
-                  id="reason"
-                  value={adjustmentReason}
-                  onChange={(e) => { setAdjustmentReason(e.target.value) }}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {adjustmentReasons.map((reason) => (
-                    <option key={reason.value} value={reason.value}>
-                      {reason.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {adjustmentType !== 'transfer' && (
+                <div>
+                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
+                    Reason
+                  </label>
+                  <select
+                    id="reason"
+                    value={adjustmentReason}
+                    onChange={(e) => { setAdjustmentReason(e.target.value) }}
+                    className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {adjustmentReasons.map((reason) => (
+                      <option key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                  Notes (optional)
+                  {adjustmentType === 'transfer' ? 'Reference' : 'Notes (optional)'}
                 </label>
                 <textarea
                   id="notes"
@@ -477,7 +547,7 @@ export function StockLevelsPage() {
                   onChange={(e) => { setAdjustmentNotes(e.target.value) }}
                   rows={2}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Add any additional notes..."
+                  placeholder={adjustmentType === 'transfer' ? 'Enter transfer reference...' : 'Add any additional notes...'}
                 />
               </div>
 
@@ -498,10 +568,10 @@ export function StockLevelsPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !adjustmentQuantity}
+                  disabled={isSubmitting || !adjustmentQuantity || (adjustmentType === 'transfer' && !transferLocationId)}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving...' : 'Save'}
+                  {isSubmitting ? 'Saving...' : adjustmentType === 'transfer' ? 'Transfer' : 'Save'}
                 </button>
               </div>
             </div>

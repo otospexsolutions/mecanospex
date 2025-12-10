@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric-string|null $discount_amount
  * @property numeric-string|null $tax_rate
  * @property numeric-string $line_total
+ * @property numeric-string $allocated_costs
+ * @property numeric-string|null $landed_unit_cost
  * @property string|null $notes
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -50,6 +52,8 @@ class DocumentLine extends Model
         'discount_amount',
         'tax_rate',
         'line_total',
+        'allocated_costs',
+        'landed_unit_cost',
         'notes',
     ];
 

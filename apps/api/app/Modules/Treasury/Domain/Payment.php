@@ -9,6 +9,7 @@ use App\Modules\Identity\Domain\User;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
 use App\Modules\Treasury\Domain\Enums\PaymentStatus;
+use App\Modules\Treasury\Domain\Enums\PaymentType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $currency
  * @property \Illuminate\Support\Carbon $payment_date
  * @property PaymentStatus $status
+ * @property PaymentType $payment_type
  * @property string|null $reference
  * @property string|null $notes
  * @property string|null $journal_entry_id
@@ -61,6 +63,7 @@ class Payment extends Model
         'currency',
         'payment_date',
         'status',
+        'payment_type',
         'reference',
         'notes',
         'journal_entry_id',
@@ -76,6 +79,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'payment_date' => 'date',
             'status' => PaymentStatus::class,
+            'payment_type' => PaymentType::class,
         ];
     }
 
@@ -207,5 +211,68 @@ class Payment extends Model
     public function scopeForCompany(Builder $query, string $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Scope to filter by payment type.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeOfType(Builder $query, PaymentType $type): Builder
+    {
+        return $query->where('payment_type', $type->value);
+    }
+
+    /**
+     * Scope for incoming payments only.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeIncoming(Builder $query): Builder
+    {
+        return $query->whereIn('payment_type', [
+            PaymentType::DocumentPayment->value,
+            PaymentType::Advance->value,
+        ]);
+    }
+
+    /**
+     * Scope for outgoing payments only.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeOutgoing(Builder $query): Builder
+    {
+        return $query->whereIn('payment_type', [
+            PaymentType::Refund->value,
+            PaymentType::SupplierPayment->value,
+        ]);
+    }
+
+    /**
+     * Check if this is an advance payment.
+     */
+    public function isAdvance(): bool
+    {
+        return $this->payment_type === PaymentType::Advance;
+    }
+
+    /**
+     * Check if this is a refund.
+     */
+    public function isRefund(): bool
+    {
+        return $this->payment_type === PaymentType::Refund;
+    }
+
+    /**
+     * Check if this is a supplier payment.
+     */
+    public function isSupplierPayment(): bool
+    {
+        return $this->payment_type === PaymentType::SupplierPayment;
     }
 }

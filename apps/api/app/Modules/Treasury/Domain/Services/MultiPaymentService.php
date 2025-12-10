@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Treasury\Domain\Services;
 
 use App\Modules\Document\Domain\Document;
+use App\Modules\Treasury\Domain\Enums\PaymentStatus;
 use App\Modules\Treasury\Domain\Payment;
 use App\Modules\Treasury\Domain\PaymentAllocation;
-use App\Modules\Treasury\Domain\Enums\PaymentStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -16,9 +16,7 @@ class MultiPaymentService
     /**
      * Create split payment across multiple payment methods
      *
-     * @param Document $document
-     * @param array $paymentSplits Array of ['payment_method_id', 'amount', 'repository_id', 'instrument_id', 'reference']
-     * @param string|null $userId
+     * @param  array  $paymentSplits  Array of ['payment_method_id', 'amount', 'repository_id', 'instrument_id', 'reference']
      * @return array Array of created Payment objects
      */
     public function createSplitPayment(
@@ -60,8 +58,8 @@ class MultiPaymentService
                     'currency' => $document->currency,
                     'payment_date' => now(),
                     'status' => PaymentStatus::Completed,
-                    'reference' => $split['reference'] ?? "Split payment " . ($index + 1) . " for {$document->document_number}",
-                    'notes' => "Split payment {$split['amount']} (part " . ($index + 1) . " of " . count($paymentSplits) . ")",
+                    'reference' => $split['reference'] ?? 'Split payment '.($index + 1)." for {$document->document_number}",
+                    'notes' => "Split payment {$split['amount']} (part ".($index + 1).' of '.count($paymentSplits).')',
                     'created_by' => $userId,
                 ]);
 
@@ -88,19 +86,6 @@ class MultiPaymentService
 
     /**
      * Record deposit/advance payment (not allocated to specific document)
-     *
-     * @param string $tenantId
-     * @param string $companyId
-     * @param string $partnerId
-     * @param string $paymentMethodId
-     * @param string $amount
-     * @param string $currency
-     * @param string|null $repositoryId
-     * @param string|null $instrumentId
-     * @param string|null $reference
-     * @param string|null $notes
-     * @param string|null $userId
-     * @return Payment
      */
     public function recordDeposit(
         string $tenantId,
@@ -145,7 +130,7 @@ class MultiPaymentService
                 'payment_date' => now(),
                 'status' => PaymentStatus::Completed,
                 'reference' => $reference ?? 'Deposit payment',
-                'notes' => ($notes ?? 'Advance payment/deposit') . ' [UNALLOCATED]',
+                'notes' => ($notes ?? 'Advance payment/deposit').' [UNALLOCATED]',
                 'created_by' => $userId,
             ]);
         });
@@ -153,11 +138,6 @@ class MultiPaymentService
 
     /**
      * Apply deposit to document (allocate previously unallocated payment)
-     *
-     * @param Payment $deposit
-     * @param Document $document
-     * @param string $amount
-     * @return PaymentAllocation
      */
     public function applyDepositToDocument(
         Payment $deposit,
@@ -201,10 +181,6 @@ class MultiPaymentService
 
     /**
      * Get unallocated deposit balance for a partner
-     *
-     * @param string $partnerId
-     * @param string $currency
-     * @return string
      */
     public function getUnallocatedDepositBalance(string $partnerId, string $currency): string
     {
@@ -231,14 +207,6 @@ class MultiPaymentService
     /**
      * Record payment on account (credit balance for partner)
      *
-     * @param string $tenantId
-     * @param string $companyId
-     * @param string $partnerId
-     * @param string $amount
-     * @param string $currency
-     * @param string|null $reference
-     * @param string|null $notes
-     * @param string|null $userId
      * @return array ['payment' => Payment, 'account_balance' => string]
      */
     public function recordPaymentOnAccount(
@@ -276,7 +244,7 @@ class MultiPaymentService
                 'payment_date' => now(),
                 'status' => PaymentStatus::Completed,
                 'reference' => $reference ?? 'Payment on account',
-                'notes' => ($notes ?? 'Payment on account - credit balance') . ' [ON_ACCOUNT]',
+                'notes' => ($notes ?? 'Payment on account - credit balance').' [ON_ACCOUNT]',
                 'created_by' => $userId,
             ]);
         });
@@ -291,10 +259,6 @@ class MultiPaymentService
 
     /**
      * Get partner account balance (unallocated payments)
-     *
-     * @param string $partnerId
-     * @param string $currency
-     * @return array
      */
     public function getPartnerAccountBalance(string $partnerId, string $currency): array
     {
@@ -317,10 +281,6 @@ class MultiPaymentService
 
     /**
      * Validate split payment amounts
-     *
-     * @param array $splits
-     * @param string $totalRequired
-     * @return bool
      */
     public function validateSplitAmounts(array $splits, string $totalRequired): bool
     {
@@ -339,9 +299,6 @@ class MultiPaymentService
 
     /**
      * Get document status after full payment
-     *
-     * @param Document $document
-     * @return \App\Modules\Document\Domain\Enums\DocumentStatus
      */
     private function getDocumentStatusAfterPayment(Document $document): \App\Modules\Document\Domain\Enums\DocumentStatus
     {

@@ -3,18 +3,36 @@ import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { api, apiPost, apiPatch } from '../../lib/api'
 import { DocumentLineEditor, type DocumentLine } from '../../components/documents/DocumentLineEditor'
+import { PurchaseOrderAdditionalCosts } from './components/PurchaseOrderAdditionalCosts'
+import { AddPartnerModal } from '../../components/organisms'
 import type { DocumentType } from './DocumentListPage'
 
 interface Partner {
   id: string
   name: string
+  type: 'customer' | 'supplier' | 'both'
 }
 
 interface PartnersResponse {
   data: Partner[]
+}
+
+// Determine whether to filter by customer or supplier based on document type
+function getPartnerTypeForDocument(docType: DocumentType | undefined): 'customer' | 'supplier' | undefined {
+  if (!docType) return undefined
+  // Sales documents need customers
+  if (['quote', 'sales_order', 'invoice', 'credit_note', 'delivery_note'].includes(docType)) {
+    return 'customer'
+  }
+  // Purchase documents need suppliers
+  if (docType === 'purchase_order') {
+    return 'supplier'
+  }
+  return undefined
 }
 
 interface DocumentApiLine {
@@ -106,6 +124,8 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
   const [hasInitializedLines, setHasInitializedLines] = useState(false)
   // Lines state (managed separately from form)
   const [lines, setLines] = useState<DocumentLine[]>([])
+  // Partner modal state
+  const [showPartnerModal, setShowPartnerModal] = useState(false)
 
   // Determine document type from props or URL
   const effectiveType = documentType ?? getDocumentTypeFromPath(location.pathname)
@@ -117,6 +137,7 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<DocumentFormData>({
     defaultValues: {
@@ -128,11 +149,19 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
     },
   })
 
-  // Fetch partners for dropdown
+  // Determine partner type to filter based on document type
+  const partnerTypeFilter = getPartnerTypeForDocument(effectiveType)
+
+  // Fetch partners for dropdown - filtered by document type
   const { data: partnersData } = useQuery({
-    queryKey: ['partners'],
+    queryKey: ['partners', partnerTypeFilter],
     queryFn: async () => {
-      const response = await api.get<PartnersResponse>('/partners')
+      const params = new URLSearchParams()
+      if (partnerTypeFilter) {
+        params.append('type', partnerTypeFilter)
+      }
+      const query = params.toString()
+      const response = await api.get<PartnersResponse>(`/partners${query ? `?${query}` : ''}`)
       return response.data
     },
   })
@@ -170,10 +199,21 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
 
   const createMutation = useMutation({
     mutationFn: (data: DocumentFormData) => apiPost<Document>(apiEndpoint, data),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      toast.success(t('status.success'))
       void queryClient.invalidateQueries({ queryKey: ['documents'] })
       void queryClient.invalidateQueries({ queryKey: [effectiveType] })
-      void navigate(basePath)
+      // Navigate to the newly created document's detail page
+      const documentId = response?.id
+      if (documentId) {
+        void navigate(`${basePath}/${documentId}`)
+      }
+    },
+    onError: (error: Error & { response?: { data?: { message?: string; error?: { message?: string } } } }) => {
+      const message = error.response?.data?.error?.message
+        ?? error.response?.data?.message
+        ?? error.message
+      toast.error(message)
     },
   })
 
@@ -181,10 +221,17 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
     mutationFn: (data: DocumentFormData) =>
       apiPatch<Document>(`${apiEndpoint}/${id}`, data),
     onSuccess: () => {
+      toast.success(t('status.success'))
       void queryClient.invalidateQueries({ queryKey: ['documents'] })
       void queryClient.invalidateQueries({ queryKey: [effectiveType] })
       void queryClient.invalidateQueries({ queryKey: ['document', effectiveType, id] })
       void navigate(`${basePath}/${id}`)
+    },
+    onError: (error: Error & { response?: { data?: { message?: string; error?: { message?: string } } } }) => {
+      const message = error.response?.data?.error?.message
+        ?? error.response?.data?.message
+        ?? error.message
+      toast.error(message)
     },
   })
 
@@ -271,20 +318,30 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
                 htmlFor="partner_id"
                 className="block text-sm font-medium text-gray-700"
               >
-                Partner *
+                {partnerTypeFilter === 'customer' ? 'Customer' : partnerTypeFilter === 'supplier' ? 'Supplier' : 'Partner'} *
               </label>
-              <select
-                id="partner_id"
-                {...register('partner_id', { required: 'Partner is required' })}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select partner</option>
-                {partners.map((partner) => (
-                  <option key={partner.id} value={partner.id}>
-                    {partner.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1 flex gap-2">
+                <select
+                  id="partner_id"
+                  {...register('partner_id', { required: `${partnerTypeFilter === 'customer' ? 'Customer' : partnerTypeFilter === 'supplier' ? 'Supplier' : 'Partner'} is required` })}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select {partnerTypeFilter === 'customer' ? 'customer' : partnerTypeFilter === 'supplier' ? 'supplier' : 'partner'}</option>
+                  {partners.map((partner) => (
+                    <option key={partner.id} value={partner.id}>
+                      {partner.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { setShowPartnerModal(true) }}
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  title={`Add new ${partnerTypeFilter === 'customer' ? 'customer' : partnerTypeFilter === 'supplier' ? 'supplier' : 'partner'}`}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
               {errors.partner_id && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.partner_id.message}
@@ -351,6 +408,15 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
         {/* Document Lines */}
         <DocumentLineEditor lines={lines} onChange={setLines} />
 
+        {/* Additional Costs (Purchase Orders only - after document is created) */}
+        {effectiveType === 'purchase_order' && isEditing && id && (
+          <PurchaseOrderAdditionalCosts
+            documentId={id}
+            disabled={document?.status !== 'draft'}
+            currency="TND"
+          />
+        )}
+
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-4">
           <Link
@@ -361,13 +427,26 @@ export function DocumentForm({ documentType }: DocumentFormProps) {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {isSubmitting ? t('status.saving') : t('actions.save')}
+            {(isSubmitting || createMutation.isPending || updateMutation.isPending) ? t('status.saving') : t('actions.save')}
           </button>
         </div>
       </form>
+
+      {/* Add Partner Modal */}
+      <AddPartnerModal
+        isOpen={showPartnerModal}
+        onClose={() => { setShowPartnerModal(false) }}
+        partnerType={partnerTypeFilter}
+        onSuccess={(partner) => {
+          // Set the form value immediately
+          setValue('partner_id', partner.id)
+          // Invalidate partners query to refresh the dropdown with new partner
+          void queryClient.invalidateQueries({ queryKey: ['partners'] })
+        }}
+      />
     </div>
   )
 }

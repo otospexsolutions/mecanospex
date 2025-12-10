@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Pricing\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Pricing\Domain\PartnerPriceList;
 use App\Modules\Pricing\Domain\PriceList;
 use App\Modules\Pricing\Domain\PriceListItem;
-use App\Modules\Pricing\Domain\PartnerPriceList;
 use App\Modules\Pricing\Domain\Services\PricingService;
 use App\Modules\Product\Application\Services\MarginService;
 use App\Modules\Product\Domain\Product;
@@ -97,7 +97,7 @@ class PricingController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $request->validate([
-            'code' => 'sometimes|string|max:50|unique:price_lists,code,' . $id,
+            'code' => 'sometimes|string|max:50|unique:price_lists,code,'.$id,
             'name' => 'sometimes|string|max:100',
             'description' => 'nullable|string',
             'currency' => 'sometimes|string|size:3',

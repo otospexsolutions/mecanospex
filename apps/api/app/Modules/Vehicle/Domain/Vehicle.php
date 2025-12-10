@@ -9,6 +9,7 @@ use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -41,6 +42,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Vehicle extends Model
 {
+    use HasFactory;
     use HasUuids;
     use SoftDeletes;
 
@@ -78,6 +80,14 @@ class Vehicle extends Model
             'year' => 'integer',
             'mileage' => 'integer',
         ];
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): \Database\Factories\VehicleFactory
+    {
+        return \Database\Factories\VehicleFactory::new();
     }
 
     /**

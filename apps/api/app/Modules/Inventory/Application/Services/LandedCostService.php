@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Application\Services;
 
 use App\Modules\Document\Domain\Document;
-use App\Modules\Document\Domain\DocumentLine;
 
 /**
  * LandedCostService - Allocates additional costs to purchase order lines
@@ -19,11 +18,11 @@ class LandedCostService
     {
         $lines = $purchaseOrder->lines;
         $additionalCostsTotal = (float) $purchaseOrder->additionalCosts()->sum('amount');
-        $subtotal = (float) $lines->sum('total');
+        $subtotal = (float) $lines->sum('line_total');
 
         foreach ($lines as $line) {
             if ($subtotal > 0 && $additionalCostsTotal > 0) {
-                $proportion = (float) $line->total / $subtotal;
+                $proportion = (float) $line->line_total / $subtotal;
                 $allocatedCost = round($additionalCostsTotal * $proportion, 2);
             } else {
                 $allocatedCost = 0;
@@ -31,7 +30,7 @@ class LandedCostService
 
             $line->allocated_costs = (string) $allocatedCost;
             $line->landed_unit_cost = (float) $line->quantity > 0
-                ? (string) round(((float) $line->total + $allocatedCost) / (float) $line->quantity, 2)
+                ? (string) round(((float) $line->line_total + $allocatedCost) / (float) $line->quantity, 2)
                 : $line->unit_price;
             $line->save();
         }
@@ -40,7 +39,7 @@ class LandedCostService
     /**
      * Get breakdown of cost allocation for display
      *
-     * @return array<int, array{line_id: string, product_name: string, quantity: string, unit_price: string, line_total: string, allocated_costs: string, landed_unit_cost: string}>
+     * @return array<int, array{line_id: string, product_name: string, quantity: numeric-string, unit_price: numeric-string, line_total: numeric-string, allocated_costs: numeric-string, landed_unit_cost: numeric-string}>
      */
     public function getAllocationBreakdown(Document $purchaseOrder): array
     {
@@ -49,10 +48,10 @@ class LandedCostService
         foreach ($purchaseOrder->lines as $line) {
             $result[] = [
                 'line_id' => $line->id,
-                'product_name' => $line->product?->name ?? $line->description,
+                'product_name' => $line->product->name ?? $line->description,
                 'quantity' => $line->quantity,
                 'unit_price' => $line->unit_price,
-                'line_total' => $line->total,
+                'line_total' => $line->line_total,
                 'allocated_costs' => $line->allocated_costs ?? '0.00',
                 'landed_unit_cost' => $line->landed_unit_cost ?? $line->unit_price,
             ];

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Toaster } from 'sonner'
 import { AuthProvider } from './features/auth'
 import { CompanyProvider } from './features/company/CompanyProvider'
 import { LocationProvider } from './features/location/LocationProvider'
@@ -21,6 +22,7 @@ function App() {
       <CompanyProvider>
         <LocationProvider>
           <AppRoutes />
+          <Toaster position="top-right" richColors />
         </LocationProvider>
       </CompanyProvider>
     </AuthProvider>

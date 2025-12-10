@@ -1,0 +1,168 @@
+{
+  "errors": {
+    "invalidFileType": "Invalid file type. Accepted types: {{types}}",
+    "fileTooLarge": "File is too large. Maximum size: {{maxSize}}"
+  },
+  "upload": {
+    "dragDrop": "Drag and drop your file here",
+    "or": "or",
+    "browse": "browse files",
+    "formats": "Formats: {{formats}}",
+    "maxSize": "Max: {{size}}"
+  },
+  "messages": {
+    "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Failed to upload file",
+    "importStarted": "Import started",
+    "importError": "Failed to start import",
+    "deleted": "Import job deleted",
+    "deleteError": "Failed to delete import job"
+  },
+  "dashboard": {
+    "title": "Data Import",
+    "description": "Import your data from CSV or Excel files",
+    "progressSummary": "{{count}} records imported so far",
+    "continueImporting": "Continue importing to complete your data migration",
+    "howItWorks": "How it works",
+    "howItWorksDescription": "Follow these simple steps to import your data safely and accurately.",
+    "step1": "Select the type of data you want to import",
+    "step2": "Upload your CSV or Excel file",
+    "step3": "Map your columns to the required fields",
+    "step4": "Review and fix any validation errors, then import",
+    "importTypes": "Import Types",
+    "tips": "Tips for successful imports",
+    "tip1": "Ensure your file has headers in the first row",
+    "tip2": "Use the provided templates for best results",
+    "tip3": "Import partners and products before stock levels or opening balances"
+  },
+  "types": {
+    "partners": {
+      "title": "Partners",
+      "description": "Import customers and suppliers"
+    },
+    "products": {
+      "title": "Products",
+      "description": "Import your product catalog"
+    },
+    "stock_levels": {
+      "title": "Stock Levels",
+      "description": "Import opening stock quantities"
+    },
+    "opening_balances": {
+      "title": "Opening Balances",
+      "description": "Import account opening balances"
+    }
+  },
+  "card": {
+    "imported": "{{count}} imported",
+    "ready": "Ready to import",
+    "dependencies": "Requires: {{deps}}",
+    "startImport": "Start Import",
+    "continueImport": "Continue"
+  },
+  "actions": {
+    "viewHistory": "View History"
+  },
+  "status": {
+    "pending": "Pending",
+    "validating": "Validating",
+    "validated": "Validated",
+    "importing": "Importing",
+    "completed": "Completed",
+    "failed": "Failed"
+  },
+  "wizard": {
+    "steps": {
+      "upload": "Upload",
+      "mapping": "Map Columns",
+      "validation": "Review",
+      "execute": "Import",
+      "complete": "Done"
+    },
+    "upload": {
+      "title": "Upload your file",
+      "description": "Upload a CSV or Excel file containing your data. The first row should contain column headers.",
+      "dropzone": "Drag and drop your file here, or click to browse",
+      "formats": "Supported formats: CSV, XLSX, XLS",
+      "maxSize": "Maximum file size: {{size}}MB",
+      "downloadTemplate": "Download template",
+      "fileReady": "File ready: {{name}}",
+      "columnsDetected": "{{count}} columns detected"
+    },
+    "mapping": {
+      "title": "Map your columns",
+      "description": "Match the columns in your file to the required system fields. Required fields are marked with an asterisk (*).",
+      "validating": "Validating...",
+      "validate": "Validate Data"
+    },
+    "validation": {
+      "title": "Review validation results",
+      "description": "Review any errors found during validation. You can fix errors directly in the grid below or proceed with valid rows only.",
+      "proceed": "Proceed to Import"
+    },
+    "execute": {
+      "title": "Import your data",
+      "description": "Review the summary below and start the import when ready.",
+      "summary": "Import Summary",
+      "file": "File",
+      "totalRows": "Total rows",
+      "validRows": "Valid rows",
+      "invalidRows": "Invalid rows",
+      "start": "Start Import",
+      "starting": "Starting...",
+      "importing": "Importing...",
+      "completed": "Import completed!",
+      "failed": "Import failed",
+      "progress": "Progress",
+      "viewResults": "View Results"
+    },
+    "complete": {
+      "title": "Import Complete!",
+      "description": "Your data has been successfully imported.",
+      "results": "Results",
+      "imported": "Successfully imported",
+      "failed": "Failed to import",
+      "backToDashboard": "Back to Import Dashboard",
+      "importMore": "Import More Data"
+    },
+    "proceedWithErrors": "Some rows have validation errors and will be skipped. Do you want to proceed with valid rows only?"
+  },
+  "mapping": {
+    "sourceColumn": "Source Column",
+    "targetColumn": "Target Field",
+    "status": "Status",
+    "skipColumn": "-- Skip this column --",
+    "requiredFields": "Required Fields",
+    "optionalFields": "Optional Fields",
+    "alreadyMapped": "already mapped",
+    "missingRequired": "Missing required fields",
+    "legendMapped": "Mapped",
+    "legendSkipped": "Skipped",
+    "legendRequired": "Required"
+  },
+  "validation": {
+    "allValid": "All rows are valid",
+    "allValidDescription": "Your data passed all validation checks and is ready to import.",
+    "rowsWithErrors": "{{count}} rows with errors",
+    "row": "Row",
+    "showingPage": "Page {{current}} of {{total}}"
+  },
+  "history": {
+    "title": "Import History",
+    "description": "View all past import jobs and their results",
+    "filterByStatus": "Filter by status",
+    "all": "All",
+    "columns": {
+      "type": "Type",
+      "file": "File",
+      "status": "Status",
+      "progress": "Progress",
+      "date": "Date",
+      "actions": "Actions"
+    },
+    "viewDetails": "View Details",
+    "noJobs": "No import jobs found",
+    "noJobsDescription": "Start by importing some data from the import dashboard.",
+    "startImport": "Start Import"
+  }
+}

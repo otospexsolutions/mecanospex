@@ -29,7 +29,14 @@ class DocumentConversionController extends Controller
             return response()->json([
                 'data' => $order->load(['lines', 'partner', 'vehicle']),
                 'message' => 'Quote converted to sales order successfully',
-            ]);
+            ], 201);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'QUOTE_NOT_CONFIRMED',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -60,7 +67,14 @@ class DocumentConversionController extends Controller
             return response()->json([
                 'data' => $invoice->load(['lines', 'partner', 'vehicle']),
                 'message' => 'Sales order converted to invoice successfully',
-            ]);
+            ], 201);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'ORDER_NOT_CONFIRMED',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -81,7 +95,7 @@ class DocumentConversionController extends Controller
             return response()->json([
                 'data' => $delivery->load(['lines', 'partner', 'vehicle']),
                 'message' => 'Sales order converted to delivery note successfully',
-            ]);
+            ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),

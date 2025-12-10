@@ -217,8 +217,12 @@ class PaymentTest extends TestCase
         $this->assertEquals(DocumentStatus::Paid, $this->invoice->status);
     }
 
-    public function test_cannot_overpay_invoice(): void
+    public function test_overpayment_caps_allocation_and_creates_excess(): void
     {
+        // Invoice has balance_due of 1190 (1000 + 190 tax), but we request to allocate 2000
+        // The system should cap the allocation at 1190 (invoice balance)
+        // and allow the excess (810) to be treated as customer advance
+
         $response = $this->actingAs($this->user)->postJson('/api/v1/payments', [
             'partner_id' => $this->customer->id,
             'payment_method_id' => $this->cashMethod->id,
@@ -227,13 +231,24 @@ class PaymentTest extends TestCase
             'allocations' => [
                 [
                     'document_id' => $this->invoice->id,
-                    'amount' => '2000.00', // More than balance_due
+                    'amount' => '2000.00', // More than balance_due - will be capped
                 ],
             ],
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('error.code', 'OVERPAYMENT');
+        // Payment should succeed
+        $response->assertStatus(201);
+
+        // Allocation should be capped at invoice balance (1190)
+        $this->assertDatabaseHas('payment_allocations', [
+            'document_id' => $this->invoice->id,
+            'amount' => '1190.0000', // Capped at invoice balance
+        ]);
+
+        // Invoice should be fully paid
+        $this->invoice->refresh();
+        $this->assertEquals('0.00', $this->invoice->balance_due);
+        $this->assertEquals(DocumentStatus::Paid, $this->invoice->status);
     }
 
     public function test_can_filter_payments_by_partner(): void

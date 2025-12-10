@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Settings, Users, Shield, Building2, ChevronRight } from 'lucide-react'
+import { Settings, Users, Shield, Building2, Upload, ChevronRight } from 'lucide-react'
 
 interface SettingsSection {
   title: string
@@ -31,6 +31,13 @@ const sections: SettingsSection[] = [
     icon: <Building2 className="h-6 w-6" />,
     href: '/settings/company',
     color: 'bg-green-100 text-green-600',
+  },
+  {
+    title: 'Data Import',
+    description: 'Import data from CSV or Excel files',
+    icon: <Upload className="h-6 w-6" />,
+    href: '/settings/import',
+    color: 'bg-amber-100 text-amber-600',
   },
 ]
 

@@ -14,7 +14,7 @@ class MarginServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new MarginService();
+        $this->service = new MarginService;
     }
 
     public function test_calculate_margin_with_valid_inputs(): void

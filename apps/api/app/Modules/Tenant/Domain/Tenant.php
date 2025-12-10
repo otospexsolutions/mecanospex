@@ -9,7 +9,9 @@ use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Enums\SubscriptionPlan;
 use App\Modules\Tenant\Domain\Enums\TenantStatus;
 use Carbon\Carbon;
+use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -54,9 +56,21 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
+    /** @use HasFactory<TenantFactory> */
+    use HasFactory;
     use HasDatabase;
     use HasDomains;
     use HasUuids;
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return TenantFactory
+     */
+    protected static function newFactory(): TenantFactory
+    {
+        return TenantFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.

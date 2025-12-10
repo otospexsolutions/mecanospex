@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Plus, Vault, Building2, CreditCard, Wallet, X } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { api, apiPost } from '../../lib/api'
+import { Plus, Vault, Building2, CreditCard, Wallet } from 'lucide-react'
+import { api } from '../../lib/api'
+import { usePermissions } from '../../hooks/usePermissions'
+import { AddRepositoryModal } from '../../components/organisms'
 
 interface Repository {
   id: string
@@ -20,16 +22,6 @@ interface Repository {
 
 interface RepositoriesResponse {
   data: Repository[]
-}
-
-interface RepositoryFormData {
-  code: string
-  name: string
-  type: string
-  bank_name: string
-  account_number: string
-  iban: string
-  bic: string
 }
 
 const typeIcons: Record<Repository['type'], React.ComponentType<{ className?: string }>> = {
@@ -57,6 +49,8 @@ export function RepositoryListPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [showAddModal, setShowAddModal] = useState(false)
+  const { hasPermission } = usePermissions()
+  const canManageRepositories = hasPermission('repositories.manage')
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['payment-repositories'],
@@ -106,13 +100,15 @@ export function RepositoryListPage() {
             {repositories.length} {repositories.length === 1 ? 'repository' : 'repositories'} | Total: {formatCurrency(totalBalance)}
           </p>
         </div>
-        <button
-          onClick={() => { setShowAddModal(true) }}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Repository
-        </button>
+        {canManageRepositories && (
+          <button
+            onClick={() => { setShowAddModal(true) }}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Repository
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -129,17 +125,21 @@ export function RepositoryListPage() {
           <Vault className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">No repositories</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by adding a cash register, safe, or bank account.
+            {canManageRepositories
+              ? 'Get started by adding a cash register, safe, or bank account.'
+              : 'Contact your administrator to add repositories.'}
           </p>
-          <div className="mt-6">
-            <button
-              onClick={() => { setShowAddModal(true) }}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              Add Repository
-            </button>
-          </div>
+          {canManageRepositories && (
+            <div className="mt-6">
+              <button
+                onClick={() => { setShowAddModal(true) }}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add Repository
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -203,7 +203,12 @@ export function RepositoryListPage() {
                             <Icon className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{repo.name}</p>
+                            <Link
+                              to={`/treasury/repositories/${repo.id}`}
+                              className="font-medium text-gray-900 hover:text-blue-600"
+                            >
+                              {repo.name}
+                            </Link>
                             <p className="text-sm text-gray-500 font-mono">{repo.code}</p>
                           </div>
                         </div>
@@ -253,201 +258,13 @@ export function RepositoryListPage() {
       )}
 
       {/* Add Repository Modal */}
-      {showAddModal && (
-        <AddRepositoryModal
-          onClose={() => { setShowAddModal(false) }}
-          onSuccess={() => {
-            setShowAddModal(false)
-            void queryClient.invalidateQueries({ queryKey: ['payment-repositories'] })
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-function AddRepositoryModal({
-  onClose,
-  onSuccess,
-}: {
-  onClose: () => void
-  onSuccess: () => void
-}) {
-  const { t } = useTranslation()
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RepositoryFormData>({
-    defaultValues: {
-      code: '',
-      name: '',
-      type: 'cash_register',
-      bank_name: '',
-      account_number: '',
-      iban: '',
-      bic: '',
-    },
-  })
-
-  const selectedType = watch('type')
-  const isBankAccount = selectedType === 'bank_account'
-
-  const createMutation = useMutation({
-    mutationFn: (data: RepositoryFormData) =>
-      apiPost<Repository>('/payment-repositories', {
-        code: data.code,
-        name: data.name,
-        type: data.type,
-        bank_name: data.bank_name || null,
-        account_number: data.account_number || null,
-        iban: data.iban || null,
-        bic: data.bic || null,
-      }),
-    onSuccess,
-  })
-
-  const onSubmit = (data: RepositoryFormData) => {
-    createMutation.mutate(data)
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Add Repository</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-                Code *
-              </label>
-              <input
-                type="text"
-                id="code"
-                {...register('code', { required: 'Code is required' })}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="CASH-01"
-              />
-              {errors.code && (
-                <p className="mt-1 text-sm text-red-600">{errors.code.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name *
-              </label>
-              <input
-                type="text"
-                id="name"
-                {...register('name', { required: 'Name is required' })}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Main Cash Register"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-              Type *
-            </label>
-            <select
-              id="type"
-              {...register('type', { required: 'Type is required' })}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="cash_register">Cash Register</option>
-              <option value="safe">Safe</option>
-              <option value="bank_account">Bank Account</option>
-              <option value="virtual">Virtual</option>
-            </select>
-          </div>
-
-          {isBankAccount && (
-            <>
-              <div>
-                <label htmlFor="bank_name" className="block text-sm font-medium text-gray-700">
-                  Bank Name
-                </label>
-                <input
-                  type="text"
-                  id="bank_name"
-                  {...register('bank_name')}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Bank of America"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="account_number" className="block text-sm font-medium text-gray-700">
-                    Account Number
-                  </label>
-                  <input
-                    type="text"
-                    id="account_number"
-                    {...register('account_number')}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="iban" className="block text-sm font-medium text-gray-700">
-                    IBAN
-                  </label>
-                  <input
-                    type="text"
-                    id="iban"
-                    {...register('iban')}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="bic" className="block text-sm font-medium text-gray-700">
-                  BIC/SWIFT
-                </label>
-                <input
-                  type="text"
-                  id="bic"
-                  {...register('bic')}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </>
-          )}
-
-          {createMutation.error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {createMutation.error instanceof Error
-                ? createMutation.error.message
-                : 'An error occurred. Please try again.'}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {t('actions.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {createMutation.isPending ? t('status.saving', 'Saving...') : t('actions.save')}
-            </button>
-          </div>
-        </form>
-      </div>
+      <AddRepositoryModal
+        isOpen={showAddModal}
+        onClose={() => { setShowAddModal(false) }}
+        onSuccess={() => {
+          void queryClient.invalidateQueries({ queryKey: ['payment-repositories'] })
+        }}
+      />
     </div>
   )
 }

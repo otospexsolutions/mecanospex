@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
@@ -13,9 +14,20 @@ import {
   CreditCard,
   Car,
   DollarSign,
+  Wallet,
+  PiggyBank,
+  Plus,
 } from 'lucide-react'
 import { api } from '../../lib/api'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs'
+import { AddVehicleModal } from '../../components/organisms'
+
+interface PartnerAccountBalance {
+  partner_id: string
+  currency: string
+  unallocated_balance: string
+  deposit_count: number
+}
 
 interface Partner {
   id: string
@@ -39,19 +51,21 @@ interface Partner {
 interface Document {
   id: string
   document_number: string
-  type: 'quote' | 'sales_order' | 'invoice' | 'credit_note'
+  type: 'quote' | 'sales_order' | 'invoice' | 'credit_note' | 'purchase_order'
   status: 'draft' | 'confirmed' | 'posted' | 'cancelled'
-  total_amount: number
-  issue_date: string
+  total: string | null
+  document_date: string
 }
 
 interface Payment {
   id: string
   payment_number: string
-  amount: number
+  amount: string
   payment_date: string
-  method: string
+  payment_method_name: string | null
   status: string
+  payment_type: string | null
+  unallocated_amount: string
 }
 
 interface Vehicle {
@@ -80,6 +94,7 @@ const documentTypeColors: Record<string, string> = {
   sales_order: 'bg-blue-100 text-blue-800',
   invoice: 'bg-green-100 text-green-800',
   credit_note: 'bg-red-100 text-red-800',
+  purchase_order: 'bg-purple-100 text-purple-800',
 }
 
 const documentTypeLabels: Record<string, string> = {
@@ -87,6 +102,7 @@ const documentTypeLabels: Record<string, string> = {
   sales_order: 'Sales Order',
   invoice: 'Invoice',
   credit_note: 'Credit Note',
+  purchase_order: 'Purchase Order',
 }
 
 const statusColors: Record<string, string> = {
@@ -98,8 +114,10 @@ const statusColors: Record<string, string> = {
 
 export function PartnerDetailPage() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const { id = '' } = useParams<{ id: string }>()
   const location = useLocation()
+  const [showVehicleModal, setShowVehicleModal] = useState(false)
 
   // Determine context from URL
   const isCustomerContext = location.pathname.includes('/sales/customers')
@@ -122,14 +140,15 @@ export function PartnerDetailPage() {
     enabled: id.length > 0,
   })
 
-  // Fetch related documents
+  // Fetch related documents (both sales docs for customers and purchase orders for suppliers)
   const { data: documentsData } = useQuery({
-    queryKey: ['partner-documents', id],
+    queryKey: ['partner-documents', id, isSupplierContext],
     queryFn: async () => {
-      const response = await api.get<{ data: Document[] }>(`/documents?partner_id=${id}`)
+      const typeFilter = isSupplierContext ? '&type=purchase_order' : ''
+      const response = await api.get<{ data: Document[] }>(`/documents?partner_id=${id}${typeFilter}`)
       return response.data.data
     },
-    enabled: id.length > 0 && isCustomerContext,
+    enabled: id.length > 0 && (isCustomerContext || isSupplierContext),
   })
 
   // Fetch related payments
@@ -150,6 +169,17 @@ export function PartnerDetailPage() {
       return response.data.data
     },
     enabled: id.length > 0 && isCustomerContext,
+  })
+
+  // Fetch partner account balance (unallocated deposits/credits)
+  const { data: accountBalance } = useQuery({
+    queryKey: ['partner-account-balance', id],
+    queryFn: async () => {
+      // Default to TND for now - in a real app, this would come from tenant settings
+      const response = await api.get<{ data: PartnerAccountBalance }>(`/partners/${id}/account-balance/TND`)
+      return response.data.data
+    },
+    enabled: id.length > 0,
   })
 
   const documents = documentsData ?? []
@@ -241,6 +271,15 @@ export function PartnerDetailPage() {
               </Link>
             </>
           )}
+          {isSupplierContext && (
+            <Link
+              to={`/purchases/orders/new?supplier=${partner.id}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              {t('actions.newPurchaseOrder', 'New Purchase Order')}
+            </Link>
+          )}
           <Link
             to={`${basePath}/${partner.id}/edit`}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -255,9 +294,9 @@ export function PartnerDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">{t('tabs.overview')}</TabsTrigger>
-          {isCustomerContext && (
+          {(isCustomerContext || isSupplierContext) && (
             <TabsTrigger value="documents">
-              {t('tabs.documents')} ({documents.length})
+              {isSupplierContext ? t('tabs.purchaseOrders', 'Purchase Orders') : t('tabs.documents')} ({documents.length})
             </TabsTrigger>
           )}
           <TabsTrigger value="payments">
@@ -274,22 +313,72 @@ export function PartnerDetailPage() {
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Balance Card */}
-            {isCustomerContext && (
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
-                  {t('sections.balance')}
-                </h2>
-                <dl className="space-y-3">
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-gray-400" />
+                {t('sections.balance')}
+              </h2>
+              <dl className="space-y-3">
+                {/* Total Receivable - for customers */}
+                {isCustomerContext && (
                   <div className="flex justify-between">
                     <dt className="text-sm text-gray-500">{t('fields.totalReceivable')}</dt>
                     <dd className="text-sm font-medium text-gray-900">
                       {formatCurrency(partner.total_receivable ?? 0)}
                     </dd>
                   </div>
-                </dl>
-              </div>
-            )}
+                )}
+
+                {/* Total Payable - for suppliers */}
+                {isSupplierContext && (
+                  <div className="flex justify-between">
+                    <dt className="text-sm text-gray-500">{t('fields.totalPayable')}</dt>
+                    <dd className="text-sm font-medium text-gray-900">
+                      {formatCurrency(partner.total_payable ?? 0)}
+                    </dd>
+                  </div>
+                )}
+
+                {/* Unallocated Balance / Credit */}
+                {accountBalance && parseFloat(accountBalance.unallocated_balance) > 0 && (
+                  <>
+                    <div className="border-t border-gray-100 pt-3">
+                      <div className="flex justify-between items-center">
+                        <dt className="text-sm text-gray-500 flex items-center gap-2">
+                          <Wallet className="h-4 w-4 text-green-500" />
+                          {t('partner.unallocatedBalance')}
+                        </dt>
+                        <dd className="text-sm font-medium text-green-600">
+                          {formatCurrency(parseFloat(accountBalance.unallocated_balance))}
+                        </dd>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {t('partner.unallocatedBalanceHint', { count: accountBalance.deposit_count })}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* On Account Credit */}
+                {accountBalance && parseFloat(accountBalance.unallocated_balance) > 0 && (
+                  <div className="bg-green-50 -mx-2 px-2 py-2 rounded">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <PiggyBank className="h-4 w-4" />
+                      <span className="text-xs font-medium">{t('partner.creditAvailable')}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* No balance */}
+                {(!accountBalance || parseFloat(accountBalance.unallocated_balance) === 0) &&
+                 (partner.total_receivable ?? 0) === 0 &&
+                 (partner.total_payable ?? 0) === 0 && (
+                  <div className="text-sm text-gray-400 text-center py-2">
+                    {t('partner.noBalance')}
+                  </div>
+                )}
+              </dl>
+            </div>
 
             {/* Contact Information */}
             <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -370,23 +459,39 @@ export function PartnerDetailPage() {
         </TabsContent>
 
         {/* Documents Tab */}
-        {isCustomerContext && (
+        {(isCustomerContext || isSupplierContext) && (
           <TabsContent value="documents" className="mt-6">
             {documents.length === 0 ? (
               <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
                 <FileText className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-semibold text-gray-900">
-                  {t('status.noDocuments')}
+                  {isSupplierContext
+                    ? t('status.noPurchaseOrders', 'No purchase orders')
+                    : t('status.noDocuments')}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">{t('status.noDocumentsDescription')}</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isSupplierContext
+                    ? t('status.noPurchaseOrdersDescription', 'Get started by creating a purchase order for this supplier.')
+                    : t('status.noDocumentsDescription')}
+                </p>
                 <div className="mt-6 flex justify-center gap-3">
-                  <Link
-                    to={`/sales/quotes/new?customer=${partner.id}`}
-                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {t('actions.newQuote')}
-                  </Link>
+                  {isSupplierContext ? (
+                    <Link
+                      to={`/purchases/orders/new?supplier=${partner.id}`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {t('actions.newPurchaseOrder', 'New Purchase Order')}
+                    </Link>
+                  ) : (
+                    <Link
+                      to={`/sales/quotes/new?customer=${partner.id}`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {t('actions.newQuote')}
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : (
@@ -412,38 +517,54 @@ export function PartnerDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {documents.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-gray-50">
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <Link
-                            to={`/sales/${doc.type === 'quote' ? 'quotes' : doc.type === 'sales_order' ? 'orders' : 'invoices'}/${doc.id}`}
-                            className="font-medium text-blue-600 hover:text-blue-900"
-                          >
-                            {doc.document_number}
-                          </Link>
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${documentTypeColors[doc.type]}`}
-                          >
-                            {documentTypeLabels[doc.type]}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[doc.status]}`}
-                          >
-                            {doc.status}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-gray-900">
-                          {formatCurrency(doc.total_amount)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {new Date(doc.issue_date).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                    {documents.map((doc) => {
+                      // Determine the correct path based on document type
+                      const getDocumentPath = () => {
+                        if (doc.type === 'purchase_order') {
+                          return `/purchases/orders/${doc.id}`
+                        }
+                        if (doc.type === 'quote') {
+                          return `/sales/quotes/${doc.id}`
+                        }
+                        if (doc.type === 'sales_order') {
+                          return `/sales/orders/${doc.id}`
+                        }
+                        return `/sales/invoices/${doc.id}`
+                      }
+
+                      return (
+                        <tr key={doc.id} className="hover:bg-gray-50">
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <Link
+                              to={getDocumentPath()}
+                              className="font-medium text-blue-600 hover:text-blue-900"
+                            >
+                              {doc.document_number}
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${documentTypeColors[doc.type]}`}
+                            >
+                              {documentTypeLabels[doc.type]}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[doc.status]}`}
+                            >
+                              {doc.status}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-gray-900">
+                            {formatCurrency(parseFloat(doc.total ?? '0'))}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                            {new Date(doc.document_date).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -495,17 +616,31 @@ export function PartnerDetailPage() {
                         </Link>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {payment.method}
+                        {payment.payment_method_name ?? '-'}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[payment.status] ?? 'bg-gray-100 text-gray-800'}`}
-                        >
-                          {payment.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[payment.status] ?? 'bg-gray-100 text-gray-800'}`}
+                          >
+                            {payment.status}
+                          </span>
+                          {payment.payment_type === 'advance' && (
+                            <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                              {t('treasury:payments.types.advance')}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-gray-900">
-                        {formatCurrency(payment.amount)}
+                      <td className="whitespace-nowrap px-6 py-4 text-end">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(parseFloat(payment.amount))}
+                        </div>
+                        {parseFloat(payment.unallocated_amount) > 0 && (
+                          <div className="text-xs text-blue-600">
+                            {t('treasury:payments.creditBalance')}: {formatCurrency(parseFloat(payment.unallocated_amount))}
+                          </div>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {new Date(payment.payment_date).toLocaleDateString()}
@@ -529,13 +664,14 @@ export function PartnerDetailPage() {
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">{t('status.noVehiclesDescription')}</p>
                 <div className="mt-6">
-                  <Link
-                    to={`/vehicles/new?customer=${partner.id}`}
+                  <button
+                    type="button"
+                    onClick={() => { setShowVehicleModal(true) }}
                     className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                   >
                     <Car className="h-4 w-4" />
                     {t('actions.addVehicle')}
-                  </Link>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -581,11 +717,31 @@ export function PartnerDetailPage() {
                     ))}
                   </tbody>
                 </table>
+                <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => { setShowVehicleModal(true) }}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t('actions.addVehicle')}
+                  </button>
+                </div>
               </div>
             )}
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Add Vehicle Modal */}
+      <AddVehicleModal
+        isOpen={showVehicleModal}
+        onClose={() => { setShowVehicleModal(false) }}
+        partnerId={partner.id}
+        onSuccess={() => {
+          void queryClient.invalidateQueries({ queryKey: ['partner-vehicles', id] })
+        }}
+      />
     </div>
   )
 }

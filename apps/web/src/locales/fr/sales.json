@@ -1,4 +1,26 @@
 {
+  "confirmation": {
+    "confirmDocument": {
+      "title": "Confirmer {{type}}",
+      "message": "Êtes-vous sûr de vouloir confirmer ce {{type}} ? Une fois confirmé, il ne pourra plus être modifié.",
+      "button": "Confirmer"
+    },
+    "cancelDocument": {
+      "title": "Annuler {{type}}",
+      "message": "Êtes-vous sûr de vouloir annuler ce {{type}} ? Cette action est irréversible.",
+      "button": "Annuler le document"
+    },
+    "postDocument": {
+      "title": "Comptabiliser {{type}}",
+      "message": "Êtes-vous sûr de vouloir comptabiliser ce {{type}} ? Cela créera des écritures comptables et le document sera finalisé.",
+      "button": "Comptabiliser"
+    },
+    "convertDocument": {
+      "title": "Convertir en {{target}}",
+      "message": "Êtes-vous sûr de vouloir convertir ce {{source}} en {{target}} ?",
+      "button": "Convertir"
+    }
+  },
   "partners": {
     "title": "Partenaires",
     "new": "Ajouter un partenaire",
@@ -32,17 +54,38 @@
     "type": "Type",
     "status": "Statut",
     "partner": "Partenaire",
+    "partnerInfo": "Informations partenaire",
+    "documentInfo": "Informations document",
     "date": "Date",
+    "issueDate": "Date d'émission",
     "dueDate": "Date d'échéance",
     "total": "Total",
+    "subtotal": "Sous-total",
+    "tax": "TVA",
+    "totals": "Totaux",
     "notes": "Notes",
     "lineItems": "Lignes",
+    "email": "E-mail",
+    "convertedToOrder": "Converti en commande",
+    "print": "Imprimer",
+    "send": "Envoyer",
+    "cancel": "Annuler",
+    "post": "Comptabiliser",
+    "recordPayment": "Enregistrer un paiement",
+    "createCreditNote": "Créer un avoir",
+    "conversionError": "Échec de la conversion du document. Veuillez réessayer.",
     "types": {
       "quote": "Devis",
       "salesOrder": "Bon de commande",
+      "sales_order": "Bon de commande",
+      "order": "Commande",
       "invoice": "Facture",
       "creditNote": "Avoir",
-      "deliveryNote": "Bon de livraison"
+      "credit_note": "Avoir",
+      "deliveryNote": "Bon de livraison",
+      "delivery_note": "Bon de livraison",
+      "purchaseOrder": "Bon d'achat",
+      "purchase_order": "Bon d'achat"
     },
     "statuses": {
       "draft": "Brouillon",
@@ -58,22 +101,60 @@
     }
   },
   "lineItems": {
+    "title": "Lignes",
     "item": "Article",
     "description": "Description",
     "quantity": "Qté",
     "unitPrice": "Prix unitaire",
     "tax": "TVA",
-    "total": "Total"
-  },
-  "quotes": {
-    "title": "Devis",
-    "new": "Nouveau devis",
-    "convertToOrder": "Convertir en commande"
+    "taxPercent": "TVA %",
+    "total": "Total",
+    "subtotal": "Sous-total",
+    "empty": {
+      "title": "Aucun article ajouté.",
+      "description": "Cliquez sur « Ajouter un article » pour ajouter des produits ou services."
+    },
+    "actions": {
+      "dragToReorder": "Glisser pour réorganiser",
+      "clickToEdit": "Cliquer pour modifier",
+      "removeLine": "Supprimer la ligne",
+      "searchProducts": "Rechercher des produits",
+      "searchProductsPlaceholder": "Rechercher des produits...",
+      "createNewProduct": "Créer un nouveau produit",
+      "addBlankLine": "Ajouter une ligne vide",
+      "close": "Fermer"
+    },
+    "loading": "Chargement des produits...",
+    "noProductsFound": "Aucun produit trouvé correspondant à votre recherche",
+    "noProductsAvailable": "Aucun produit disponible"
   },
   "orders": {
     "title": "Commandes",
     "new": "Nouvelle commande",
-    "convertToInvoice": "Convertir en facture"
+    "convertToInvoice": "Convertir en facture",
+    "convertToDelivery": "Convertir en bon de livraison"
+  },
+  "purchaseOrders": {
+    "title": "Bons d'achat",
+    "new": "Nouveau bon d'achat",
+    "receiveGoods": "Réceptionner les marchandises",
+    "goodsReceived": "Marchandises réceptionnées",
+    "receiveGoodsConfirm": {
+      "title": "Réceptionner les marchandises",
+      "message": "Cela créera des mouvements de stock pour réceptionner les marchandises de ce bon d'achat. Continuer ?",
+      "button": "Réceptionner"
+    }
+  },
+  "quotes": {
+    "title": "Devis",
+    "new": "Nouveau devis",
+    "convertToOrder": "Convertir en commande",
+    "expiry": {
+      "expired": "Ce devis a expiré",
+      "expiresIn": "Expire dans {{days}} jours",
+      "expiresToday": "Expire aujourd'hui",
+      "expiresTomorrow": "Expire demain"
+    }
   },
   "invoices": {
     "title": "Factures",
@@ -83,6 +164,69 @@
   },
   "creditNotes": {
     "title": "Avoirs",
-    "new": "Nouvel avoir"
+    "new": "Nouvel avoir",
+    "createFromInvoice": "Créer un avoir",
+    "viewCreditNotes": "Voir les avoirs",
+    "sourceInvoice": "Facture source",
+    "amount": "Montant",
+    "reason": {
+      "title": "Motif",
+      "return": "Retour de produit",
+      "priceAdjustment": "Ajustement de prix",
+      "billingError": "Erreur de facturation",
+      "damagedGoods": "Marchandises endommagées",
+      "serviceIssue": "Problème de service",
+      "other": "Autre"
+    },
+    "notes": "Notes",
+    "notesPlaceholder": "Motif de l'avoir...",
+    "form": {
+      "selectInvoice": "Sélectionner une facture",
+      "invoiceRequired": "La facture est requise",
+      "amountRequired": "Le montant est requis",
+      "amountPositive": "Le montant doit être positif",
+      "reasonRequired": "Le motif est requis",
+      "maxAmount": "Maximum : {{amount}}",
+      "remainingCreditable": "Reste à créditer : {{amount}}"
+    },
+    "summary": {
+      "title": "Résumé des avoirs",
+      "totalCreditNotes": "Total des avoirs",
+      "totalCredited": "Montant total crédité",
+      "remainingCreditable": "Reste à créditer",
+      "noCreditNotes": "Aucun avoir pour le moment"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "confirmed": "Confirmé",
+      "posted": "Comptabilisé",
+      "cancelled": "Annulé"
+    },
+    "messages": {
+      "created": "Avoir créé avec succès",
+      "createFailed": "Échec de la création de l'avoir",
+      "fullRefund": "Remboursement complet",
+      "partialRefund": "Remboursement partiel ({{percentage}}%)"
+    },
+    "errors": {
+      "invoiceNotPosted": "Les avoirs ne peuvent être créés que pour les factures comptabilisées",
+      "invoiceFullyCredited": "La facture a déjà été entièrement créditée",
+      "invalidAmount": "Montant invalide",
+      "amountMustBePositive": "Le montant doit être positif",
+      "exceedsInvoiceTotal": "Le montant dépasse le total de la facture",
+      "exceedsRemainingBalance": "Le montant dépasse le solde restant à créditer"
+    },
+    "confirmations": {
+      "largeAmount": {
+        "title": "Avoir important",
+        "message": "Cet avoir représente {{percentage}}% du total de la facture. Êtes-vous sûr ?",
+        "button": "Créer l'avoir"
+      },
+      "fullRefund": {
+        "title": "Remboursement complet",
+        "message": "Cela créera un avoir pour le montant total de la facture. Êtes-vous sûr ?",
+        "button": "Créer le remboursement complet"
+      }
+    }
   }
 }

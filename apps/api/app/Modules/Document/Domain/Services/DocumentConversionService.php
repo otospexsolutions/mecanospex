@@ -30,6 +30,10 @@ class DocumentConversionService
             throw new \RuntimeException('Cannot convert cancelled quote');
         }
 
+        if ($quote->status === DocumentStatus::Draft) {
+            throw new \DomainException('Quote must be confirmed before conversion', 422);
+        }
+
         // Check if quote is expired
         if ($quote->valid_until && $quote->valid_until->isPast()) {
             throw new \RuntimeException('Cannot convert expired quote');
@@ -46,6 +50,7 @@ class DocumentConversionService
                 'type' => DocumentType::SalesOrder,
                 'status' => DocumentStatus::Draft,
                 'document_number' => $this->numberingService->generateNumber(
+                    $quote->tenant_id,
                     $quote->company_id,
                     DocumentType::SalesOrder
                 ),
@@ -79,6 +84,8 @@ class DocumentConversionService
 
     /**
      * Convert a sales order to an invoice
+     *
+     * @param  array<int, string>|null  $lineIds
      */
     public function convertOrderToInvoice(Document $order, bool $partial = false, ?array $lineIds = null): Document
     {
@@ -88,6 +95,10 @@ class DocumentConversionService
 
         if ($order->status === DocumentStatus::Cancelled) {
             throw new \RuntimeException('Cannot convert cancelled sales order');
+        }
+
+        if ($order->status === DocumentStatus::Draft) {
+            throw new \DomainException('Sales order must be confirmed before conversion', 422);
         }
 
         return DB::transaction(function () use ($order, $partial, $lineIds): Document {
@@ -100,6 +111,7 @@ class DocumentConversionService
                 'type' => DocumentType::Invoice,
                 'status' => DocumentStatus::Draft,
                 'document_number' => $this->numberingService->generateNumber(
+                    $order->tenant_id,
                     $order->company_id,
                     DocumentType::Invoice
                 ),
@@ -163,6 +175,7 @@ class DocumentConversionService
                 'type' => DocumentType::DeliveryNote,
                 'status' => DocumentStatus::Draft,
                 'document_number' => $this->numberingService->generateNumber(
+                    $order->tenant_id,
                     $order->company_id,
                     DocumentType::DeliveryNote
                 ),
@@ -202,6 +215,7 @@ class DocumentConversionService
             DocumentLine::create([
                 'id' => Str::uuid()->toString(),
                 'document_id' => $destination->id,
+                'line_number' => $line->line_number,
                 'product_id' => $line->product_id,
                 'description' => $line->description,
                 'quantity' => $line->quantity,
@@ -209,16 +223,16 @@ class DocumentConversionService
                 'discount_percent' => $line->discount_percent,
                 'discount_amount' => $line->discount_amount,
                 'tax_rate' => $line->tax_rate,
-                'tax_amount' => $line->tax_amount,
-                'subtotal' => $line->subtotal,
-                'total' => $line->total,
-                'sort_order' => $line->sort_order,
+                'line_total' => $line->line_total ?? '0.00',
+                'notes' => $line->notes,
             ]);
         }
     }
 
     /**
      * Copy selected lines from source to destination document
+     *
+     * @param  array<int, string>  $lineIds
      */
     private function copyPartialLines(Document $source, Document $destination, array $lineIds): void
     {
@@ -228,6 +242,7 @@ class DocumentConversionService
             DocumentLine::create([
                 'id' => Str::uuid()->toString(),
                 'document_id' => $destination->id,
+                'line_number' => $line->line_number,
                 'product_id' => $line->product_id,
                 'description' => $line->description,
                 'quantity' => $line->quantity,
@@ -235,10 +250,8 @@ class DocumentConversionService
                 'discount_percent' => $line->discount_percent,
                 'discount_amount' => $line->discount_amount,
                 'tax_rate' => $line->tax_rate,
-                'tax_amount' => $line->tax_amount,
-                'subtotal' => $line->subtotal,
-                'total' => $line->total,
-                'sort_order' => $line->sort_order,
+                'line_total' => $line->line_total ?? '0.00',
+                'notes' => $line->notes,
             ]);
         }
     }
@@ -253,10 +266,19 @@ class DocumentConversionService
         $total = '0.00';
 
         foreach ($document->lines as $line) {
-            $subtotal = bcadd($subtotal, $line->subtotal, 2);
-            $taxAmount = bcadd($taxAmount, $line->tax_amount, 2);
-            $total = bcadd($total, $line->total, 2);
+            // DocumentLine has line_total which represents the line subtotal before tax
+            // Cast to string in case it's stored as a number
+            $lineTotal = (string) $line->line_total;
+            $subtotal = bcadd($subtotal, $lineTotal, 2);
+
+            // Calculate tax for this line if tax_rate is set
+            if ($line->tax_rate !== null && $line->tax_rate !== '0.00') {
+                $lineTax = bcmul($lineTotal, bcdiv((string) $line->tax_rate, '100', 4), 2);
+                $taxAmount = bcadd($taxAmount, $lineTax, 2);
+            }
         }
+
+        $total = bcadd($subtotal, $taxAmount, 2);
 
         $document->update([
             'subtotal' => $subtotal,

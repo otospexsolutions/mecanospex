@@ -16,6 +16,8 @@ final class DocumentData extends Data
         public string $id,
         public string $tenant_id,
         public string $partner_id,
+        public ?string $partner_name,
+        public ?string $partner_email,
         public ?string $vehicle_id,
         public string $type,
         public string $status,
@@ -28,10 +30,15 @@ final class DocumentData extends Data
         public ?string $discount_amount,
         public ?string $tax_amount,
         public ?string $total,
+        public ?string $balance_due,
+        public ?string $amount_paid,
+        public ?string $amount_residual,
         public ?string $notes,
         public ?string $internal_notes,
         public ?string $reference,
         public ?string $source_document_id,
+        public ?string $converted_to_order_id,
+        public ?string $converted_at,
         public array $lines,
         public string $created_at,
         public string $updated_at,
@@ -46,10 +53,25 @@ final class DocumentData extends Data
             }
         }
 
+        // Load partner if not already loaded
+        $partner = $document->relationLoaded('partner') ? $document->partner : $document->partner()->first();
+
+        // Extract conversion info from payload
+        $payload = $document->payload ?? [];
+        $convertedToOrderId = isset($payload['converted_to_order_id']) ? (string) $payload['converted_to_order_id'] : null;
+        $convertedAt = isset($payload['converted_at']) ? (string) $payload['converted_at'] : null;
+
+        // Calculate balance and amount paid
+        $total = $document->total !== null ? (float) $document->total : 0.0;
+        $balanceDue = $document->balance_due !== null ? (float) $document->balance_due : $total;
+        $amountPaid = $total - $balanceDue;
+
         return new self(
             id: $document->id,
             tenant_id: $document->tenant_id,
             partner_id: $document->partner_id,
+            partner_name: $partner?->name,
+            partner_email: $partner?->email,
             vehicle_id: $document->vehicle_id,
             type: $document->type->value,
             status: $document->status->value,
@@ -61,11 +83,16 @@ final class DocumentData extends Data
             subtotal: $document->subtotal !== null ? number_format((float) $document->subtotal, 2, '.', '') : null,
             discount_amount: $document->discount_amount !== null ? number_format((float) $document->discount_amount, 2, '.', '') : null,
             tax_amount: $document->tax_amount !== null ? number_format((float) $document->tax_amount, 2, '.', '') : null,
-            total: $document->total !== null ? number_format((float) $document->total, 2, '.', '') : null,
+            total: $document->total !== null ? number_format($total, 2, '.', '') : null,
+            balance_due: number_format($balanceDue, 2, '.', ''),
+            amount_paid: number_format($amountPaid, 2, '.', ''),
+            amount_residual: number_format($balanceDue, 2, '.', ''),
             notes: $document->notes,
             internal_notes: $document->internal_notes,
             reference: $document->reference,
             source_document_id: $document->source_document_id,
+            converted_to_order_id: $convertedToOrderId,
+            converted_at: $convertedAt,
             lines: $lines,
             created_at: $document->created_at?->toIso8601String() ?? '',
             updated_at: $document->updated_at?->toIso8601String() ?? '',

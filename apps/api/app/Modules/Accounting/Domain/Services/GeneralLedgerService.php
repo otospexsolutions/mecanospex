@@ -4,17 +4,30 @@ declare(strict_types=1);
 
 namespace App\Modules\Accounting\Domain\Services;
 
+use App\Modules\Accounting\Application\Services\PartnerBalanceService;
 use App\Modules\Accounting\Domain\Account;
 use App\Modules\Accounting\Domain\Enums\JournalEntryStatus;
+use App\Modules\Accounting\Domain\Enums\SystemAccountPurpose;
 use App\Modules\Accounting\Domain\JournalEntry;
 use App\Modules\Accounting\Domain\JournalLine;
 use App\Modules\Document\Domain\Document;
 use App\Modules\Identity\Domain\User;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * General Ledger Service for creating and managing journal entries.
+ *
+ * IMPORTANT: This service uses SystemAccountPurpose for account lookups
+ * instead of hardcoded account codes. This enables country-agnostic
+ * accounting regardless of the chart of accounts structure.
+ */
 final class GeneralLedgerService
 {
     private const SCALE = 2;
+
+    public function __construct(
+        private readonly PartnerBalanceService $partnerBalanceService
+    ) {}
 
     /**
      * Create journal entry from a posted invoice.
@@ -24,13 +37,13 @@ final class GeneralLedgerService
      */
     public function createFromInvoice(Document $invoice, User $user): JournalEntry
     {
-        return DB::transaction(function () use ($invoice): JournalEntry {
+        $entry = DB::transaction(function () use ($invoice): JournalEntry {
             $companyId = $invoice->company_id;
 
-            // Get or create required accounts
-            $receivableAccount = $this->getAccountByCode($companyId, '1200');
-            $revenueAccount = $this->getAccountByCode($companyId, '4000');
-            $taxAccount = $this->getAccountByCode($companyId, '2100');
+            // Get required accounts by system purpose (country-agnostic)
+            $receivableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::CustomerReceivable);
+            $revenueAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::ProductRevenue);
+            $taxAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::VatCollected);
 
             $entryNumber = $this->generateEntryNumber($companyId);
 
@@ -47,10 +60,11 @@ final class GeneralLedgerService
 
             $lineOrder = 0;
 
-            // Debit: Accounts Receivable (total amount)
+            // Debit: Accounts Receivable (total amount) - with partner for subledger
             JournalLine::create([
                 'journal_entry_id' => $entry->id,
                 'account_id' => $receivableAccount->id,
+                'partner_id' => $invoice->partner_id,
                 'debit' => $invoice->total ?? '0.00',
                 'credit' => '0.00',
                 'description' => 'Accounts receivable',
@@ -82,6 +96,11 @@ final class GeneralLedgerService
 
             return $entry->load('lines');
         });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($invoice->company_id, $invoice->partner_id);
+
+        return $entry;
     }
 
     /**
@@ -93,13 +112,13 @@ final class GeneralLedgerService
      */
     public function createFromCreditNote(Document $creditNote, User $user): JournalEntry
     {
-        return DB::transaction(function () use ($creditNote): JournalEntry {
+        $entry = DB::transaction(function () use ($creditNote): JournalEntry {
             $companyId = $creditNote->company_id;
 
-            // Get or create required accounts
-            $receivableAccount = $this->getAccountByCode($companyId, '1200');
-            $revenueAccount = $this->getAccountByCode($companyId, '4000');
-            $taxAccount = $this->getAccountByCode($companyId, '2100');
+            // Get required accounts by system purpose (country-agnostic)
+            $receivableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::CustomerReceivable);
+            $revenueAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::ProductRevenue);
+            $taxAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::VatCollected);
 
             $entryNumber = $this->generateEntryNumber($companyId);
 
@@ -139,10 +158,11 @@ final class GeneralLedgerService
                 ]);
             }
 
-            // Credit: Accounts Receivable (total) - reduces receivable
+            // Credit: Accounts Receivable (total) - reduces receivable - with partner for subledger
             JournalLine::create([
                 'journal_entry_id' => $entry->id,
                 'account_id' => $receivableAccount->id,
+                'partner_id' => $creditNote->partner_id,
                 'debit' => '0.00',
                 'credit' => $creditNote->total ?? '0.00',
                 'description' => 'Accounts receivable reduction',
@@ -151,12 +171,17 @@ final class GeneralLedgerService
 
             return $entry->load('lines');
         });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($creditNote->company_id, $creditNote->partner_id);
+
+        return $entry;
     }
 
     /**
      * Create a payment journal entry.
      * Debit: Cash/Bank account
-     * Credit: Accounts Receivable
+     * Credit: Accounts Receivable (with partner_id for subledger tracking)
      */
     public function createPaymentEntry(
         string $companyId,
@@ -165,8 +190,9 @@ final class GeneralLedgerService
         string $creditAccountId,
         string $description,
         User $user,
+        ?string $partnerId = null,
     ): JournalEntry {
-        return DB::transaction(function () use ($companyId, $amount, $debitAccountId, $creditAccountId, $description, $user): JournalEntry {
+        $entry = DB::transaction(function () use ($companyId, $amount, $debitAccountId, $creditAccountId, $description, $user, $partnerId): JournalEntry {
             $entryNumber = $this->generateEntryNumber($companyId);
 
             $entry = JournalEntry::create([
@@ -179,20 +205,22 @@ final class GeneralLedgerService
                 'source_type' => 'payment',
             ]);
 
-            // Debit: Cash/Bank
+            // Debit: Cash/Bank (no partner - asset account)
             JournalLine::create([
                 'journal_entry_id' => $entry->id,
                 'account_id' => $debitAccountId,
+                'partner_id' => null,
                 'debit' => $amount,
                 'credit' => '0.00',
                 'description' => 'Cash received',
                 'line_order' => 0,
             ]);
 
-            // Credit: Accounts Receivable
+            // Credit: Accounts Receivable (with partner for subledger)
             JournalLine::create([
                 'journal_entry_id' => $entry->id,
                 'account_id' => $creditAccountId,
+                'partner_id' => $partnerId,
                 'debit' => '0.00',
                 'credit' => $amount,
                 'description' => 'Receivable cleared',
@@ -201,6 +229,403 @@ final class GeneralLedgerService
 
             return $entry->load('lines');
         });
+
+        // Refresh partner cached balance after GL write
+        if ($partnerId !== null) {
+            $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+        }
+
+        return $entry;
+    }
+
+    /**
+     * Create journal entry for customer advance/prepayment.
+     *
+     * Advance payments create a liability (we owe the customer until invoice issued).
+     * Debit: Bank/Cash
+     * Credit: Customer Advances (liability - with partner for subledger)
+     */
+    public function createCustomerAdvanceJournalEntry(
+        string $companyId,
+        string $partnerId,
+        string $advanceId,
+        string $amount,
+        string $paymentMethodAccountId,
+        \DateTimeInterface $date,
+        User $user,
+        ?string $description = null
+    ): JournalEntry {
+        $advanceAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::CustomerAdvance);
+
+        $entry = DB::transaction(function () use (
+            $companyId, $partnerId, $advanceId, $amount, $paymentMethodAccountId,
+            $date, $description, $advanceAccount, $user
+        ): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
+
+            $entry = JournalEntry::create([
+                'tenant_id' => $user->tenant_id,
+                'company_id' => $companyId,
+                'entry_number' => $entryNumber,
+                'entry_date' => $date,
+                'description' => $description ?? 'Customer advance received',
+                'status' => JournalEntryStatus::Draft,
+                'source_type' => 'advance',
+                'source_id' => $advanceId,
+            ]);
+
+            // Debit: Bank/Cash
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $paymentMethodAccountId,
+                'partner_id' => null,
+                'debit' => $amount,
+                'credit' => '0.00',
+                'description' => 'Advance payment received',
+                'line_order' => 0,
+            ]);
+
+            // Credit: Customer Advances (liability - with partner for subledger)
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $advanceAccount->id,
+                'partner_id' => $partnerId,
+                'debit' => '0.00',
+                'credit' => $amount,
+                'description' => 'Customer advance liability',
+                'line_order' => 1,
+            ]);
+
+            return $entry->load('lines');
+        });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+
+        return $entry;
+    }
+
+    /**
+     * Create journal entry for supplier invoice (purchase).
+     *
+     * Debit: Expense/Asset account
+     * Debit: VAT Deductible (if applicable)
+     * Credit: Accounts Payable (with partner for subledger)
+     */
+    public function createSupplierInvoiceJournalEntry(
+        string $companyId,
+        string $partnerId,
+        string $invoiceId,
+        string $totalAmount,
+        string $netAmount,
+        string $vatAmount,
+        string $expenseAccountId,
+        \DateTimeInterface $date,
+        User $user,
+        ?string $description = null
+    ): JournalEntry {
+        $payableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::SupplierPayable);
+        $vatAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::VatDeductible);
+
+        $entry = DB::transaction(function () use (
+            $companyId, $partnerId, $invoiceId, $totalAmount, $netAmount, $vatAmount,
+            $expenseAccountId, $date, $description, $payableAccount, $vatAccount, $user
+        ): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
+
+            $entry = JournalEntry::create([
+                'tenant_id' => $user->tenant_id,
+                'company_id' => $companyId,
+                'entry_number' => $entryNumber,
+                'entry_date' => $date,
+                'description' => $description ?? 'Supplier invoice',
+                'status' => JournalEntryStatus::Draft,
+                'source_type' => 'supplier_invoice',
+                'source_id' => $invoiceId,
+            ]);
+
+            $lineOrder = 0;
+
+            // Debit: Expense/Asset account
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $expenseAccountId,
+                'partner_id' => null,
+                'debit' => $netAmount,
+                'credit' => '0.00',
+                'description' => 'Purchase expense/asset',
+                'line_order' => $lineOrder++,
+            ]);
+
+            // Debit: VAT Deductible (if applicable)
+            /** @phpstan-ignore-next-line argument.type */
+            if (bccomp($vatAmount, '0.00', self::SCALE) > 0) {
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $vatAccount->id,
+                    'partner_id' => null,
+                    'debit' => $vatAmount,
+                    'credit' => '0.00',
+                    'description' => 'VAT deductible',
+                    'line_order' => $lineOrder++,
+                ]);
+            }
+
+            // Credit: Accounts Payable (with partner for subledger)
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $payableAccount->id,
+                'partner_id' => $partnerId,
+                'debit' => '0.00',
+                'credit' => $totalAmount,
+                'description' => 'Supplier payable',
+                'line_order' => $lineOrder,
+            ]);
+
+            return $entry->load('lines');
+        });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+
+        return $entry;
+    }
+
+    /**
+     * Create journal entry for payment to supplier.
+     *
+     * Debit: Accounts Payable (with partner for subledger)
+     * Credit: Bank/Cash
+     */
+    public function createSupplierPaymentJournalEntry(
+        string $companyId,
+        string $partnerId,
+        string $paymentId,
+        string $amount,
+        string $paymentMethodAccountId,
+        \DateTimeInterface $date,
+        User $user,
+        ?string $description = null
+    ): JournalEntry {
+        $payableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::SupplierPayable);
+
+        $entry = DB::transaction(function () use (
+            $companyId, $partnerId, $paymentId, $amount, $paymentMethodAccountId,
+            $date, $description, $payableAccount, $user
+        ): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
+
+            $entry = JournalEntry::create([
+                'tenant_id' => $user->tenant_id,
+                'company_id' => $companyId,
+                'entry_number' => $entryNumber,
+                'entry_date' => $date,
+                'description' => $description ?? 'Supplier payment',
+                'status' => JournalEntryStatus::Draft,
+                'source_type' => 'supplier_payment',
+                'source_id' => $paymentId,
+            ]);
+
+            // Debit: Accounts Payable (with partner for subledger)
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $payableAccount->id,
+                'partner_id' => $partnerId,
+                'debit' => $amount,
+                'credit' => '0.00',
+                'description' => 'Payable cleared',
+                'line_order' => 0,
+            ]);
+
+            // Credit: Bank/Cash
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $paymentMethodAccountId,
+                'partner_id' => null,
+                'debit' => '0.00',
+                'credit' => $amount,
+                'description' => 'Payment to supplier',
+                'line_order' => 1,
+            ]);
+
+            return $entry->load('lines');
+        });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+
+        return $entry;
+    }
+
+    /**
+     * Create journal entry for customer payment received.
+     *
+     * Standard payment against an invoice:
+     * Debit: Bank/Cash
+     * Credit: Accounts Receivable (with partner for subledger)
+     */
+    public function createPaymentReceivedJournalEntry(
+        string $companyId,
+        string $partnerId,
+        string $paymentId,
+        string $amount,
+        string $paymentMethodAccountId,
+        \DateTimeInterface $date,
+        ?string $description = null
+    ): JournalEntry {
+        $receivableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::CustomerReceivable);
+
+        $entry = DB::transaction(function () use (
+            $companyId, $partnerId, $paymentId, $amount, $paymentMethodAccountId,
+            $date, $description, $receivableAccount
+        ): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
+
+            // Get tenant_id from company
+            $company = \App\Modules\Company\Domain\Company::findOrFail($companyId);
+
+            $entry = JournalEntry::create([
+                'tenant_id' => $company->tenant_id,
+                'company_id' => $companyId,
+                'entry_number' => $entryNumber,
+                'entry_date' => $date,
+                'description' => $description ?? 'Customer payment received',
+                'status' => JournalEntryStatus::Draft,
+                'source_type' => 'customer_payment',
+                'source_id' => $paymentId,
+            ]);
+
+            // Debit: Bank/Cash
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $paymentMethodAccountId,
+                'partner_id' => null,
+                'debit' => $amount,
+                'credit' => '0.00',
+                'description' => 'Payment received',
+                'line_order' => 0,
+            ]);
+
+            // Credit: Accounts Receivable (with partner for subledger)
+            JournalLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id' => $receivableAccount->id,
+                'partner_id' => $partnerId,
+                'debit' => '0.00',
+                'credit' => $amount,
+                'description' => 'Receivable cleared',
+                'line_order' => 1,
+            ]);
+
+            return $entry->load('lines');
+        });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+
+        return $entry;
+    }
+
+    /**
+     * Create journal entry for payment tolerance write-off.
+     *
+     * For underpayment (customer pays slightly less):
+     * Debit: Payment Tolerance Expense
+     * Credit: Accounts Receivable (with partner for subledger)
+     *
+     * For overpayment (customer pays slightly more):
+     * Debit: Accounts Receivable (adjustment - with partner for subledger)
+     * Credit: Payment Tolerance Income
+     */
+    public function createPaymentToleranceJournalEntry(
+        string $companyId,
+        string $partnerId,
+        string $documentId,
+        string $amount,
+        string $type, // 'underpayment' or 'overpayment'
+        \DateTimeInterface $date,
+        ?string $description = null
+    ): JournalEntry {
+        $receivableAccount = $this->getAccountByPurpose($companyId, SystemAccountPurpose::CustomerReceivable);
+
+        $writeoffPurpose = $type === 'underpayment'
+            ? SystemAccountPurpose::PaymentToleranceExpense
+            : SystemAccountPurpose::PaymentToleranceIncome;
+        $writeoffAccount = $this->getAccountByPurpose($companyId, $writeoffPurpose);
+
+        $entry = DB::transaction(function () use (
+            $companyId, $partnerId, $documentId, $amount, $type,
+            $date, $description, $receivableAccount, $writeoffAccount
+        ): JournalEntry {
+            $entryNumber = $this->generateEntryNumber($companyId);
+
+            // Get tenant_id from company
+            $company = \App\Modules\Company\Domain\Company::findOrFail($companyId);
+
+            $entry = JournalEntry::create([
+                'tenant_id' => $company->tenant_id,
+                'company_id' => $companyId,
+                'entry_number' => $entryNumber,
+                'entry_date' => $date,
+                'description' => $description ?? "Payment tolerance write-off ({$type})",
+                'status' => JournalEntryStatus::Draft,
+                'source_type' => 'payment_tolerance',
+                'source_id' => $documentId,
+            ]);
+
+            if ($type === 'underpayment') {
+                // Underpayment: expense absorbs the difference
+                // Dr. Tolerance Expense, Cr. AR
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $writeoffAccount->id,
+                    'partner_id' => null,
+                    'debit' => $amount,
+                    'credit' => '0.00',
+                    'description' => 'Underpayment tolerance expense',
+                    'line_order' => 0,
+                ]);
+
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $receivableAccount->id,
+                    'partner_id' => $partnerId,
+                    'debit' => '0.00',
+                    'credit' => $amount,
+                    'description' => 'AR reduced by tolerance',
+                    'line_order' => 1,
+                ]);
+            } else {
+                // Overpayment: income from rounding in our favor
+                // Dr. AR (adjustment), Cr. Tolerance Income
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $receivableAccount->id,
+                    'partner_id' => $partnerId,
+                    'debit' => $amount,
+                    'credit' => '0.00',
+                    'description' => 'Overpayment tolerance adjustment',
+                    'line_order' => 0,
+                ]);
+
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $writeoffAccount->id,
+                    'partner_id' => null,
+                    'debit' => '0.00',
+                    'credit' => $amount,
+                    'description' => 'Overpayment tolerance income',
+                    'line_order' => 1,
+                ]);
+            }
+
+            return $entry->load('lines');
+        });
+
+        // Refresh partner cached balance after GL write
+        $this->partnerBalanceService->refreshPartnerBalance($companyId, $partnerId);
+
+        return $entry;
     }
 
     /**
@@ -224,18 +649,15 @@ final class GeneralLedgerService
         ]);
     }
 
-    private function getAccountByCode(string $companyId, string $code): Account
+    /**
+     * Get account by system purpose - the ONLY way to lookup system accounts.
+     *
+     * NEVER use hardcoded account codes like '411' or '1200'.
+     * ALWAYS use this method with SystemAccountPurpose enum.
+     */
+    private function getAccountByPurpose(string $companyId, SystemAccountPurpose $purpose): Account
     {
-        $account = Account::query()
-            ->where('company_id', $companyId)
-            ->where('code', $code)
-            ->first();
-
-        if ($account === null) {
-            throw new \RuntimeException("Account with code {$code} not found for company");
-        }
-
-        return $account;
+        return Account::findByPurposeOrFail($companyId, $purpose);
     }
 
     private function generateEntryNumber(string $companyId): string

@@ -1,0 +1,168 @@
+{
+  "errors": {
+    "invalidFileType": "Type de fichier invalide. Types acceptés : {{types}}",
+    "fileTooLarge": "Fichier trop volumineux. Taille maximale : {{maxSize}}"
+  },
+  "upload": {
+    "dragDrop": "Glissez-déposez votre fichier ici",
+    "or": "ou",
+    "browse": "parcourir",
+    "formats": "Formats : {{formats}}",
+    "maxSize": "Max : {{size}}"
+  },
+  "messages": {
+    "uploadSuccess": "Fichier téléchargé avec succès",
+    "uploadError": "Échec du téléchargement du fichier",
+    "importStarted": "Import démarré",
+    "importError": "Échec du démarrage de l'import",
+    "deleted": "Travail d'import supprimé",
+    "deleteError": "Échec de la suppression du travail d'import"
+  },
+  "dashboard": {
+    "title": "Importation de données",
+    "description": "Importez vos données depuis des fichiers CSV ou Excel",
+    "progressSummary": "{{count}} enregistrements importés jusqu'à présent",
+    "continueImporting": "Continuez l'importation pour terminer votre migration de données",
+    "howItWorks": "Comment ça marche",
+    "howItWorksDescription": "Suivez ces étapes simples pour importer vos données en toute sécurité et avec précision.",
+    "step1": "Sélectionnez le type de données que vous souhaitez importer",
+    "step2": "Téléchargez votre fichier CSV ou Excel",
+    "step3": "Mappez vos colonnes aux champs requis",
+    "step4": "Vérifiez et corrigez les erreurs de validation, puis importez",
+    "importTypes": "Types d'import",
+    "tips": "Conseils pour des importations réussies",
+    "tip1": "Assurez-vous que votre fichier a des en-têtes dans la première ligne",
+    "tip2": "Utilisez les modèles fournis pour de meilleurs résultats",
+    "tip3": "Importez les partenaires et produits avant les niveaux de stock ou les soldes d'ouverture"
+  },
+  "types": {
+    "partners": {
+      "title": "Partenaires",
+      "description": "Importez clients et fournisseurs"
+    },
+    "products": {
+      "title": "Produits",
+      "description": "Importez votre catalogue de produits"
+    },
+    "stock_levels": {
+      "title": "Niveaux de stock",
+      "description": "Importez les quantités de stock d'ouverture"
+    },
+    "opening_balances": {
+      "title": "Soldes d'ouverture",
+      "description": "Importez les soldes d'ouverture des comptes"
+    }
+  },
+  "card": {
+    "imported": "{{count}} importé(s)",
+    "ready": "Prêt à importer",
+    "dependencies": "Nécessite: {{deps}}",
+    "startImport": "Commencer l'import",
+    "continueImport": "Continuer"
+  },
+  "actions": {
+    "viewHistory": "Voir l'historique"
+  },
+  "status": {
+    "pending": "En attente",
+    "validating": "Validation",
+    "validated": "Validé",
+    "importing": "Importation",
+    "completed": "Terminé",
+    "failed": "Échec"
+  },
+  "wizard": {
+    "steps": {
+      "upload": "Télécharger",
+      "mapping": "Mapper",
+      "validation": "Vérifier",
+      "execute": "Importer",
+      "complete": "Terminé"
+    },
+    "upload": {
+      "title": "Téléchargez votre fichier",
+      "description": "Téléchargez un fichier CSV ou Excel contenant vos données. La première ligne doit contenir les en-têtes de colonnes.",
+      "dropzone": "Glissez-déposez votre fichier ici, ou cliquez pour parcourir",
+      "formats": "Formats supportés : CSV, XLSX, XLS",
+      "maxSize": "Taille maximale : {{size}}Mo",
+      "downloadTemplate": "Télécharger le modèle",
+      "fileReady": "Fichier prêt : {{name}}",
+      "columnsDetected": "{{count}} colonnes détectées"
+    },
+    "mapping": {
+      "title": "Mappez vos colonnes",
+      "description": "Faites correspondre les colonnes de votre fichier aux champs système requis. Les champs obligatoires sont marqués d'un astérisque (*).",
+      "validating": "Validation...",
+      "validate": "Valider les données"
+    },
+    "validation": {
+      "title": "Vérifiez les résultats de validation",
+      "description": "Examinez les erreurs trouvées lors de la validation. Vous pouvez corriger les erreurs directement dans la grille ci-dessous ou continuer avec les lignes valides uniquement.",
+      "proceed": "Procéder à l'import"
+    },
+    "execute": {
+      "title": "Importez vos données",
+      "description": "Vérifiez le résumé ci-dessous et lancez l'importation quand vous êtes prêt.",
+      "summary": "Résumé de l'import",
+      "file": "Fichier",
+      "totalRows": "Total des lignes",
+      "validRows": "Lignes valides",
+      "invalidRows": "Lignes invalides",
+      "start": "Lancer l'import",
+      "starting": "Démarrage...",
+      "importing": "Importation en cours...",
+      "completed": "Import terminé !",
+      "failed": "Échec de l'import",
+      "progress": "Progression",
+      "viewResults": "Voir les résultats"
+    },
+    "complete": {
+      "title": "Import terminé !",
+      "description": "Vos données ont été importées avec succès.",
+      "results": "Résultats",
+      "imported": "Importés avec succès",
+      "failed": "Échec d'importation",
+      "backToDashboard": "Retour au tableau de bord",
+      "importMore": "Importer plus de données"
+    },
+    "proceedWithErrors": "Certaines lignes ont des erreurs de validation et seront ignorées. Voulez-vous continuer avec les lignes valides uniquement ?"
+  },
+  "mapping": {
+    "sourceColumn": "Colonne source",
+    "targetColumn": "Champ cible",
+    "status": "Statut",
+    "skipColumn": "-- Ignorer cette colonne --",
+    "requiredFields": "Champs obligatoires",
+    "optionalFields": "Champs optionnels",
+    "alreadyMapped": "déjà mappé",
+    "missingRequired": "Champs obligatoires manquants",
+    "legendMapped": "Mappé",
+    "legendSkipped": "Ignoré",
+    "legendRequired": "Obligatoire"
+  },
+  "validation": {
+    "allValid": "Toutes les lignes sont valides",
+    "allValidDescription": "Vos données ont passé tous les contrôles de validation et sont prêtes à être importées.",
+    "rowsWithErrors": "{{count}} lignes avec erreurs",
+    "row": "Ligne",
+    "showingPage": "Page {{current}} sur {{total}}"
+  },
+  "history": {
+    "title": "Historique des imports",
+    "description": "Consultez tous les travaux d'importation passés et leurs résultats",
+    "filterByStatus": "Filtrer par statut",
+    "all": "Tous",
+    "columns": {
+      "type": "Type",
+      "file": "Fichier",
+      "status": "Statut",
+      "progress": "Progression",
+      "date": "Date",
+      "actions": "Actions"
+    },
+    "viewDetails": "Voir détails",
+    "noJobs": "Aucun travail d'importation trouvé",
+    "noJobsDescription": "Commencez par importer des données depuis le tableau de bord d'importation.",
+    "startImport": "Commencer l'import"
+  }
+}

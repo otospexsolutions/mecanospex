@@ -14,7 +14,7 @@ class WeightedAverageCostServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new WeightedAverageCostService();
+        $this->service = new WeightedAverageCostService;
     }
 
     public function test_calculate_new_wac_with_first_purchase(): void

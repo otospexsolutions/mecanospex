@@ -1,5 +1,7 @@
 {
   "appName": "AutoERP",
+  "by": "par",
+  "select": "Sélectionner...",
   "actions": {
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -11,21 +13,70 @@
     "filter": "Filtrer",
     "view": "Voir",
     "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
     "close": "Fermer",
     "open": "Ouvrir",
     "confirm": "Confirmer",
     "submit": "Envoyer",
     "reset": "Réinitialiser",
+    "clear": "Effacer",
     "viewAll": "Voir tout",
     "expand": "Développer",
-    "collapse": "Réduire"
+    "collapse": "Réduire",
+    "select": "Sélectionner..."
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "invalidEmail": "Adresse e-mail invalide",
+    "invalidPhone": "Numéro de téléphone invalide",
+    "minLength": "Doit contenir au moins {{min}} caractères",
+    "maxLength": "Doit contenir au maximum {{max}} caractères"
+  },
+  "error": {
+    "generic": "Une erreur est survenue. Veuillez réessayer."
   },
   "status": {
     "loading": "Chargement...",
     "saving": "Enregistrement...",
     "noResults": "Aucun résultat trouvé",
     "error": "Une erreur est survenue",
-    "success": "Succès"
+    "success": "Succès",
+    "unknown": "Inconnu",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "draft": "Brouillon",
+    "confirmed": "Confirmé",
+    "posted": "Comptabilisé",
+    "cancelled": "Annulé",
+    "pending": "En attente",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "refunded": "Remboursé",
+    "current": "En cours",
+    "overdue": "En retard"
+  },
+  "errors": {
+    "loadingFailed": "Erreur de chargement des données. Veuillez réessayer.",
+    "documentNotFound": "Document non trouvé ou une erreur est survenue."
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue ! Voici ce qui se passe.",
+    "newQuote": "Nouveau devis",
+    "newInvoice": "Nouvelle facture",
+    "revenue": "Chiffre d'affaires",
+    "overdueCount": "{{count}} en retard",
+    "invoices": "Factures",
+    "pendingCount": "{{count}} en attente",
+    "newCount": "+{{count}} nouveau(x)",
+    "partners": "Partenaires",
+    "paymentsReceived": "Paiements reçus",
+    "pendingAmount": "{{amount}} en attente",
+    "recentDocuments": "Documents récents",
+    "noRecentDocuments": "Aucun document récent",
+    "recentPayments": "Paiements récents",
+    "noRecentPayments": "Aucun paiement récent"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -34,23 +85,98 @@
     "quotes": "Devis",
     "salesOrders": "Commandes",
     "invoices": "Factures",
+    "creditNotes": "Avoirs",
     "purchases": "Achats",
     "suppliers": "Fournisseurs",
     "purchaseOrders": "Commandes fournisseurs",
     "inventory": "Inventaire",
     "products": "Produits",
     "stockLevels": "Niveaux de stock",
+    "stockMovements": "Mouvements de stock",
+    "counting": "Inventaire physique",
     "deliveryNotes": "Bons de livraison",
+    "inventoryCounting": "Inventaire physique",
     "vehicles": "Véhicules",
     "treasury": "Trésorerie",
     "payments": "Paiements",
     "instruments": "Instruments",
     "repositories": "Dépôts",
+    "finance": "Finance",
+    "chartOfAccounts": "Plan comptable",
+    "generalLedger": "Grand livre",
+    "journalEntries": "Écritures comptables",
+    "trialBalance": "Balance générale",
+    "profitLoss": "Compte de résultat",
+    "balanceSheet": "Bilan",
+    "agedReceivables": "Balance âgée clients",
+    "agedPayables": "Balance âgée fournisseurs",
+    "pricing": "Tarification",
+    "priceLists": "Listes de prix",
     "reports": "Rapports",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "locations": "Emplacements"
+  },
+  "fields": {
+    "totalReceivable": "Total à recevoir",
+    "totalPayable": "Total à payer"
+  },
+  "sections": {
+    "balance": "Solde"
+  },
+  "partner": {
+    "unallocatedBalance": "Solde non alloué",
+    "unallocatedBalanceHint": "De {{count}} paiement(s) non alloué(s)",
+    "creditAvailable": "Crédit disponible à appliquer aux factures",
+    "noBalance": "Aucun solde"
+  },
+  "locations": {
+    "title": "Gestion des emplacements",
+    "subtitle": "Gérez vos emplacements commerciaux, entrepôts et magasins",
+    "addLocation": "Ajouter un emplacement",
+    "editLocation": "Modifier l'emplacement",
+    "deleteLocation": "Supprimer l'emplacement",
+    "setDefault": "Définir par défaut",
+    "default": "Par défaut",
+    "posEnabled": "Point de vente activé",
+    "code": "Code",
+    "types": {
+      "shop": "Magasin",
+      "warehouse": "Entrepôt",
+      "office": "Bureau",
+      "mobile": "Unité mobile"
+    },
+    "form": {
+      "name": "Nom de l'emplacement",
+      "namePlaceholder": "Entrez le nom de l'emplacement",
+      "type": "Type d'emplacement",
+      "code": "Code d'emplacement",
+      "codePlaceholder": "Auto-généré si vide",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "address": "Adresse",
+      "city": "Ville",
+      "postalCode": "Code postal",
+      "country": "Pays",
+      "posEnabled": "Activer le point de vente"
+    },
+    "empty": {
+      "title": "Aucun emplacement",
+      "description": "Commencez par créer votre premier emplacement."
+    },
+    "deleteConfirm": {
+      "title": "Supprimer l'emplacement",
+      "message": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+      "cannotDeleteDefault": "Impossible de supprimer l'emplacement par défaut. Veuillez d'abord définir un autre emplacement comme défaut."
+    },
+    "messages": {
+      "created": "Emplacement créé avec succès",
+      "updated": "Emplacement mis à jour avec succès",
+      "deleted": "Emplacement supprimé avec succès",
+      "defaultSet": "Emplacement par défaut mis à jour"
+    }
   },
   "table": {
-    "actions": "Actions",
+    "actionsColumn": "Actions",
     "noData": "Aucune donnée disponible"
   },
   "pagination": {
@@ -61,5 +187,24 @@
   "confirmation": {
     "delete": "Êtes-vous sûr de vouloir supprimer cet élément ?",
     "unsavedChanges": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?"
-  }
+  },
+  "loading": "Chargement...",
+  "noData": "Aucune donnée disponible",
+  "error": "Erreur",
+  "cancel": "Annuler",
+  "save": "Enregistrer",
+  "saving": "Enregistrement...",
+  "creating": "Création...",
+  "processing": "Traitement...",
+  "back": "Retour",
+  "previous": "Précédent",
+  "next": "Suivant",
+  "view": "Voir",
+  "viewAll": "Voir tout",
+  "viewDetails": "Voir les détails",
+  "clear": "Effacer",
+  "yes": "Oui",
+  "no": "Non",
+  "actionsLabel": "Actions",
+  "allStatuses": "Tous les statuts"
 }

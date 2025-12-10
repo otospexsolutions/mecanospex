@@ -73,6 +73,21 @@ Run `./scripts/preflight.sh` before considering any task complete:
 # Runs: PHPStan, Pint, PHPUnit, TypeScript check, ESLint
 ```
 
+### 11. No Hardcoded Strings in Frontend
+**ALL user-facing text in the frontend MUST use translation keys. Never hardcode text.**
+```tsx
+// WRONG - Hardcoded text
+<Button>Save</Button>
+<h1>Chart of Accounts</h1>
+<p>No data found</p>
+
+// RIGHT - Translation keys
+const { t } = useTranslation();
+<Button>{t('common.save')}</Button>
+<h1>{t('finance.chartOfAccounts.title')}</h1>
+<p>{t('common.noData')}</p>
+```
+
 ---
 
 ## Executive Summary
@@ -660,12 +675,57 @@ $request->validate([
 ]);
 ```
 
+### Key Naming Convention
+
+Follow this hierarchical structure for translation keys:
+```
+common.save
+common.cancel
+common.delete
+common.edit
+common.search
+common.noData
+common.loading
+common.error
+
+finance.chartOfAccounts.title
+finance.chartOfAccounts.addAccount
+finance.ledger.title
+finance.reports.trialBalance
+finance.reports.profitLoss
+
+sales.invoices.title
+sales.invoices.create
+sales.quotes.title
+
+inventory.products.title
+inventory.stockLevels.title
+
+settings.company.title
+settings.subscription.title
+```
+
+### When Creating New Components
+
+1. Identify all user-facing text
+2. Add keys to `en/translation.json` first
+3. Use `t('key')` in component
+4. Add French translation to `fr/translation.json`
+5. Add Arabic translation to `ar/translation.json` (can be placeholder initially)
+
 ### Adding New Translations
 
 1. **Add key to English first** (`en/*.json` or `en/*.php`)
 2. **Add French translation** (`fr/*.json` or `fr/*.php`)
 3. **Use descriptive keys:** `partners.form.emailLabel` not `email`
 4. **Group by feature:** Keep related strings in the same namespace
+
+### Pre-Commit i18n Checklist
+
+Before committing frontend code, verify:
+- [ ] No hardcoded user-facing text in TSX files
+- [ ] All new keys added to en/translation.json
+- [ ] French translations added to fr/translation.json
 
 ### Testing i18n
 

@@ -128,6 +128,16 @@ class InvoiceDocumentTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals('posted', $response->json('data.status'));
+
+        // Verify NF525 compliance: fiscal hash should be populated
+        $this->assertNotNull($response->json('meta.fiscal_hash'));
+        $this->assertEquals(1, $response->json('meta.chain_sequence'));
+
+        // Verify database state
+        $invoice->refresh();
+        $this->assertNotNull($invoice->fiscal_hash);
+        $this->assertNull($invoice->previous_hash); // First in chain
+        $this->assertEquals(1, $invoice->chain_sequence);
     }
 
     public function test_draft_invoice_cannot_be_posted(): void
@@ -170,14 +180,14 @@ class InvoiceDocumentTest extends TestCase
         $this->assertEquals('DOCUMENT_NOT_EDITABLE', $response->json('error.code'));
     }
 
-    public function test_posted_invoice_can_be_cancelled(): void
+    public function test_confirmed_invoice_can_be_cancelled(): void
     {
         $invoice = Document::create([
             'tenant_id' => $this->tenant->id,
             'company_id' => $this->company->id,
             'partner_id' => $this->partner->id,
             'type' => DocumentType::Invoice,
-            'status' => DocumentStatus::Posted,
+            'status' => DocumentStatus::Confirmed,
             'document_number' => 'INV-2025-0001',
             'document_date' => '2025-01-15',
             'currency' => 'EUR',
@@ -185,10 +195,35 @@ class InvoiceDocumentTest extends TestCase
             'total' => '100.00',
         ]);
 
-        $response = $this->actingAs($this->user)->postJson("/api/v1/invoices/{$invoice->id}/cancel");
+        $response = $this->actingAs($this->user)->postJson("/api/v1/invoices/{$invoice->id}/cancel", [
+            'reason' => 'Customer requested cancellation',
+        ]);
 
         $response->assertStatus(200);
         $this->assertEquals('cancelled', $response->json('data.status'));
+    }
+
+    public function test_posted_invoice_cannot_be_cancelled(): void
+    {
+        $invoice = Document::create([
+            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
+            'partner_id' => $this->partner->id,
+            'type' => DocumentType::Invoice,
+            'status' => DocumentStatus::Posted,
+            'document_number' => 'INV-2025-0002',
+            'document_date' => '2025-01-15',
+            'currency' => 'EUR',
+            'subtotal' => '100.00',
+            'total' => '100.00',
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson("/api/v1/invoices/{$invoice->id}/cancel", [
+            'reason' => 'Customer requested cancellation',
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('Cannot cancel posted invoice', $response->json('error'));
     }
 
     public function test_posted_invoice_can_be_credited(): void

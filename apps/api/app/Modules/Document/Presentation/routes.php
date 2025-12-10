@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\DocumentAdditionalCostController;
 use App\Modules\Document\Domain\Enums\DocumentType;
+use App\Modules\Document\Presentation\Controllers\CreditNoteController;
 use App\Modules\Document\Presentation\Controllers\DocumentController;
 use App\Modules\Document\Presentation\Controllers\DocumentConversionController;
 use App\Modules\Document\Presentation\Controllers\RefundController;
@@ -179,21 +180,18 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
         ->middleware('can:invoices.view')
         ->name('invoices.credit-summary');
 
-    // Credit Notes
-    Route::get('/credit-notes', function (Request $request) {
-        return app(DocumentController::class)->index($request, DocumentType::CreditNote);
-    })->middleware('can:credit-notes.view')->name('credit-notes.index');
+    // Credit Notes (Smart Payment - uses specialized CreditNoteService)
+    Route::get('/credit-notes', [CreditNoteController::class, 'index'])
+        ->middleware('can:credit-notes.view')
+        ->name('credit-notes.index');
 
-    Route::get('/credit-notes/{creditNote}', function (Request $request, string $creditNote) {
-        return app(DocumentController::class)->show($request, DocumentType::CreditNote, $creditNote);
-    })->middleware('can:credit-notes.view')->name('credit-notes.show');
+    Route::get('/credit-notes/{creditNote}', [CreditNoteController::class, 'show'])
+        ->middleware('can:credit-notes.view')
+        ->name('credit-notes.show');
 
-    Route::post('/credit-notes', function (Request $request) {
-        return app(DocumentController::class)->store(
-            app(\App\Modules\Document\Presentation\Requests\CreateDocumentRequest::class),
-            DocumentType::CreditNote
-        );
-    })->middleware('can:credit-notes.create')->name('credit-notes.store');
+    Route::post('/credit-notes', [CreditNoteController::class, 'store'])
+        ->middleware('can:credit-notes.create')
+        ->name('credit-notes.store');
 
     Route::post('/credit-notes/{creditNote}/confirm', function (Request $request, string $creditNote) {
         return app(DocumentController::class)->confirm($request, DocumentType::CreditNote, $creditNote);
@@ -279,4 +277,8 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::delete('/documents/{document}/additional-costs/{cost}', [DocumentAdditionalCostController::class, 'destroy'])
         ->middleware('can:purchase-orders.update')
         ->name('documents.additional-costs.destroy');
+
+    Route::get('/documents/{document}/landed-cost-breakdown', [DocumentAdditionalCostController::class, 'landedCostBreakdown'])
+        ->middleware('can:documents.view')
+        ->name('documents.landed-cost-breakdown');
 });

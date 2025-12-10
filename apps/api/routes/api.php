@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('api/v1')->group(function (): void {
+Route::prefix('v1')->group(function (): void {
     // Public routes
     Route::get('/countries', [CountryController::class, 'index']);
     Route::get('/countries/{code}', [CountryController::class, 'show']);
@@ -47,6 +47,6 @@ Route::prefix('api/v1')->group(function (): void {
 });
 
 // Load module routes
-require __DIR__ . '/../app/Modules/Treasury/Presentation/routes.php';
-require __DIR__ . '/../app/Modules/Document/Presentation/routes.php';
-require __DIR__ . '/../app/Modules/Pricing/Presentation/routes.php';
+require __DIR__.'/../app/Modules/Treasury/Presentation/routes.php';
+require __DIR__.'/../app/Modules/Document/Presentation/routes.php';
+require __DIR__.'/../app/Modules/Pricing/Presentation/routes.php';

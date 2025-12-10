@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Building2, ChevronDown, Check, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useCompany } from '../../../hooks/useCompany'
 import { useQueryClient } from '@tanstack/react-query'
-import { AddCompanyModal } from '../AddCompanyModal'
 
 /**
  * CompanySelector allows users to switch between companies they have access to.
@@ -13,9 +13,9 @@ import { AddCompanyModal } from '../AddCompanyModal'
 export function CompanySelector() {
   const { currentCompany, companies, hasMultipleCompanies, switchCompany } = useCompany()
   const [isOpen, setIsOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -42,7 +42,7 @@ export function CompanySelector() {
 
   const handleAddCompany = () => {
     setIsOpen(false)
-    setIsModalOpen(true)
+    navigate('/company-onboarding')
   }
 
   return (
@@ -107,9 +107,6 @@ export function CompanySelector() {
           </div>
         )}
       </div>
-
-      {/* Add Company Modal */}
-      <AddCompanyModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false) }} />
     </>
   )
 }

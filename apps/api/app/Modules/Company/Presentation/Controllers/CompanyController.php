@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Company\Presentation\Controllers;
 
+use App\Modules\Accounting\Application\Services\ChartOfAccountsService;
 use App\Modules\Company\Domain\Company;
 use App\Modules\Company\Domain\CompanyHashChain;
 use App\Modules\Company\Domain\Enums\CompanyStatus;
@@ -18,9 +19,14 @@ use App\Modules\Identity\Domain\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CompanyController extends Controller
 {
+    public function __construct(
+        private readonly ChartOfAccountsService $chartOfAccountsService
+    ) {}
+
     /**
      * Create a new company.
      *
@@ -29,6 +35,7 @@ class CompanyController extends Controller
      * - Creates a default location for the company
      * - Creates a UserCompanyMembership with 'owner' role for the creating user
      * - Initializes hash chains for all fiscal document types
+     * - Seeds chart of accounts based on country
      */
     public function store(CreateCompanyRequest $request): JsonResponse
     {
@@ -115,6 +122,15 @@ class CompanyController extends Controller
                     'document_type' => 'genesis',
                     'payload_hash' => hash('sha256', 'genesis'),
                 ]);
+            }
+
+            // 5. Seed chart of accounts based on country
+            try {
+                $this->chartOfAccountsService->seedForCompany($company);
+            } catch (\RuntimeException $e) {
+                // Log warning but don't fail company creation
+                // Country might not have a seeder yet
+                Log::warning("Could not seed COA for company {$company->id}: ".$e->getMessage());
             }
 
             return $company;

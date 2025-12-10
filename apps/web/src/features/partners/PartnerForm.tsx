@@ -62,6 +62,13 @@ export function PartnerForm({ partnerType }: PartnerFormProps) {
       ? t('navigation.suppliers').slice(0, -1)
       : 'Partner'
 
+  // Determine default partner type based on context
+  const defaultType = isCustomerContext
+    ? 'customer'
+    : isSupplierContext
+      ? 'supplier'
+      : ''
+
   const {
     register,
     handleSubmit,
@@ -70,7 +77,7 @@ export function PartnerForm({ partnerType }: PartnerFormProps) {
   } = useForm<PartnerFormData>({
     defaultValues: {
       name: '',
-      type: '',
+      type: defaultType,
       email: '',
       phone: '',
       address: '',

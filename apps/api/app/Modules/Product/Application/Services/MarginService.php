@@ -35,11 +35,11 @@ class MarginService
 
         // For now, skip category since it doesn't exist
         // Will implement: product → category → company when categories are added
-        $targetMargin = $product->target_margin_override
-            ?? (float) ($company->default_target_margin ?? 30.0);
+        $targetMargin = (float) ($product->target_margin_override
+            ?? $company->default_target_margin ?? 30.0);
 
-        $minimumMargin = $product->minimum_margin_override
-            ?? (float) ($company->default_minimum_margin ?? 10.0);
+        $minimumMargin = (float) ($product->minimum_margin_override
+            ?? $company->default_minimum_margin ?? 10.0);
 
         return [
             'target_margin' => $targetMargin,
@@ -131,7 +131,7 @@ class MarginService
     /**
      * Check if user can sell at this price
      *
-     * @return array{allowed: bool, reason: string|null, requires_permission?: string, margin_level?: array}
+     * @return array{allowed: bool, reason: string|null, requires_permission?: string, margin_level?: array<string, mixed>}
      */
     public function canSellAtPrice(
         Product $product,
@@ -151,33 +151,33 @@ class MarginService
                 ];
             }
 
-            if (! $user->can('sell_below_cost')) {
+            if (! $user->can('pricing.sell_below_cost')) {
                 return [
                     'allowed' => false,
                     'reason' => 'You do not have permission to sell below cost',
-                    'requires_permission' => 'sell_below_cost',
+                    'requires_permission' => 'pricing.sell_below_cost',
                 ];
             }
         }
 
         // Below minimum margin check
         if ($marginLevel['level'] === self::LEVEL_ORANGE) {
-            if (! $user->can('sell_below_minimum_margin')) {
+            if (! $user->can('pricing.sell_below_minimum_margin')) {
                 return [
                     'allowed' => false,
                     'reason' => 'You do not have permission to sell below minimum margin',
-                    'requires_permission' => 'sell_below_minimum_margin',
+                    'requires_permission' => 'pricing.sell_below_minimum_margin',
                 ];
             }
         }
 
         // Below target margin check (warning only, generally allowed)
         if ($marginLevel['level'] === self::LEVEL_YELLOW) {
-            if (! $user->can('sell_below_target_margin')) {
+            if (! $user->can('pricing.sell_below_target_margin')) {
                 return [
                     'allowed' => false,
                     'reason' => 'You do not have permission to sell below target margin',
-                    'requires_permission' => 'sell_below_target_margin',
+                    'requires_permission' => 'pricing.sell_below_target_margin',
                 ];
             }
         }

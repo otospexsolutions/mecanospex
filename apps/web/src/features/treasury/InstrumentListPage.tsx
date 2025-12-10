@@ -141,7 +141,16 @@ export function InstrumentListPage() {
                     {typeLabels[instrument.type]}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {instrument.partner_name}
+                    {instrument.partner_id ? (
+                      <Link
+                        to={`/sales/customers/${instrument.partner_id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {instrument.partner_name}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">{instrument.partner_name ?? 'Unknown'}</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {instrument.maturity_date ? (
@@ -154,7 +163,16 @@ export function InstrumentListPage() {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {instrument.repository_name}
+                    {instrument.repository_id ? (
+                      <Link
+                        to={`/treasury/repositories/${instrument.repository_id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {instrument.repository_name}
+                      </Link>
+                    ) : (
+                      <span>{instrument.repository_name ?? 'Unknown'}</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span

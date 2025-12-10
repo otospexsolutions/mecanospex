@@ -16,11 +16,6 @@ class PricingService
     /**
      * Get price for a product based on partner, quantity, and date
      *
-     * @param  string  $productId
-     * @param  string|null  $partnerId
-     * @param  string  $quantity
-     * @param  string  $currency
-     * @param  \DateTimeInterface|null  $date
      * @return array ['price' => string, 'source' => string, 'price_list_id' => string|null]
      */
     public function getPrice(
@@ -67,11 +62,6 @@ class PricingService
     /**
      * Get partner-specific price
      *
-     * @param  string  $partnerId
-     * @param  string  $productId
-     * @param  string  $quantity
-     * @param  string  $currency
-     * @param  \DateTimeInterface  $date
      * @return array|null ['price' => string, 'price_list_id' => string]
      */
     private function getPartnerPrice(
@@ -125,10 +115,6 @@ class PricingService
     /**
      * Get price from default price list
      *
-     * @param  string  $productId
-     * @param  string  $quantity
-     * @param  string  $currency
-     * @param  \DateTimeInterface  $date
      * @return array|null ['price' => string, 'price_list_id' => string]
      */
     private function getDefaultPriceListPrice(
@@ -168,11 +154,6 @@ class PricingService
 
     /**
      * Get price from specific price list with quantity breaks
-     *
-     * @param  string  $priceListId
-     * @param  string  $productId
-     * @param  string  $quantity
-     * @return string|null
      */
     private function getPriceFromList(string $priceListId, string $productId, string $quantity): ?string
     {
@@ -192,10 +173,6 @@ class PricingService
     /**
      * Calculate line subtotal with discounts
      *
-     * @param  string  $unitPrice
-     * @param  string  $quantity
-     * @param  string|null  $discountPercent
-     * @param  string|null  $discountAmount
      * @return array ['subtotal' => string, 'discount_amount' => string, 'total' => string]
      */
     public function calculateLineTotal(
@@ -236,9 +213,6 @@ class PricingService
     /**
      * Apply document-level discount
      *
-     * @param  string  $subtotal
-     * @param  string|null  $discountPercent
-     * @param  string|null  $discountAmount
      * @return array ['discount_amount' => string, 'total' => string]
      */
     public function applyDocumentDiscount(
@@ -271,10 +245,6 @@ class PricingService
 
     /**
      * Get all quantity breaks for a product in a price list
-     *
-     * @param  string  $priceListId
-     * @param  string  $productId
-     * @return Collection
      */
     public function getQuantityBreaks(string $priceListId, string $productId): Collection
     {
@@ -287,10 +257,6 @@ class PricingService
     /**
      * Bulk price lookup for multiple products
      *
-     * @param  array  $productIds
-     * @param  string|null  $partnerId
-     * @param  string  $currency
-     * @param  \DateTimeInterface|null  $date
      * @return array Keyed by product_id
      */
     public function getBulkPrices(

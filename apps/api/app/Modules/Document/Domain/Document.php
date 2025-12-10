@@ -6,10 +6,12 @@ namespace App\Modules\Document\Domain;
 
 use App\Modules\Company\Domain\Company;
 use App\Modules\Company\Domain\Location;
+use App\Modules\Document\Domain\Enums\CreditNoteReason;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
+use App\Modules\Treasury\Domain\PaymentAllocation;
 use App\Modules\Vehicle\Domain\Vehicle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -56,10 +58,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read Document|null $sourceDocument
  * @property-read Collection<int, DocumentLine> $lines
  * @property-read Collection<int, DocumentAdditionalCost> $additionalCosts
+ * @property-read Collection<int, PaymentAllocation> $allocations
+ * @property-read Collection<int, Document> $creditNotes
  *
  * @method static Builder<static> forTenant(string $tenantId)
  * @method static Builder<static> ofType(DocumentType $type)
  * @method static Builder<static> inStatus(DocumentStatus $status)
+ * @method static Builder<static> creditNotes()
  */
 class Document extends Model
 {
@@ -99,6 +104,7 @@ class Document extends Model
         'internal_notes',
         'reference',
         'source_document_id',
+        'credit_note_reason',
         'payload',
     ];
 
@@ -110,6 +116,7 @@ class Document extends Model
         return [
             'type' => DocumentType::class,
             'status' => DocumentStatus::class,
+            'credit_note_reason' => CreditNoteReason::class,
             'document_date' => 'date',
             'due_date' => 'date',
             'valid_until' => 'date',
@@ -184,6 +191,23 @@ class Document extends Model
     public function additionalCosts(): HasMany
     {
         return $this->hasMany(DocumentAdditionalCost::class);
+    }
+
+    /**
+     * @return HasMany<PaymentAllocation, $this>
+     */
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class, 'document_id');
+    }
+
+    /**
+     * @return HasMany<Document, $this>
+     */
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(Document::class, 'source_document_id')
+            ->where('type', DocumentType::CreditNote);
     }
 
     /**
@@ -276,6 +300,17 @@ class Document extends Model
     public function scopeForCompany(Builder $query, string $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Scope to filter credit notes
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeCreditNotes(Builder $query): Builder
+    {
+        return $query->where('type', DocumentType::CreditNote);
     }
 
     /**

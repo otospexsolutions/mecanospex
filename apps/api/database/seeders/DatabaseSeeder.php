@@ -50,8 +50,23 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Creating test users...');
         $this->createUsers($tenant, $company);
 
-        $this->command->info('Creating test partners...');
+        $this->command->info('Creating payment methods...');
+        $this->call(PaymentMethodSeeder::class);
+
+        $this->command->info('Creating payment repositories...');
+        $this->call(PaymentRepositorySeeder::class);
+
+        $this->command->info('Creating test partners (customers and suppliers)...');
         $this->createPartners($tenant, $company);
+
+        $this->command->info('Creating products...');
+        $this->createProducts($company);
+
+        $this->command->info('Creating vehicles...');
+        $this->createVehicles($company);
+
+        $this->command->info('Creating Smart Payment test data...');
+        $this->call(SmartPaymentTestDataSeeder::class);
 
         $this->command->info('Database seeding completed!');
     }
@@ -161,48 +176,107 @@ class DatabaseSeeder extends Seeder
 
     private function createPartners(Tenant $tenant, Company $company): void
     {
-        $partners = [
-            [
-                'name' => 'Acme Corporation',
-                'type' => 'customer',
-                'code' => 'ACME',
-                'email' => 'contact@acme.com',
-                'phone' => '+33123456789',
-            ],
-            [
-                'name' => 'TechSupply Inc',
-                'type' => 'supplier',
-                'code' => 'TECH',
-                'email' => 'orders@techsupply.com',
-                'phone' => '+33987654321',
-            ],
-            [
-                'name' => 'Auto Parts France',
-                'type' => 'customer',
-                'code' => 'APF',
-                'email' => 'info@autoparts.fr',
-                'phone' => '+33111222333',
-            ],
-            [
-                'name' => 'Client Premium SA',
-                'type' => 'customer',
-                'code' => 'PREM',
-                'email' => 'premium@client.com',
-                'phone' => '+33444555666',
-            ],
-        ];
-
-        foreach ($partners as $partner) {
-            Partner::create([
-                'id' => Str::uuid()->toString(),
+        // Create 10 customers using factory
+        Partner::factory()
+            ->count(10)
+            ->customer()
+            ->create([
+                'tenant_id' => $tenant->id,
                 'company_id' => $company->id,
-                'type' => $partner['type'],
-                'code' => $partner['code'],
-                'name' => $partner['name'],
-                'email' => $partner['email'],
-                'phone' => $partner['phone'],
-                'country_code' => 'FR',
             ]);
+
+        // Create 10 suppliers using factory
+        Partner::factory()
+            ->count(10)
+            ->supplier()
+            ->create([
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+            ]);
+
+        // Create 2 partners that are both customer and supplier
+        Partner::factory()
+            ->count(2)
+            ->both()
+            ->create([
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+            ]);
+
+        // Create 1 inactive partner
+        Partner::factory()
+            ->inactive()
+            ->create([
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+            ]);
+
+        $this->command->info('Created 23 partners (10 customers, 10 suppliers, 2 both, 1 inactive)');
+    }
+
+    private function createProducts(Company $company): void
+    {
+        // Create 80 physical products (goods)
+        \App\Modules\Product\Domain\Product::factory()
+            ->count(80)
+            ->goods()
+            ->create([
+                'tenant_id' => $company->tenant_id,
+                'company_id' => $company->id,
+            ]);
+
+        // Create 15 services
+        \App\Modules\Product\Domain\Product::factory()
+            ->count(15)
+            ->service()
+            ->create([
+                'tenant_id' => $company->tenant_id,
+                'company_id' => $company->id,
+            ]);
+
+        // Create 5 inactive products
+        \App\Modules\Product\Domain\Product::factory()
+            ->count(5)
+            ->inactive()
+            ->create([
+                'tenant_id' => $company->tenant_id,
+                'company_id' => $company->id,
+            ]);
+
+        $this->command->info('Created 100 products (80 goods, 15 services, 5 inactive)');
+    }
+
+    private function createVehicles(Company $company): void
+    {
+        // Get all customers (partners with type customer or both)
+        $customers = Partner::where('company_id', $company->id)
+            ->whereIn('type', ['customer', 'both'])
+            ->get();
+
+        if ($customers->isEmpty()) {
+            $this->command->warn('No customers found to assign vehicles');
+            return;
         }
+
+        $vehicleCount = 0;
+
+        // Assign 1-3 vehicles to 8 random customers
+        $selectedCustomers = $customers->random(min(8, $customers->count()));
+
+        foreach ($selectedCustomers as $customer) {
+            $count = rand(1, 3);
+
+            \App\Modules\Vehicle\Domain\Vehicle::factory()
+                ->count($count)
+                ->create([
+                    'tenant_id' => $company->tenant_id,
+                    'company_id' => $company->id,
+                    'partner_id' => $customer->id,
+                ]);
+
+            $vehicleCount += $count;
+        }
+
+        $this->command->info("Created {$vehicleCount} vehicles for {$selectedCustomers->count()} customers");
     }
 }

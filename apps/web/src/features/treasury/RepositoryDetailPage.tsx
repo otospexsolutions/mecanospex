@@ -1,0 +1,378 @@
+import { Link, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, Vault, Building2, CreditCard, Wallet, Calendar, ExternalLink } from 'lucide-react'
+import { api } from '../../lib/api'
+
+interface Repository {
+  id: string
+  code: string
+  name: string
+  type: 'cash_register' | 'safe' | 'bank_account' | 'virtual'
+  bank_name: string | null
+  account_number: string | null
+  iban: string | null
+  bic: string | null
+  balance: string
+  is_active: boolean
+}
+
+interface RepositoryResponse {
+  data: Repository
+}
+
+interface Allocation {
+  document_id: string
+  document_number: string
+  amount: string
+}
+
+interface Transaction {
+  id: string
+  payment_number: string
+  partner_id: string
+  partner_name: string | null
+  payment_method_name: string | null
+  amount: string
+  currency: string
+  payment_date: string
+  status: string
+  payment_type: string | null
+  reference: string | null
+  notes: string | null
+  allocations: Allocation[]
+  created_at: string
+}
+
+interface TransactionsResponse {
+  data: Transaction[]
+  meta: {
+    total: number
+    repository_id: string
+    repository_name: string
+  }
+}
+
+const typeIcons: Record<Repository['type'], React.ComponentType<{ className?: string }>> = {
+  cash_register: CreditCard,
+  safe: Vault,
+  bank_account: Building2,
+  virtual: Wallet,
+}
+
+const typeLabels: Record<Repository['type'], string> = {
+  cash_register: 'Cash Register',
+  safe: 'Safe',
+  bank_account: 'Bank Account',
+  virtual: 'Virtual',
+}
+
+const typeColors: Record<Repository['type'], string> = {
+  cash_register: 'bg-green-100 text-green-800',
+  safe: 'bg-purple-100 text-purple-800',
+  bank_account: 'bg-blue-100 text-blue-800',
+  virtual: 'bg-gray-100 text-gray-800',
+}
+
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+  failed: 'bg-red-100 text-red-800',
+  reversed: 'bg-gray-100 text-gray-800',
+}
+
+const statusLabels: Record<string, string> = {
+  pending: 'Pending',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  failed: 'Failed',
+  reversed: 'Reversed',
+}
+
+export function RepositoryDetailPage() {
+  const { t } = useTranslation()
+  const { id } = useParams<{ id: string }>()
+
+  const { data: repositoryData, isLoading: isLoadingRepository, error: repositoryError } = useQuery({
+    queryKey: ['payment-repository', id],
+    queryFn: async () => {
+      const response = await api.get<RepositoryResponse>(`/payment-repositories/${id}`)
+      return response.data
+    },
+    enabled: !!id,
+  })
+
+  const { data: transactionsData, isLoading: isLoadingTransactions } = useQuery({
+    queryKey: ['payment-repository-transactions', id],
+    queryFn: async () => {
+      const response = await api.get<TransactionsResponse>(`/payment-repositories/${id}/transactions`)
+      return response.data
+    },
+    enabled: !!id,
+  })
+
+  const repository = repositoryData?.data
+  const transactions = Array.isArray(transactionsData?.data) ? transactionsData.data : []
+
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(num)
+  }
+
+  if (isLoadingRepository) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-500">{t('status.loading')}</div>
+      </div>
+    )
+  }
+
+  if (repositoryError || !repository) {
+    return (
+      <div className="space-y-6">
+        <Link
+          to="/treasury/repositories"
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('actions.back')}
+        </Link>
+        <div className="rounded-lg bg-red-50 p-4 text-red-700">
+          {t('errors.loadingFailed', 'Error loading repository. Please try again.')}
+        </div>
+      </div>
+    )
+  }
+
+  const Icon = typeIcons[repository.type]
+
+  return (
+    <div className="space-y-6">
+      {/* Back Link */}
+      <Link
+        to="/treasury/repositories"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t('navigation.repositories', 'Repositories')}
+      </Link>
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`rounded-xl p-3 ${typeColors[repository.type]}`}>
+            <Icon className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{repository.name}</h1>
+            <p className="text-sm text-gray-500 font-mono">{repository.code}</p>
+          </div>
+        </div>
+        <div className="text-end">
+          <p className="text-sm text-gray-500">{t('treasury.balance', 'Current Balance')}</p>
+          <p className={`text-3xl font-bold ${parseFloat(repository.balance) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatCurrency(repository.balance)}
+          </p>
+        </div>
+      </div>
+
+      {/* Repository Info */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('common.details', 'Details')}</h2>
+          <dl className="space-y-3">
+            <div className="flex justify-between">
+              <dt className="text-gray-500">{t('treasury.type', 'Type')}</dt>
+              <dd>
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[repository.type]}`}>
+                  {typeLabels[repository.type]}
+                </span>
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-500">{t('common.status', 'Status')}</dt>
+              <dd>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    repository.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {repository.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
+                </span>
+              </dd>
+            </div>
+            {repository.bank_name && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">{t('treasury.bankName', 'Bank')}</dt>
+                <dd className="text-gray-900">{repository.bank_name}</dd>
+              </div>
+            )}
+            {repository.account_number && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">{t('treasury.accountNumber', 'Account')}</dt>
+                <dd className="text-gray-900 font-mono">{repository.account_number}</dd>
+              </div>
+            )}
+            {repository.iban && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">IBAN</dt>
+                <dd className="text-gray-900 font-mono text-sm">{repository.iban}</dd>
+              </div>
+            )}
+            {repository.bic && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">BIC/SWIFT</dt>
+                <dd className="text-gray-900 font-mono">{repository.bic}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('treasury.summary', 'Summary')}</h2>
+          <dl className="space-y-3">
+            <div className="flex justify-between">
+              <dt className="text-gray-500">{t('treasury.totalTransactions', 'Total Transactions')}</dt>
+              <dd className="text-gray-900 font-semibold">{transactions.length}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-500">{t('treasury.totalReceived', 'Total Received')}</dt>
+              <dd className="text-green-600 font-semibold">
+                {formatCurrency(
+                  transactions
+                    .filter((t) => t.status === 'completed')
+                    .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t('treasury.transactionHistory', 'Transaction History')}
+          </h2>
+        </div>
+
+        {isLoadingTransactions ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">{t('status.loading')}</div>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <p className="text-gray-500">{t('treasury.noTransactions', 'No transactions yet')}</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('treasury.payment', 'Payment')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('common.partner', 'Partner')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('treasury.method', 'Method')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('common.date', 'Date')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('common.status', 'Status')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('treasury.allocatedTo', 'Allocated To')}
+                  </th>
+                  <th className="px-6 py-3 text-end text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {t('treasury.amount', 'Amount')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {transactions.map((transaction) => (
+                  <tr key={transaction.id} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <Link
+                        to={`/treasury/payments/${transaction.id}`}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {transaction.payment_number}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                      {transaction.partner_id ? (
+                        <Link
+                          to={`/sales/customers/${transaction.partner_id}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {transaction.partner_name ?? 'Unknown'}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">{transaction.partner_name ?? 'Unknown'}</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      {transaction.payment_method_name ?? '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {new Date(transaction.payment_date).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          statusColors[transaction.status] ?? 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {statusLabels[transaction.status] ?? transaction.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {transaction.allocations.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {transaction.allocations.slice(0, 2).map((allocation) => (
+                            <Link
+                              key={allocation.document_id}
+                              to={`/sales/invoices/${allocation.document_id}`}
+                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                            >
+                              {allocation.document_number}
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          ))}
+                          {transaction.allocations.length > 2 && (
+                            <span className="text-gray-400">
+                              +{transaction.allocations.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">
+                          {transaction.payment_type === 'advance' ? 'Advance' : '-'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-end text-sm font-medium text-green-600">
+                      +{formatCurrency(transaction.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

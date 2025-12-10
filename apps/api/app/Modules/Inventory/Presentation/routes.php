@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Modules\Company\Presentation\Controllers\LocationController;
 use App\Modules\Identity\Presentation\Middleware\SetPermissionsTeam;
+use App\Modules\Inventory\Presentation\Controllers\CountingItemController;
+use App\Modules\Inventory\Presentation\Controllers\InventoryCountingController;
 use App\Modules\Inventory\Presentation\Controllers\StockLevelController;
 use App\Modules\Inventory\Presentation\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
@@ -72,4 +74,70 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', SetPermissionsTeam::
     Route::post('/stock-movements/adjust', [StockMovementController::class, 'adjust'])
         ->middleware('can:inventory.adjust')
         ->name('stock-movements.adjust');
+
+    // ==========================================
+    // Inventory Counting Routes
+    // ==========================================
+
+    // Dashboard
+    Route::get('/inventory/countings/dashboard', [InventoryCountingController::class, 'dashboard'])
+        ->middleware('can:inventory.view')
+        ->name('inventory-countings.dashboard');
+
+    // My Tasks (counter view)
+    Route::get('/inventory/countings/my-tasks', [InventoryCountingController::class, 'myTasks'])
+        ->name('inventory-countings.my-tasks');
+
+    // List & CRUD
+    Route::get('/inventory/countings', [InventoryCountingController::class, 'index'])
+        ->middleware('can:inventory.view')
+        ->name('inventory-countings.index');
+
+    Route::post('/inventory/countings', [InventoryCountingController::class, 'store'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.store');
+
+    Route::get('/inventory/countings/{counting}', [InventoryCountingController::class, 'show'])
+        ->middleware('can:inventory.view')
+        ->name('inventory-countings.show');
+
+    // Counter-specific endpoints (BLIND view)
+    Route::get('/inventory/countings/{counting}/counter-view', [InventoryCountingController::class, 'counterView'])
+        ->name('inventory-countings.counter-view');
+
+    Route::get('/inventory/countings/{counting}/items/to-count', [CountingItemController::class, 'toCount'])
+        ->name('inventory-countings.items.to-count');
+
+    Route::get('/inventory/countings/{counting}/lookup', [CountingItemController::class, 'lookupByBarcode'])
+        ->name('inventory-countings.lookup');
+
+    // Submit count
+    Route::post('/inventory/countings/{counting}/items/{item}/count', [CountingItemController::class, 'submitCount'])
+        ->name('inventory-countings.items.submit-count');
+
+    // Admin actions
+    Route::post('/inventory/countings/{counting}/activate', [InventoryCountingController::class, 'activate'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.activate');
+
+    Route::post('/inventory/countings/{counting}/cancel', [InventoryCountingController::class, 'cancel'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.cancel');
+
+    Route::post('/inventory/countings/{counting}/finalize', [InventoryCountingController::class, 'finalize'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.finalize');
+
+    // Reconciliation
+    Route::get('/inventory/countings/{counting}/reconciliation', [CountingItemController::class, 'reconciliation'])
+        ->middleware('can:inventory.view')
+        ->name('inventory-countings.reconciliation');
+
+    Route::post('/inventory/countings/{counting}/trigger-third-count', [CountingItemController::class, 'triggerThirdCount'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.trigger-third-count');
+
+    Route::post('/inventory/countings/items/{item}/override', [CountingItemController::class, 'override'])
+        ->middleware('can:inventory.adjust')
+        ->name('inventory-countings.items.override');
 });

@@ -22,6 +22,10 @@ export const PERMISSIONS = {
   'treasury.create': ['admin', 'treasury', 'accountant', 'manager'],
   'treasury.edit': ['admin', 'treasury', 'accountant', 'manager'],
 
+  // Treasury - Repositories
+  'repositories.view': ['admin', 'treasury', 'accountant', 'manager'],
+  'repositories.manage': ['admin', 'accountant'],
+
   // Reports
   'reports.view': ['admin', 'manager', 'accountant'],
 
@@ -43,6 +47,10 @@ export const PERMISSIONS = {
   'vehicles.view': ['admin', 'sales', 'manager'],
   'vehicles.create': ['admin', 'sales', 'manager'],
   'vehicles.edit': ['admin', 'sales', 'manager'],
+
+  // Pricing
+  'pricing.view': ['admin', 'sales', 'manager'],
+  'pricing.manage': ['admin', 'manager'],
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
@@ -57,6 +65,8 @@ export const MODULE_PERMISSIONS: Partial<Record<string, Permission[]>> = {
   vehicles: ['vehicles.view'],
   reports: ['reports.view'],
   finance: ['accounts.view', 'journal.view'],
+  pricing: ['pricing.view'],
+  accounts: ['accounts.view'],
   settings: ['settings.view'],
 }
 

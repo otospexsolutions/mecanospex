@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Modules\Treasury\Domain\CountryPaymentSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Country extends Model
 {
@@ -56,5 +58,13 @@ class Country extends Model
     public function taxRates(): HasMany
     {
         return $this->hasMany(CountryTaxRate::class, 'country_code', 'code');
+    }
+
+    /**
+     * Get the payment settings for the country.
+     */
+    public function paymentSettings(): HasOne
+    {
+        return $this->hasOne(CountryPaymentSettings::class, 'country_code', 'code');
     }
 }

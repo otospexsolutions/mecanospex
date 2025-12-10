@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Trash2, Package, DollarSign, Barcode, Tag, Clock } from 'lucide-react'
 import { api, apiDelete } from '../../lib/api'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 
 type ProductType = 'part' | 'service' | 'consumable'
 
@@ -34,17 +36,15 @@ const typeColors: Record<ProductType, string> = {
   consumable: 'bg-orange-100 text-orange-800',
 }
 
-const typeLabels: Record<ProductType, string> = {
-  part: 'Part',
-  service: 'Service',
-  consumable: 'Consumable',
-}
-
 export function ProductDetailPage() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['inventory', 'common'])
+
+  // Helper to get translated type labels
+  const getTypeLabel = (type: ProductType) => t(`products.types.${type}`)
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -68,9 +68,12 @@ export function ProductDetailPage() {
   })
 
   const handleDelete = () => {
-    if (confirm(t('messages.confirmDelete', 'Are you sure you want to delete this product?'))) {
-      deleteMutation.mutate()
-    }
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDelete = () => {
+    deleteMutation.mutate()
+    setShowDeleteDialog(false)
   }
 
   const formatCurrency = (amount: string | null) => {
@@ -100,7 +103,7 @@ export function ProductDetailPage() {
   if (error || !data) {
     return (
       <div className="rounded-lg bg-red-50 p-4 text-red-700">
-        {t('errors.loadingFailed', 'Error loading product. Please try again.')}
+        {t('common:errors.loadingFailed')}
       </div>
     )
   }
@@ -117,7 +120,7 @@ export function ProductDetailPage() {
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            {t('actions.back')}
+            {t('common:actions.back')}
           </Link>
           <div>
             <div className="flex items-center gap-3">
@@ -125,7 +128,7 @@ export function ProductDetailPage() {
               <span
                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[product.type]}`}
               >
-                {typeLabels[product.type]}
+                {getTypeLabel(product.type)}
               </span>
               <span
                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -134,7 +137,7 @@ export function ProductDetailPage() {
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                {product.is_active ? t('status.active') : t('status.inactive')}
+                {product.is_active ? t('common:status.active') : t('common:status.inactive')}
               </span>
             </div>
             <p className="text-sm text-gray-500">SKU: {product.sku}</p>
@@ -146,7 +149,7 @@ export function ProductDetailPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Edit className="h-4 w-4" />
-            {t('actions.edit')}
+            {t('common:actions.edit')}
           </Link>
           <button
             onClick={handleDelete}
@@ -154,7 +157,7 @@ export function ProductDetailPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
-            {deleteMutation.isPending ? t('status.deleting') : t('actions.delete')}
+            {deleteMutation.isPending ? t('common:status.saving') : t('common:actions.delete')}
           </button>
         </div>
       </div>
@@ -166,25 +169,25 @@ export function ProductDetailPage() {
           {/* Basic Information */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              {t('sections.basicInfo', 'Basic Information')}
+              {t('products.sections.basicInfo')}
             </h2>
             <div className="space-y-4">
               {product.description && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Description</label>
+                  <label className="text-sm font-medium text-gray-500">{t('products.description')}</label>
                   <p className="mt-1 text-gray-900">{product.description}</p>
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Unit</label>
+                  <label className="text-sm font-medium text-gray-500">{t('products.unit')}</label>
                   <p className="mt-1 text-gray-900">{product.unit ?? '-'}</p>
                 </div>
                 {product.barcode && (
                   <div className="flex items-center gap-2">
                     <Barcode className="h-4 w-4 text-gray-400" />
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Barcode</label>
+                      <label className="text-sm font-medium text-gray-500">{t('products.barcode')}</label>
                       <p className="mt-1 text-gray-900">{product.barcode}</p>
                     </div>
                   </div>
@@ -197,23 +200,23 @@ export function ProductDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
               <DollarSign className="h-5 w-5 text-gray-400" />
-              {t('sections.pricing', 'Pricing')}
+              {t('products.sections.pricing')}
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg bg-green-50 p-4">
-                <label className="text-sm font-medium text-green-700">Sale Price</label>
+                <label className="text-sm font-medium text-green-700">{t('products.salePrice')}</label>
                 <p className="mt-1 text-xl font-bold text-green-900">
                   {formatCurrency(product.sale_price)}
                 </p>
               </div>
               <div className="rounded-lg bg-blue-50 p-4">
-                <label className="text-sm font-medium text-blue-700">Purchase Price</label>
+                <label className="text-sm font-medium text-blue-700">{t('products.purchasePrice')}</label>
                 <p className="mt-1 text-xl font-bold text-blue-900">
                   {formatCurrency(product.purchase_price)}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 p-4">
-                <label className="text-sm font-medium text-gray-700">Tax Rate</label>
+                <label className="text-sm font-medium text-gray-700">{t('products.taxRate')}</label>
                 <p className="mt-1 text-xl font-bold text-gray-900">
                   {product.tax_rate ? `${product.tax_rate}%` : '-'}
                 </p>
@@ -221,7 +224,7 @@ export function ProductDetailPage() {
             </div>
             {product.sale_price && product.purchase_price && (
               <div className="mt-4 rounded-lg bg-yellow-50 p-4">
-                <label className="text-sm font-medium text-yellow-700">Margin</label>
+                <label className="text-sm font-medium text-yellow-700">{t('products.margin')}</label>
                 <p className="mt-1 text-lg font-semibold text-yellow-900">
                   {formatCurrency(
                     String(parseFloat(product.sale_price) - parseFloat(product.purchase_price))
@@ -241,12 +244,12 @@ export function ProductDetailPage() {
             <div className="rounded-lg border border-gray-200 bg-white p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
                 <Tag className="h-5 w-5 text-gray-400" />
-                {t('sections.automotiveInfo', 'Automotive Information')}
+                {t('products.sections.automotiveInfo')}
               </h2>
               <div className="space-y-4">
                 {product.oem_numbers && product.oem_numbers.length > 0 && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">OEM Numbers</label>
+                    <label className="text-sm font-medium text-gray-500">{t('products.oemNumbers')}</label>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {product.oem_numbers.map((oem, index) => (
                         <span
@@ -261,16 +264,16 @@ export function ProductDetailPage() {
                 )}
                 {product.cross_references && product.cross_references.length > 0 && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Cross References</label>
+                    <label className="text-sm font-medium text-gray-500">{t('products.crossReferences')}</label>
                     <div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-4 py-2 text-start text-xs font-medium uppercase text-gray-500">
-                              Brand
+                              {t('products.brand')}
                             </th>
                             <th className="px-4 py-2 text-start text-xs font-medium uppercase text-gray-500">
-                              Reference
+                              {t('products.reference')}
                             </th>
                           </tr>
                         </thead>
@@ -299,15 +302,15 @@ export function ProductDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
               <Package className="h-5 w-5 text-gray-400" />
-              {t('sections.stockLevels', 'Stock Levels')}
+              {t('products.sections.stockLevels')}
             </h2>
             <div className="text-center py-4">
-              <p className="text-sm text-gray-500">Stock information coming soon</p>
+              <p className="text-sm text-gray-500">{t('products.messages.stockComingSoon')}</p>
               <Link
                 to="/inventory/stock"
                 className="mt-2 inline-block text-sm text-blue-600 hover:text-blue-800"
               >
-                View all stock levels
+                {t('products.messages.viewAllStock')}
               </Link>
             </div>
           </div>
@@ -316,16 +319,16 @@ export function ProductDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
               <Clock className="h-5 w-5 text-gray-400" />
-              {t('sections.metadata', 'Metadata')}
+              {t('products.sections.metadata')}
             </h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Created</span>
+                <span className="text-gray-500">{t('products.created')}</span>
                 <span className="text-gray-900">{formatDate(product.created_at)}</span>
               </div>
               {product.updated_at && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Last Updated</span>
+                  <span className="text-gray-500">{t('products.lastUpdated')}</span>
                   <span className="text-gray-900">{formatDate(product.updated_at)}</span>
                 </div>
               )}
@@ -337,6 +340,18 @@ export function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => { setShowDeleteDialog(false) }}
+        onConfirm={confirmDelete}
+        title={t('products.messages.deleteProduct')}
+        message={t('products.messages.confirmDeleteProduct', { name: product.name })}
+        confirmText={t('common:actions.delete')}
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   )
 }

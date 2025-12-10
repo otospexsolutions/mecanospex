@@ -68,6 +68,31 @@ export async function getJournalEntries(page = 1): Promise<{
   return apiGet(`/journal-entries?page=${page}`)
 }
 
+export async function getJournalEntry(id: string): Promise<JournalEntry> {
+  return apiGet<JournalEntry>(`/journal-entries/${id}`)
+}
+
+export interface CreateJournalLineData {
+  account_id: string
+  debit: string
+  credit: string
+  description?: string
+}
+
+export interface CreateJournalEntryData {
+  entry_date: string
+  description?: string
+  lines: CreateJournalLineData[]
+}
+
+export async function createJournalEntry(data: CreateJournalEntryData): Promise<JournalEntry> {
+  return apiPost<JournalEntry>('/journal-entries', data)
+}
+
+export async function postJournalEntry(id: string): Promise<JournalEntry> {
+  return apiPost<JournalEntry>(`/journal-entries/${id}/post`, undefined)
+}
+
 export async function getLedger(filters?: LedgerFilters): Promise<LedgerLine[]> {
   const params = new URLSearchParams()
 

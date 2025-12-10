@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Accounting\Domain;
 
 use App\Modules\Accounting\Domain\Enums\AccountType;
+use App\Modules\Accounting\Domain\Enums\SystemAccountPurpose;
 use App\Modules\Company\Domain\Company;
 use App\Modules\Tenant\Domain\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use RuntimeException;
 
 /**
  * @property string $id
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $code
  * @property string $name
  * @property AccountType $type
+ * @property SystemAccountPurpose|null $system_purpose
  * @property string|null $description
  * @property bool $is_active
  * @property bool $is_system
@@ -34,6 +37,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, Account> $children
  *
  * @method static Builder<static> forTenant(string $tenantId)
+ * @method static Builder<static> forCompany(string $companyId)
+ * @method static Builder<static> withPurpose(SystemAccountPurpose $purpose)
  * @method static Builder<static> active()
  * @method static Builder<static> ofType(AccountType $type)
  */
@@ -56,6 +61,7 @@ class Account extends Model
         'code',
         'name',
         'type',
+        'system_purpose',
         'description',
         'is_active',
         'is_system',
@@ -69,6 +75,7 @@ class Account extends Model
     {
         return [
             'type' => AccountType::class,
+            'system_purpose' => SystemAccountPurpose::class,
             'is_active' => 'boolean',
             'is_system' => 'boolean',
         ];
@@ -197,5 +204,50 @@ class Account extends Model
     public function scopeForCompany(Builder $query, string $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Scope to filter accounts by system purpose
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWithPurpose(Builder $query, SystemAccountPurpose $purpose): Builder
+    {
+        return $query->where('system_purpose', $purpose->value);
+    }
+
+    /**
+     * Find an account by its system purpose for a given company.
+     *
+     * This is the preferred way to look up system accounts instead of
+     * hardcoding account codes which vary by country.
+     */
+    public static function findByPurpose(string $companyId, SystemAccountPurpose $purpose): ?self
+    {
+        return static::forCompany($companyId)
+            ->withPurpose($purpose)
+            ->first();
+    }
+
+    /**
+     * Find an account by its system purpose or throw an exception.
+     *
+     * Use this in GL operations where the account MUST exist.
+     *
+     * @throws RuntimeException When no account with the given purpose exists
+     */
+    public static function findByPurposeOrFail(string $companyId, SystemAccountPurpose $purpose): self
+    {
+        $account = static::findByPurpose($companyId, $purpose);
+
+        if ($account === null) {
+            throw new RuntimeException(
+                "No account found with purpose '{$purpose->value}' for company {$companyId}. ".
+                'Please ensure the chart of accounts has been properly seeded with system purposes.'
+            );
+        }
+
+        return $account;
     }
 }

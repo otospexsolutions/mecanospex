@@ -60,6 +60,22 @@ class DocumentAdditionalCostTest extends TestCase
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->seed(PermissionSeeder::class);
 
+        // Create sanctum permissions from web permissions
+        $webPermissions = \Spatie\Permission\Models\Permission::where('guard_name', 'web')->get();
+        foreach ($webPermissions as $permission) {
+            \Spatie\Permission\Models\Permission::firstOrCreate([
+                'name' => $permission->name,
+                'guard_name' => 'sanctum',
+            ]);
+        }
+
+        // Create Administrator role for sanctum guard with all permissions
+        $adminRole = \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => 'Administrator',
+            'guard_name' => 'sanctum',
+        ]);
+        $adminRole->syncPermissions(\Spatie\Permission\Models\Permission::where('guard_name', 'sanctum')->pluck('name'));
+
         $this->user = User::create([
             'tenant_id' => $this->tenant->id,
             'name' => 'Test User',
@@ -67,7 +83,7 @@ class DocumentAdditionalCostTest extends TestCase
             'password' => 'password123',
             'status' => UserStatus::Active,
         ]);
-        $this->user->assignRole('Administrator'); // Uses web guard by default
+        $this->user->assignRole('Administrator'); // Assign admin role for testing
 
         UserCompanyMembership::create([
             'user_id' => $this->user->id,
@@ -80,7 +96,7 @@ class DocumentAdditionalCostTest extends TestCase
         $supplier = Partner::create([
             'tenant_id' => $this->tenant->id,
             'company_id' => $this->company->id,
-            'partner_type' => PartnerType::Supplier,
+            'type' => PartnerType::Supplier,
             'name' => 'Test Supplier',
             'email' => 'supplier@example.com',
             'country_code' => 'FR',
