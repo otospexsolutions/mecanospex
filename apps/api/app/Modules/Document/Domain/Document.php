@@ -9,6 +9,8 @@ use App\Modules\Company\Domain\Location;
 use App\Modules\Document\Domain\Enums\CreditNoteReason;
 use App\Modules\Document\Domain\Enums\DocumentStatus;
 use App\Modules\Document\Domain\Enums\DocumentType;
+use App\Modules\Document\Domain\Enums\FiscalCategory;
+use App\Modules\Document\Domain\Enums\FiscalStatus;
 use App\Modules\Partner\Domain\Partner;
 use App\Modules\Tenant\Domain\Tenant;
 use App\Modules\Treasury\Domain\PaymentAllocation;
@@ -28,6 +30,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $partner_id
  * @property string|null $vehicle_id
  * @property DocumentType $type
+ * @property FiscalCategory $fiscal_category
+ * @property FiscalStatus $fiscal_status
  * @property DocumentStatus $status
  * @property string $document_number
  * @property \Illuminate\Support\Carbon $document_date
@@ -86,6 +90,8 @@ class Document extends Model
         'partner_id',
         'vehicle_id',
         'type',
+        'fiscal_category',
+        'fiscal_status',
         'status',
         'document_number',
         'document_date',
@@ -115,6 +121,8 @@ class Document extends Model
     {
         return [
             'type' => DocumentType::class,
+            'fiscal_category' => FiscalCategory::class,
+            'fiscal_status' => FiscalStatus::class,
             'status' => DocumentStatus::class,
             'credit_note_reason' => CreditNoteReason::class,
             'document_date' => 'date',
@@ -243,11 +251,43 @@ class Document extends Model
     }
 
     /**
+     * Check if document is fiscally sealed (immutable core fields)
+     */
+    public function isSealed(): bool
+    {
+        return $this->fiscal_status === FiscalStatus::Sealed;
+    }
+
+    /**
+     * Check if document is fiscally voided
+     */
+    public function isVoided(): bool
+    {
+        return $this->fiscal_status === FiscalStatus::Voided;
+    }
+
+    /**
+     * Check if document is fiscally immutable (sealed or voided)
+     */
+    public function isFiscallyImmutable(): bool
+    {
+        return $this->fiscal_status->isImmutable();
+    }
+
+    /**
+     * Check if document requires fiscal compliance
+     */
+    public function isFiscal(): bool
+    {
+        return $this->fiscal_category->isFiscal();
+    }
+
+    /**
      * Check if document can be edited
      */
     public function isEditable(): bool
     {
-        return $this->status->isEditable();
+        return $this->status->isEditable() && !$this->isFiscallyImmutable();
     }
 
     /**
