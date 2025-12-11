@@ -317,6 +317,15 @@ class DocumentController extends Controller
             ], 404);
         }
 
+        if ($documentModel->isFiscallyImmutable()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'DOCUMENT_SEALED',
+                    'message' => 'Sealed fiscal documents cannot be modified. Use credit notes for corrections.',
+                ],
+            ], 422);
+        }
+
         if (! $documentModel->isEditable()) {
             return response()->json([
                 'error' => [
@@ -421,6 +430,15 @@ class DocumentController extends Controller
                     'message' => 'Document not found',
                 ],
             ], 404);
+        }
+
+        if ($documentModel->isFiscallyImmutable()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'FISCAL_DOCUMENT_NOT_DELETABLE',
+                    'message' => 'Sealed fiscal documents cannot be deleted. Use credit notes for corrections.',
+                ],
+            ], 422);
         }
 
         if (! $documentModel->isDeletable()) {
